@@ -31,14 +31,18 @@ int main(int argc, char **argv)
               << "\t3: List all Groups " << std::endl
               << "\t4: List all 3D entities " << std::endl
               << "\t5: List all 2D entities " << std::endl
-              << "\t6: Find Parents" << std::endl
-              << "\t7: Find Entities with multiple parents" << std::endl;
+              << "\t6: Find Root Parents" << std::endl
+              << "\t7: Find Geom Entities with multiple parents" << std::endl
+              << "\t8: Find Single Entity" << std::endl;
+
+
 
 
     std::cin >> inputOption;
 //    inputOption = 7;
 
     moab::Range range, range2, range3;
+    size_t sizes[3];
     switch(inputOption)
       {
       case 1:
@@ -87,12 +91,19 @@ int main(int argc, char **argv)
         findEntitiesWithMultipleParents(interface,range,range2);
 
         range.clear();
+        findEntitiesWithTag(GeomTag(interface,1),interface, rootHandle, range);
+        range3 = moab::intersect(range,range2);
+
+        std::cout << "find 1d Entities with 2 parents" <<std::endl;
+        sizes[0] = printRange(range3,interface);
+
+        range.clear();
         findEntitiesWithTag(GeomTag(interface,2),interface, rootHandle, range);
         range3 = moab::intersect(range,range2);
 
 
         std::cout << "find 2d Entities with 2 parents" <<std::endl;
-        printRange(range3,interface);
+        sizes[1] = printRange(range3,interface);
 
         range.clear();
         findEntitiesWithTag(GeomTag(interface,3),interface, rootHandle, range);
@@ -100,12 +111,25 @@ int main(int argc, char **argv)
 
 
         std::cout << "find 3d Entities with 2 parents" <<std::endl;
-        printRange(range3,interface);
+        sizes[2] = printRange(range3,interface);
+
+
+        std::cout << "num 1d 2 parent elements: " << sizes[0] << std::endl;
+        std::cout << "num 2d 2 parent elements: " << sizes[1] << std::endl;
+        std::cout << "num 3d 2 parent elements: " << sizes[2] << std::endl;
+        break;
+      case 8:
+        std::cout << "Input entity Id" << std::endl;
+
+        moab::EntityHandle IdHandle;
+        std::cin >> IdHandle;
+        interface->list_entity(IdHandle);
 
         break;
       default:
         break;
       };
+    //exit(1);
     }
   return 1;
   }

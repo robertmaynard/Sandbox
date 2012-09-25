@@ -72,7 +72,7 @@ bool LoadMoab(std::string const& file, Interface const& interface)
 
 
 //print all elements in a range
-void printRange(moab::Range const& range, const Interface& interface)
+size_t printRange(moab::Range const& range, const Interface& interface)
 {
   typedef moab::Range::iterator iterator;
   for(iterator i=range.begin(); i!=range.end(); ++i)
@@ -82,6 +82,7 @@ void printRange(moab::Range const& range, const Interface& interface)
     }
 
   std::cout << "Printed: " << range.size() << std::endl;
+  return range.size();
 }
 
 
