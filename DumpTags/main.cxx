@@ -36,9 +36,9 @@ int main(int argc, char **argv)
 
 
     std::cin >> inputOption;
-    //inputOption = 6;
+//    inputOption = 7;
 
-    moab::Range range, range2;
+    moab::Range range, range2, range3;
     switch(inputOption)
       {
       case 1:
@@ -86,17 +86,21 @@ int main(int argc, char **argv)
         findParents(interface,rootHandle,range);
         findEntitiesWithMultipleParents(interface,range,range2);
 
+        range.clear();
         findEntitiesWithTag(GeomTag(interface,2),interface, rootHandle, range);
-        range = moab::intersect(range,range2);
+        range3 = moab::intersect(range,range2);
+
 
         std::cout << "find 2d Entities with 2 parents" <<std::endl;
-        printRange(range,interface);
+        printRange(range3,interface);
 
+        range.clear();
         findEntitiesWithTag(GeomTag(interface,3),interface, rootHandle, range);
-        range = moab::intersect(range,range2);
+        range3 = moab::intersect(range,range2);
 
-        std::cout << "find 3d Entities with 3 parents" <<std::endl;
-        printRange(range,interface);
+
+        std::cout << "find 3d Entities with 2 parents" <<std::endl;
+        printRange(range3,interface);
 
         break;
       default:
