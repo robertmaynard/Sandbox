@@ -38,45 +38,66 @@ int main(int argc, char **argv)
     std::cin >> inputOption;
     //inputOption = 6;
 
+    moab::Range range, range2;
     switch(inputOption)
       {
       case 1:
         std::cout << "Find all Material Set items" << std::endl;
-        printEntitiesWithTag(MaterialTag(),interface, rootHandle);
+        findEntitiesWithTag(MaterialTag(interface),interface,rootHandle,range);
+        printRange(range,interface);
 
         std::cout << "Find all Dirichlet Set items" << std::endl;
-        printEntitiesWithTag(DirichletTag(),interface, rootHandle);
+        findEntitiesWithTag(DirichletTag(interface),interface, rootHandle,range);
+        printRange(range,interface);
 
         std::cout << "Find all Neumann Set items" << std::endl;
-        printEntitiesWithTag(NeumannTag(),interface, rootHandle);
+        findEntitiesWithTag(NeumannTag(interface),interface, rootHandle,range);
+        printRange(range,interface);
         break;
       case 2:
         std::cout << "Raw Sets" << std::endl;
-        printEntitySets(interface, rootHandle);
+        interface->get_entities_by_type(rootHandle,
+                                        moab::MBENTITYSET,
+                                        range);
+        printRange(range,interface);
         break;
       case 3:
         std::cout << "All Groups " << std::endl;
-        printEntitiesWithTag(GroupTag(),interface, rootHandle);
+        findEntitiesWithTag(GroupTag(interface),interface, rootHandle, range);
+        printRange(range,interface);
         break;
       case 4:
         std::cout << "3D Geom " << std::endl;
-        printEntitiesWithTag(GeomTag(3),interface, rootHandle);
+        findEntitiesWithTag(GeomTag(interface,3),interface, rootHandle,range);
+        printRange(range,interface);
         break;
       case 5:
         std::cout << "2D Geom " << std::endl;
-        printEntitiesWithTag(GeomTag(2),interface, rootHandle);
+        findEntitiesWithTag(GeomTag(interface,2),interface, rootHandle, range);
+        printRange(range,interface);
         break;
       case 6:
         std::cout << "All parents with atleast one child" << std::endl;
-        moab::Range parents;
-        find_parent(interface,rootHandle,parents);
-        print_set(parents);
+        findParents(interface,rootHandle,range);
+        printRange(range,interface);
         break;
       case 7:
-        std::cout << "find duplicate 2d Entities" <<std::endl;
-        multiple_parents(GeomTag(2),interface);
-        std::cout << "find duplicate 3d Entities" <<std::endl;
-        multiple_parents(GeomTag(3),interface);
+
+        findParents(interface,rootHandle,range);
+        findEntitiesWithMultipleParents(interface,range,range2);
+
+        findEntitiesWithTag(GeomTag(interface,2),interface, rootHandle, range);
+        range = moab::intersect(range,range2);
+
+        std::cout << "find 2d Entities with 2 parents" <<std::endl;
+        printRange(range,interface);
+
+        findEntitiesWithTag(GeomTag(interface,3),interface, rootHandle, range);
+        range = moab::intersect(range,range2);
+
+        std::cout << "find 3d Entities with 3 parents" <<std::endl;
+        printRange(range,interface);
+
         break;
       default:
         break;

@@ -9,35 +9,6 @@
 #include <iostream>
 #include <memory>
 
-struct Tag
-{
-  const std::string Name_;
-  const int Value_;
-  Tag(std::string const& n):Name_(n),Value_(-1){}
-  Tag(std::string const& n, int v):Name_(n),Value_(v){}
-  const char* name() const { return this->Name_.c_str(); }
-
-  bool hasTagValue() const { return Value_ >= 0; }
-  bool tagValue() const { return Value_; }
-  bool tagValuesMatch(int otherTagValue) const
-   {
-   if(!hasTagValue())
-     {
-     return true;
-     }
-   return (otherTagValue == Value_);
-   }
-};
-
-//lightweight structs to wrap set names, so we detected
-//incorrect names at compile time
-struct MaterialTag : Tag{ MaterialTag():Tag("MATERIAL_SET"){} };
-struct DirichletTag : Tag{ DirichletTag():Tag("DIRICHLET_SET"){}};
-struct NeumannTag: Tag{ NeumannTag():Tag("NEUMANN_SET"){}};
-
-struct GeomTag: Tag{ GeomTag(int dim):Tag("GEOM_DIMENSION",dim){}};
-struct GroupTag: Tag{ GroupTag():Tag("GROUP"){}};
-
 //light weight wrapper on a moab interface to explicitly manage
 //memory.
 struct Interface
@@ -51,6 +22,47 @@ private:
 };
 
 
+struct Tag
+{
+  const std::string Name_;
+  const int Value_;
+  moab::Tag MTag_;
+
+  Tag(Interface const& interface, std::string const& n):Name_(n),Value_(-1)
+    {
+    interface->tag_get_handle(n.c_str(),1,moab::MB_TYPE_INTEGER,this->MTag_);
+    }
+
+  Tag(Interface const& interface, std::string const& n, int v):Name_(n),Value_(v)
+    {
+    interface->tag_get_handle(n.c_str(),1,moab::MB_TYPE_INTEGER,this->MTag_);
+    }
+
+  const char* name() const { return this->Name_.c_str(); }
+
+  bool hasTagValue() const { return Value_ >= 0; }
+  bool tagValue() const { return Value_; }
+  bool tagValuesMatch(int otherTagValue) const
+   {
+   if(!hasTagValue())
+     {
+     return true;
+     }
+   return (otherTagValue == Value_);
+   }
+
+  moab::Tag moabTag() const { return this->MTag_; }
+};
+
+//lightweight structs to wrap set names, so we detected
+//incorrect names at compile time
+struct MaterialTag : Tag{ MaterialTag(Interface const& interface):Tag(interface,"MATERIAL_SET"){}};
+struct DirichletTag : Tag{ DirichletTag(Interface const& interface):Tag(interface,"DIRICHLET_SET"){}};
+struct NeumannTag: Tag{ NeumannTag(Interface const& interface):Tag(interface,"NEUMANN_SET"){}};
+struct GroupTag: Tag{ GroupTag(Interface const& interface):Tag(interface,"GROUP"){}};
+struct GeomTag: Tag{ GeomTag(Interface const& interface, int dim):Tag(interface,"GEOM_DIMENSION",dim){}};
+
+
 //coreate a moab interface to use
 bool LoadMoab(std::string const& file, Interface const& interface)
 {
@@ -58,52 +70,49 @@ bool LoadMoab(std::string const& file, Interface const& interface)
   return moab::MB_SUCCESS == rval;
 }
 
-void print_set(moab::Range const& range)
+
+//print all elements in a range
+void printRange(moab::Range const& range, const Interface& interface)
 {
-  //dump all items in a range
   typedef moab::Range::iterator iterator;
-  for(iterator i=sets.begin(); i!=sets.end(); ++i)
+  for(iterator i=range.begin(); i!=range.end(); ++i)
     {
     std::cout << "entity id: " << *i << std::endl;
     interface->list_entity(*i);
     }
+
+  std::cout << "Printed: " << range.size() << std::endl;
 }
 
-//print all the tags in a material, dirichlet or neumann set
-void printEntitiesWithTag(const Tag& set, const Interface& interface, moab::EntityHandle root)
+
+//print all the entities with a give tag, be it material, boundary condition, geometery dim
+void findEntitiesWithTag(const Tag& tag, const Interface& interface, moab::EntityHandle root, moab::Range& entities)
 {
-  moab::ErrorCode rval;
-  moab::Tag mtag;
-  moab::Range sets;
-  typedef moab::Range::iterator iterator;
 
-  interface->tag_get_handle(set.name(),1,moab::MB_TYPE_INTEGER,mtag);
-
+  moab::Tag t = tag.moabTag();
+  moab::Range beforeTagMatches;
   // get all the sets of that type in the mesh
-  rval = interface->get_entities_by_type_and_tag(root, moab::MBENTITYSET, &mtag,
-                                          NULL, 1, sets);
-  if (moab::MB_SUCCESS != rval) return;
+  interface->get_entities_by_type_and_tag(root, moab::MBENTITYSET, &t,
+                                          NULL, 1, beforeTagMatches);
 
-  int tagValue;
-  for(iterator i=sets.begin(); i!=sets.end();++i)
+  //now we have to remove any that doesn't match the tag value
+  typedef moab::Range::iterator iterator;
+  for(iterator i=beforeTagMatches.begin();
+      i != beforeTagMatches.end();
+      ++i)
     {
-    moab::EntityHandle subset = *i;
-    rval = interface->tag_get_data(mtag, &subset, 1, &tagValue);
-    if (moab::MB_SUCCESS != rval) continue;
-
-
-    if(!set.tagValuesMatch(tagValue))
+    int tagValue=0;
+    moab::EntityHandle handle = *i;
+    interface->tag_get_data(tag.moabTag(), &handle, 1, &tagValue);
+    if(tag.tagValuesMatch(tagValue))
       {
-      //skip if we don't match the explicit tag value we are looking for
-      continue;
+      entities.insert(*i);
       }
-    std::cout << "entity id: " << subset << std::endl;
-    interface->list_entity(subset);
     }
 }
 
 //an attempt to find all parents in the database that have children
-void find_parents(const Interface& interface, moab::EntityHandle const& entity, moab::Range& parents)
+void findParents(const Interface& interface, moab::EntityHandle const& entity, moab::Range& parents)
 {
   typedef moab::Range::iterator iterator;
   moab::Range sets;
@@ -127,63 +136,29 @@ void find_parents(const Interface& interface, moab::EntityHandle const& entity, 
     }
 }
 
-//print all entities given a root
-void printEntitySets(const Interface& interface, moab::EntityHandle root)
-{
-  moab::Range sets;
-  moab::ErrorCode rval;
-
-  rval = interface->get_entities_by_type(root, moab::MBENTITYSET, sets);
-  if (moab::MB_SUCCESS != rval) return;
-
-  print_set(sets);
-}
-
-void print(const Interface& interface, moab::EntityHandle root)
-{
-  typedef moab::Range::iterator iterator;
-
-  moab::Range parents;
-  find_parents(interface,root,parents);
-
-  for(iterator i=parents.begin(); i!=parents.end(); ++i)
-    {
-    interface->list_entity(*i);
-    }
-}
-
 //an attempt to find children with multiple parents of a given tag type
-void multiple_parents(const GeomTag& gTag, const Interface& interface)
+void findEntitiesWithMultipleParents(const Interface& interface,
+                                     moab::Range const& range,
+                                     moab::Range& multipleParents)
 {
   typedef moab::Range::iterator iterator;
 
-  //go grab all the entities in the file. We are only
-  //looking for entities that that have a global id of 0
+  //for all the elements in the range, find all items with multiple parents
 
-  moab::EntityHandle rootHandle = interface->get_root_set();
-  moab::Range parents;
-  find_parents(interface,rootHandle,parents);
-
-  moab::Range multipleParents;
-
-  for(iterator i=parents.begin(); i!=parents.end(); ++i)
+  for(iterator i=range.begin(); i!=range.end(); ++i)
     {
-    moab::Range geomEntities;
-    interface->get_entities_by_dimension(*i,gTag.tagValue(), geomEntities);
-    for(iterator j=geomEntities.begin(); j!=geomEntities.end();++j)
+    moab::Range children;
+    interface->get_child_meshsets(*i,children,0);
+
+    for(iterator j=children.begin(); j!=children.end();++j)
       {
       int numParents=0;
       interface->num_parent_meshsets(*j,&numParents);
-      if(numParents>0)
+      if(numParents>1)
         {
         multipleParents.insert(*j);
         }
       }
-    }
-  std::cout << "number of elements with multiple parents " << multipleParents.size() <<  std::endl;
-  if(multipleParents.size() > 0)
-    {
-
     }
 }
 
