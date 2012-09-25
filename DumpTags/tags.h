@@ -69,4 +69,20 @@ void printTagsFromSet(const Set& set, const Interface& interface)
     }
 }
 
+//print all sets
+void printSets(const Interface& interface)
+{
+  moab::Range sets;
+  int rval;
+
+  rval = interface->get_entities_by_type(0, moab::MBENTITYSET, sets);
+  if (moab::MB_SUCCESS != rval) return;
+
+  // print the sets
+  rval = interface->list_entities(sets);
+  if (moab::MB_SUCCESS != rval) return;
+
+  rval = interface->list_entities(NULL, 1);
+}
+
 #endif

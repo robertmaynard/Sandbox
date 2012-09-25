@@ -14,6 +14,11 @@ int main(int argc, char **argv)
 
   Interface interface;
   bool loaded = LoadMoab(argv[argc-1],interface);
+  if(!loaded)
+    {
+    std::cout << "Failed to load the file. " << std::endl;
+    return 0;
+    }
 
   std::cout << "Find all Material Set items" << std::endl;
   printTagsFromSet(MaterialSet(),interface);
@@ -23,6 +28,10 @@ int main(int argc, char **argv)
 
   std::cout << "Find all Neumann Set items" << std::endl;
   printTagsFromSet(NeumannSet(),interface);
+
+
+  std::cout << "Raw Sets" << std::endl;
+  printSets(interface);
 
   return 1;
 }
