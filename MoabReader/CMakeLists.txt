@@ -1,6 +1,6 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8.2 FATAL_ERROR)
 
-project(DumpTags)
+project(vtkMoabReader)
 
 find_library(MOAB_LIBRARY MOAB REQUIRED)
 
@@ -9,10 +9,14 @@ find_path(MOAB_INCLUDE_DIRS Core.hpp REQUIRED)
 include_directories(${MOAB_INCLUDE_DIRS})
 
 
-add_executable(DUMP
-               main.cxx
-               tags.h
+FIND_PACKAGE (ParaView REQUIRED)
+include (${PARAVIEW_USE_FILE})
+
+add_executable(vtkMoabReader
+               vtkMoabReader.cxx
+               SimpleMoab.h
                )
 
-target_link_libraries(DUMP ${MOAB_LIBRARY})
-
+target_link_libraries(vtkMoabReader
+                    ${VTK_LIBS}
+                    ${MOAB_LIBRARY})
