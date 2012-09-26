@@ -20,39 +20,21 @@ struct Interface;
 struct Tag
 {
   const std::string Name_;
-  const int Value_;
-  moab::Tag MTag_;
 
   template<typename T>
-  Tag(T const& t, std::string const& n):Name_(n),Value_(-1)
+  Tag(std::string const& n):Name_(n)
     {
-    this->MTag_ = t.getTag(n,moab::MB_TYPE_INTEGER);
     }
-
-  template<typename T>
-  Tag(T const& t, std::string const& n, int v):Name_(n),Value_(v)
-    {
-    this->MTag_ = t.getTag(n,moab::MB_TYPE_INTEGER);
-    }
-
   const char* name() const { return this->Name_.c_str(); }
-
-  bool tagValuesMatch(int otherTagValue) const
-   {
-   return this->Value_ < 0 || (this->Value_ >= 0 && otherTagValue == Value_);
-   }
-
-  moab::Tag moabTag() const { return this->MTag_; }
+  moab::DataType virtual dataType() const { return moab::MB_TYPE_INTEGER; }
 };
 
 //lightweight structs to wrap set names, so we detected
 //incorrect names at compile time
-struct MaterialTag : Tag{ MaterialTag(smoab::Interface const& interface):Tag(interface,"MATERIAL_SET"){}};
-struct DirichletTag : Tag{ DirichletTag(smoab::Interface const& interface):Tag(interface,"DIRICHLET_SET"){}};
-struct NeumannTag: Tag{ NeumannTag(smoab::Interface const& interface):Tag(interface,"NEUMANN_SET"){}};
-struct GroupTag: Tag{ GroupTag(smoab::Interface const& interface):Tag(interface,"GROUP"){}};
-struct GeomTag: Tag{ GeomTag(smoab::Interface const& interface, int dim):Tag(interface,"GEOM_DIMENSION",dim){}};
-
+struct MaterialTag : Tag{ MaterialTag():Tag("MATERIAL_SET"){}};
+struct DirichletTag : Tag{ DirichletTag():Tag("DIRICHLET_SET"){}};
+struct NeumannTag: Tag{ NeumannTag():Tag("NEUMANN_SET"){}};
+struct GroupTag: Tag{ GroupTag():Tag("GROUP"){}};
 
 //light weight wrapper on a moab this->Moab that exposes only the reduced class
 //that we need
@@ -66,12 +48,11 @@ struct Interface
 
   ~Interface(){delete this->Moab;}
 
-  moab::Tag getTag(const std::string name, moab::DataType dataType) const
+  moab::Tag getMoabTag(const smoab::Tag& simpleTag) const
     {
-    moab::Tag tag;
-    this->Moab->tag_get_handle(name.c_str(),
+    this->Moab->tag_get_handle(simpleTag.name(),
                                1,
-                               dataType,
+                               simpleTag.dataType(),
                                tag);
     return tag;
     }
@@ -86,42 +67,26 @@ struct Interface
     return result;
     }
 
-  //Find all entities with a given tag. If the tag has the optional value
-  //like GeomTag we will only match entities that have that value too.
+  //Find all entities with a given tag. We don't use geom as a tag as that
+  //isn't a fast operation. Yes finding the intersection of geom entities and
+  //a material / boundary tag will be more work, but it is rarely done currently
   //Returns the found group of entities
   smoab::Range findEntitiesWithTag (const smoab::Tag& tag, smoab::EntityHandle root,
                                     moab::EntityType type = moab::MBENTITYSET) const
     {
     smoab::Range result;
-    moab::Range beforeTagMatches;
 
-    moab::Tag t = tag.moabTag();
-    // get all the sets of that type in the mesh
-    this->Moab->get_entities_by_type_and_tag(root, type, &t, NULL, 1,
-                                             beforeTagMatches);
+    moab::Tag t = this->getMoabTag(tag);
 
-    //now we have to remove any that doesn't match the tag value
-    typedef moab::Range::iterator iterator;
-    for(iterator i=beforeTagMatches.begin();
-        i != beforeTagMatches.end();
-        ++i)
-      {
-      int tagValue=0;
-      moab::EntityHandle handle = *i;
-      this->Moab->tag_get_data(tag.moabTag(), &handle, 1, &tagValue);
-      if(tag.tagValuesMatch(tagValue))
-        {
-        result.insert(*i);
-        }
-      }
-
+    // get all the entities of that type in the mesh
+    this->Moab->get_entities_by_type_and_tag(root, type, &t, NULL, 1,result);
     return result;
     }
 
   //Find all elements in the database that have children and zero parents.
   //this doesn't find
   smoab::Range findEntityRootParents(smoab::EntityHandle const& root) const
-  {
+    {
     smoab::Range parents;
 
     typedef moab::Range::iterator iterator;
@@ -142,7 +107,7 @@ struct Interface
         }
       }
     return parents;
-  }
+    }
 
   //finds entities that have zero children and zero parents
   smoab::Range findDetachedEntities(moab::EntityHandle const& root) const
@@ -171,7 +136,7 @@ struct Interface
 
   //find all children of the entity passed in that has multiple parents
   smoab::Range findEntitiesWithMultipleParents(smoab::EntityHandle const& root)
-  {
+    {
     smoab::Range multipleParents;
     typedef moab::Range::iterator iterator;
 
@@ -188,7 +153,7 @@ struct Interface
         }
       }
     return multipleParents;
-  }
+    }
 
   //given an entityhandle we determine the cell type
   //and return a cell with the topology information
