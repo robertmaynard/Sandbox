@@ -7,11 +7,11 @@
 class vtkInformation;
 class vtkInformationVector;
 
-class vtkMoabReader : public vtkMultiBlockDataSetAlogrithm
+class vtkMoabReader : public vtkMultiBlockDataSetAlgorithm
 {
 public:
-  static vtkMOABReader *New();
-  vtkTypeMacro(vtkMOABReader,vtkMultiBlockDataSetAlgorithm);
+  static vtkMoabReader *New();
+  vtkTypeMacro(vtkMoabReader,vtkMultiBlockDataSetAlgorithm)
   void PrintSelf(ostream& os, vtkIndent indent);
 
   // Description:
@@ -31,8 +31,8 @@ protected:
                   vtkInformationVector **vtkNotUsed(inputVector),
                   vtkInformationVector *outputVector);
 private:
-  vtkMOABReader(const vtkMOABReader&);  // Not implemented.
-  void operator=(const vtkMOABReader&);  // Not implemented.
+  vtkMoabReader(const vtkMoabReader&);  // Not implemented.
+  void operator=(const vtkMoabReader&);  // Not implemented.
   char* FileName;
 
 };

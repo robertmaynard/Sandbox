@@ -3,7 +3,7 @@
 #define _SimpleMoab_h
 
 #include "moab/Core.hpp"
-#include "moab/this->Moab.hpp"
+#include "moab/Interface.hpp"
 #include "moab/Range.hpp"
 
 #include <iostream>
@@ -23,14 +23,16 @@ struct Tag
   const int Value_;
   moab::Tag MTag_;
 
-  Tag(Interface const& interface, std::string const& n):Name_(n),Value_(-1)
+  template<typename T>
+  Tag(T const& t, std::string const& n):Name_(n),Value_(-1)
     {
-    this->Moab->tag_get_handle(n.c_str(),1,moab::MB_TYPE_INTEGER,this->MTag_);
+    this->MTag_ = t.getTag(n,moab::MB_TYPE_INTEGER);
     }
 
-  Tag(Interface const& interface, std::string const& n, int v):Name_(n),Value_(v)
+  template<typename T>
+  Tag(T const& t, std::string const& n, int v):Name_(n),Value_(v)
     {
-    this->Moab->tag_get_handle(n.c_str(),1,moab::MB_TYPE_INTEGER,this->MTag_);
+    this->MTag_ = t.getTag(n,moab::MB_TYPE_INTEGER);
     }
 
   const char* name() const { return this->Name_.c_str(); }
@@ -62,8 +64,17 @@ struct Interface
     this->Moab->load_file(file.c_str());
     }
 
-  ~Interface(){delete interface;}
+  ~Interface(){delete this->Moab;}
 
+  moab::Tag getTag(const std::string name, moab::DataType dataType) const
+    {
+    moab::Tag tag;
+    this->Moab->tag_get_handle(name.c_str(),
+                               1,
+                               dataType,
+                               tag);
+    return tag;
+    }
 
   smoab::EntityHandle getRoot() const { return this->Moab->get_root_set(); }
 
