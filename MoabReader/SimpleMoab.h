@@ -6,6 +6,9 @@
 #include "moab/Interface.hpp"
 #include "moab/Range.hpp"
 
+#include <vtkPoints.h>
+#include <vtkUnstructuredGrid.h>
+
 #include <iostream>
 
 namespace smoab
@@ -164,23 +167,60 @@ struct Interface
     return multipleParents;
     }
 
-  //given a range of cells, add them to an object of type GridType. GridType
-  //is a template so we don't have to include any vtk headers. Thruthfully we
-  //expect it to be an unstructured grid
-  template<typename GridType>
-  void addCells(moab::EntityType type, smoab::Range cells, GridType* grid) const
+  //given a range of entity types, add them to an unstructured grid
+  //we return a Range object that holds all the point ids that we used
+  //which is sorted and only has unique values.
+  ///we use entity types so that we can determine vtk cell type :(
+  moab::Range addCells(moab::EntityType start, moab::EntityType end,
+                       moab::EntityHandle root, vtkUnstructuredGrid* grid) const
     {
+    moab::Range pointRange;
+    //even though we have a start and end entity type we can use
+    //the highly efficent calls, since we know that are of the same dimension
 
 
+    //ranges are by nature sorted and unque we just have to return the subset
+    //of point entity handles we use
 
+    //the problem is that this call only knows a subsection of all the point ids
+    //we are going to use
+
+    return pointRange;
     }
 
-  template<typename PointType>
-  void addCoordinates(smoab::Range cells, PointType* pointContainer) const
+  void addCoordinates(smoab::Range pointEntities, vtkPoints* pointContainer) const
     {
+    //since the smoab::range are always unique and sorted
+    //we can use the more efficient coords_iterate
+    //call in moab, which returns moab internal allocated memory
+    pointContainer->SetDataTypeToDouble();
+    pointContainer->SetNumberOfPoints(pointEntities.size());
 
+    //need a pointer to the allocated vtkPoints memory so that we
+    //don't need to use an extra copy and we can bypass all vtk's check
+    //on out of bounds
+    double *rawPoints = static_cast<double*>(pointContainer->GetVoidPointer(0));
+
+    double *x,*y,*z;
+    int count=0;
+    while(count != pointEntities.size())
+      {
+      int iterationCount=0;
+      this->Moab->coords_iterate(pointEntities.begin()+count,
+                               pointEntities.end(),
+                               x,y,z,
+                               iterationCount);
+      count+=iterationCount;
+
+      //copy the elements we found over to the vtkPoints
+      for(int i=0; i < iterationCount; ++i, rawPoints+=3)
+        {
+        rawPoints[i] = x[i];
+        rawPoints[i+1] = y[i];
+        rawPoints[i+2] = z[i];
+        }
+      }
     }
-
 
   //prints all elements in a range objects
   void printRange(smoab::Range const& range)

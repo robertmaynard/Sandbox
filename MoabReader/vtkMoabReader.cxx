@@ -37,16 +37,8 @@ namespace detail
         break;
       }
 
-    for(smoab::EntityType i = start; i != end; ++i)
-      {
-      //gather all the entities of the same type and add them
-      //to the unstructured grid at the same time
-      smoab::Range children = interface.findEntities(entity,i);
-      interface.addCells(i,children,grid.GetPointer());
-      }
 
-    //this is wrong! we want all the 3d entities or 2d entities
-    smoab::Range pointRange = interface.findEntitiesWithDimension(entity,dimensonality);
+    moab::Range pointRange = interface.addCells(start,end,entity,grid.GetPointer());
 
     //right side return since we want to allocate right into the vtkPoints
     //since this is heavy data
