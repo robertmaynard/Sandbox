@@ -190,6 +190,19 @@ struct Interface
     return multipleParents;
   }
 
+  //given an entityhandle we determine the cell type
+  //and return a cell with the topology information
+  smoab::CellType findCellInfo(smoab::EntityHandle entity)
+    {
+    moab::EntityType type = this->Moab->type_from_handle(entity);
+    if(type == moab::MBENTITYSET) { return smoab::CellType(); }
+
+    this->Moab->get_connectivity_by_type()
+
+
+
+    }
+
 
   //prints all elements in a range objects
   void printRange(smoab::Range const& range)

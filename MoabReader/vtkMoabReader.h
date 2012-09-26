@@ -3,6 +3,7 @@
 
 #include "vtkIOGeometryModule.h" // For export macro
 #include "vtkMultiBlockDataSetAlgorithm.h"
+#include "vtkNew.h" //needed for api signature
 
 class vtkInformation;
 class vtkInformationVector;
@@ -31,6 +32,9 @@ protected:
                   vtkInformationVector **vtkNotUsed(inputVector),
                   vtkInformationVector *outputVector);
 private:
+
+  void CreateSubBlocks(vtkNew<vtkMultiBlockDataSet> &root, int dimensionality);
+
   vtkMoabReader(const vtkMoabReader&);  // Not implemented.
   void operator=(const vtkMoabReader&);  // Not implemented.
   char* FileName;
