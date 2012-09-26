@@ -9,14 +9,16 @@ find_path(MOAB_INCLUDE_DIRS Core.hpp REQUIRED)
 include_directories(${MOAB_INCLUDE_DIRS})
 
 
-FIND_PACKAGE (ParaView REQUIRED)
-include (${PARAVIEW_USE_FILE})
+find_package(ParaView REQUIRED)
+include(${ParaView_USE_FILE})
+include_directories(${PARAVIEW_INCLUDE_DIRS})
 
-add_executable(vtkMoabReader
-               vtkMoabReader.cxx
-               SimpleMoab.h
-               )
+add_library(vtkMoabReader
+            vtkMoabReader.cxx
+            SimpleMoab.h
+            )
 
+message(STATUS "VTK_LIBRARIES: ${VTK_LIBRARIES}")
 target_link_libraries(vtkMoabReader
-                    ${VTK_LIBS}
-                    ${MOAB_LIBRARY})
+                      ${VTK_LIBRARIES}
+                      ${MOAB_LIBRARY})
