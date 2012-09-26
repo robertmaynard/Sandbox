@@ -19,8 +19,8 @@ namespace detail
   {
     //we need to walk everything below the entity and get all the volume elements
     //from those volume elements
-    moab::EntityType start;
-    moab::EntityType end;
+    smoab::EntityType start;
+    smoab::EntityType end;
     switch(dimensonality)
       {
       case 2:
@@ -37,12 +37,12 @@ namespace detail
         break;
       }
 
-    for(moab::EntityType i = start; i != end; ++i)
+    for(smoab::EntityType i = start; i != end; ++i)
       {
       //gather all the entities of the same type and add them
       //to the unstructured grid at the same time
       smoab::Range children = interface.findEntities(entity,i);
-      interface.addCells(i,children,grid);
+      interface.addCells(i,children,grid.GetPointer());
       }
 
     //this is wrong! we want all the 3d entities or 2d entities
@@ -51,7 +51,7 @@ namespace detail
     //right side return since we want to allocate right into the vtkPoints
     //since this is heavy data
     vtkNew<vtkPoints> points;
-    interface.addCoordinates(pointRange,points);
+    interface.addCoordinates(pointRange,points.GetPointer());
   }
 }
 
@@ -128,7 +128,7 @@ void vtkMoabReader::CreateSubBlocks(vtkNew<vtkMultiBlockDataSet> & root,
     {
     vtkNew<vtkUnstructuredGrid> block;
     root->SetBlock(index,block.GetPointer());
-    detail::createGrid(interface,*i,block);
+    detail::createGrid(interface,dimensionality,*i,block);
     }
 }
 

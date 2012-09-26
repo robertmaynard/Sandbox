@@ -13,6 +13,7 @@ namespace smoab
 //make our range equal to moabs range
 typedef moab::Range Range;
 typedef moab::EntityHandle EntityHandle;
+typedef moab::EntityType EntityType;
 
 //forward declare this->Moab for Tag
 struct Interface;
@@ -21,7 +22,6 @@ struct Tag
 {
   const std::string Name_;
 
-  template<typename T>
   Tag(std::string const& n):Name_(n)
     {
     }
@@ -50,6 +50,7 @@ struct Interface
 
   moab::Tag getMoabTag(const smoab::Tag& simpleTag) const
     {
+    moab::Tag tag;
     this->Moab->tag_get_handle(simpleTag.name(),
                                1,
                                simpleTag.dataType(),
@@ -80,6 +81,14 @@ struct Interface
 
     // get all the entities of that type in the mesh
     this->Moab->get_entities_by_type_and_tag(root, type, &t, NULL, 1,result);
+    return result;
+    }
+
+  //Find all entities from a given root of a given dimensionality
+  smoab::Range findEntitiesWithDimension(const smoab::EntityHandle root, int dimension) const
+    {
+    smoab::Range result;
+    this->Moab->get_entities_by_dimension(root,dimension,result);
     return result;
     }
 
@@ -155,16 +164,20 @@ struct Interface
     return multipleParents;
     }
 
-  //given an entityhandle we determine the cell type
-  //and return a cell with the topology information
-  smoab::CellType findCellInfo(smoab::EntityHandle entity)
+  //given a range of cells, add them to an object of type GridType. GridType
+  //is a template so we don't have to include any vtk headers. Thruthfully we
+  //expect it to be an unstructured grid
+  template<typename GridType>
+  void addCells(moab::EntityType type, smoab::Range cells, GridType* grid) const
     {
-    moab::EntityType type = this->Moab->type_from_handle(entity);
-    if(type == moab::MBENTITYSET) { return smoab::CellType(); }
-
-    this->Moab->get_connectivity_by_type()
 
 
+
+    }
+
+  template<typename PointType>
+  void addCoordinates(smoab::Range cells, PointType* pointContainer) const
+    {
 
     }
 
