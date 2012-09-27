@@ -8,8 +8,103 @@
 #include <vtkNew.h>
 #include <vtkUnstructuredGrid.h>
 
+#include <algorithm>
 namespace smoab
 {
+
+namespace detail
+{
+
+class MixedCellConnectivity
+{
+public:
+  MixedCellConnectivity():
+    Connectivity(),
+    UniqueIds()
+  {
+  }
+
+  //----------------------------------------------------------------------------
+  void add(int vtkCellType, int numVerts, smoab::EntityHandle* conn, int numCells)
+    {
+    RunLengthInfo info = { vtkCellType, numVerts, numCells };
+    this->Info.push_back(info);
+    this->Connectivity.push_back(conn);
+    }
+
+  //----------------------------------------------------------------------------
+  void compactIdsAndSet(vtkUnstructuredGrid* grid)
+    {
+    //converts all the ids to be ordered starting at zero, and also
+    //keeping the orginal logical ordering. Stores the result of this
+    //operation in the unstrucutred grid that is passed in
+
+    //lets determine the total length of the connectivity
+    vtkIdType connectivityLength = 0;
+    vtkIdType totalNumCells = 0;
+    for(InfoConstIterator i = this->Info.begin();
+        i != this->Info.end();
+        ++i)
+      {
+      connectivityLength += (*i).numCells * (*i).numVerts;
+      totalNumCells += (*i).numCells;
+      }
+
+    this->UniqueIds.reserve(connectivityLength);
+    this->copyConnectivity( );
+
+
+
+    std::sort(this->UniqueIds.begin(),this->UniqueIds.end());
+
+    EntityIterator newEnd = std::unique(this->UniqueIds.begin(),
+                                        this->UniqueIds.end());
+
+    const std::size_t newSize = std::distance(this->UniqueIds.begin(),newEnd);
+    this->UniqueIds.resize(newSize); //release unneeded space
+
+    this->fillGrid(grid,totalNumCells, connectivityLength);
+    }
+
+  //----------------------------------------------------------------------------
+  smoab::Range uniquePointIds()
+    {
+    //from the documentation a reverse iterator is the fastest way
+    //to insert into a range. that is why mixConn.begin is really rbegin, and
+    //the same with end
+    moab::Range result;
+    std::copy(UniqueIds.rbegin(),UniqueIds.rend(),moab::range_inserter(result));
+    return result;
+    }
+private:
+
+  void copyConnectivity()
+    {
+
+    }
+
+  //----------------------------------------------------------------------------
+  void fillGrid(vtkUnstructuredGrid* grid,
+                int numCells,
+                int numConnectivity) const
+    {
+    //correct the connectivity size to account for the vtk padding
+    int vtkConnectivity = numCells + numConnectivity;
+
+
+    //for each item in the connectivy add it to the grid!
+    }
+
+  std::vector<EntityHandle*> Connectivity;
+  std::vector<EntityHandle> UniqueIds;
+
+  struct RunLengthInfo{ int type; int numVerts; int numCells; };
+  std::vector<RunLengthInfo> Info;
+
+  typedef std::vector<EntityHandle>::iterator EntityIterator;
+  typedef std::vector<RunLengthInfo>::const_iterator InfoConstIterator;
+};
+}
 
 class DataSetConverter
 {
@@ -47,6 +142,9 @@ public:
     moab::Range cells = this->Interface.findEntitiesWithDimension(root,
                           this->Moab->dimension_from_handle(root));
 
+
+    detail::MixedCellConnectivity mixConn;
+
     int count = 0;
     while(count != cells.size())
       {
@@ -65,18 +163,21 @@ public:
         break;
         }
 
-      //now that we have a collection of cells, it is time to identify the
-      //cell type and insert them all
+      //identify the cell type that we currently have,
+      //store that along with the connectivity in a temp storage vector
       moab::EntityType type = this->Moab->type_from_handle(connectivity[0]);
+      int vtkCellType = smoab::vtkCellType(type,numVerts); //have vtk cell type, for all these cells
 
+      mixConn.add(vtkCellType,numVerts,connectivity,iterationCount);
       }
 
+    //now that mixConn has all the cells properly stored, lets fixup
+    //the ids so that they start at zero and keep the same logical ordering
+    //as before.
+    mixConn.compactIdsAndSet(grid);
 
 
-    //ranges are by nature sorted and unque we just have to return the subset
-    //of point entity handles we use
-    moab::Range pointRange;
-    return pointRange;
+    return mixConn.uniquePointIds();
     }
 
   //----------------------------------------------------------------------------
