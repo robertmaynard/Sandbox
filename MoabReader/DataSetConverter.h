@@ -120,7 +120,7 @@ public:
       //for each cell in this collection that have the same type
       for(int j=0;j < numCells; ++j)
         {
-        cellLocations[j]= currentVtkConnectivityIndex + (j * (numVerts+1));
+        cellLocations[j]= currentVtkConnectivityIndex;
 
         //cell arrays start and end are different, since we
         //have to account for element that states the length of each cell
