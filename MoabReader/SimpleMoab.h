@@ -1,13 +1,11 @@
 
-#ifndef _SimpleMoab_h
-#define _SimpleMoab_h
+#ifndef __smoab_SimpleMoab_h
+#define __smoab_SimpleMoab_h
 
 #include "moab/Core.hpp"
 #include "moab/Interface.hpp"
 #include "moab/Range.hpp"
 
-#include <vtkPoints.h>
-#include <vtkUnstructuredGrid.h>
 
 #include <iostream>
 
@@ -20,6 +18,9 @@ typedef moab::EntityType EntityType;
 
 //forward declare this->Moab for Tag
 struct Interface;
+
+//forward declar the DataSetConverter so it can be a friend of Interface
+class DataSetConverter;
 
 struct Tag
 {
@@ -51,6 +52,7 @@ struct Interface
 
   ~Interface(){delete this->Moab;}
 
+  //----------------------------------------------------------------------------
   moab::Tag getMoabTag(const smoab::Tag& simpleTag) const
     {
     moab::Tag tag;
@@ -61,8 +63,10 @@ struct Interface
     return tag;
     }
 
+  //----------------------------------------------------------------------------
   smoab::EntityHandle getRoot() const { return this->Moab->get_root_set(); }
 
+  //----------------------------------------------------------------------------
   smoab::Range findEntities(const smoab::EntityHandle root, moab::EntityType type) const
     {
     smoab::Range result;
@@ -71,6 +75,7 @@ struct Interface
     return result;
     }
 
+  //----------------------------------------------------------------------------
   //Find all entities with a given tag. We don't use geom as a tag as that
   //isn't a fast operation. Yes finding the intersection of geom entities and
   //a material / boundary tag will be more work, but it is rarely done currently
@@ -87,14 +92,17 @@ struct Interface
     return result;
     }
 
+  //----------------------------------------------------------------------------
   //Find all entities from a given root of a given dimensionality
-  smoab::Range findEntitiesWithDimension(const smoab::EntityHandle root, int dimension) const
+  smoab::Range findEntitiesWithDimension(const smoab::EntityHandle root,
+                                         int dimension) const
     {
     smoab::Range result;
     this->Moab->get_entities_by_dimension(root,dimension,result);
     return result;
     }
 
+  //----------------------------------------------------------------------------
   //Find all elements in the database that have children and zero parents.
   //this doesn't find
   smoab::Range findEntityRootParents(smoab::EntityHandle const& root) const
@@ -121,6 +129,7 @@ struct Interface
     return parents;
     }
 
+  //----------------------------------------------------------------------------
   //finds entities that have zero children and zero parents
   smoab::Range findDetachedEntities(moab::EntityHandle const& root) const
     {
@@ -146,6 +155,7 @@ struct Interface
     return detached;
     }
 
+  //----------------------------------------------------------------------------
   //find all children of the entity passed in that has multiple parents
   smoab::Range findEntitiesWithMultipleParents(smoab::EntityHandle const& root)
     {
@@ -167,61 +177,7 @@ struct Interface
     return multipleParents;
     }
 
-  //given a range of entity types, add them to an unstructured grid
-  //we return a Range object that holds all the point ids that we used
-  //which is sorted and only has unique values.
-  ///we use entity types so that we can determine vtk cell type :(
-  moab::Range addCells(moab::EntityType start, moab::EntityType end,
-                       moab::EntityHandle root, vtkUnstructuredGrid* grid) const
-    {
-    moab::Range pointRange;
-    //even though we have a start and end entity type we can use
-    //the highly efficent calls, since we know that are of the same dimension
-
-
-    //ranges are by nature sorted and unque we just have to return the subset
-    //of point entity handles we use
-
-    //the problem is that this call only knows a subsection of all the point ids
-    //we are going to use
-
-    return pointRange;
-    }
-
-  void addCoordinates(smoab::Range pointEntities, vtkPoints* pointContainer) const
-    {
-    //since the smoab::range are always unique and sorted
-    //we can use the more efficient coords_iterate
-    //call in moab, which returns moab internal allocated memory
-    pointContainer->SetDataTypeToDouble();
-    pointContainer->SetNumberOfPoints(pointEntities.size());
-
-    //need a pointer to the allocated vtkPoints memory so that we
-    //don't need to use an extra copy and we can bypass all vtk's check
-    //on out of bounds
-    double *rawPoints = static_cast<double*>(pointContainer->GetVoidPointer(0));
-
-    double *x,*y,*z;
-    int count=0;
-    while(count != pointEntities.size())
-      {
-      int iterationCount=0;
-      this->Moab->coords_iterate(pointEntities.begin()+count,
-                               pointEntities.end(),
-                               x,y,z,
-                               iterationCount);
-      count+=iterationCount;
-
-      //copy the elements we found over to the vtkPoints
-      for(int i=0; i < iterationCount; ++i, rawPoints+=3)
-        {
-        rawPoints[i] = x[i];
-        rawPoints[i+1] = y[i];
-        rawPoints[i+2] = z[i];
-        }
-      }
-    }
-
+  //----------------------------------------------------------------------------
   //prints all elements in a range objects
   void printRange(smoab::Range const& range)
     {
@@ -233,6 +189,7 @@ struct Interface
       }
     }
 
+  friend class smoab::DataSetConverter;
 private:
   moab::Interface* Moab;
 };

@@ -1,6 +1,7 @@
 #include "vtkMoabReader.h"
 
 #include "SimpleMoab.h"
+#include "DataSetConverter.h"
 
 #include "vtkNew.h"
 #include "vtkObjectFactory.h"
@@ -9,43 +10,6 @@
 #include "vtkMultiBlockDataSet.h"
 #include "vtkUnstructuredGrid.h"
 
-namespace detail
-{
-
-  void createGrid(const smoab::Interface& interface,
-            int dimensonality,
-            smoab::EntityHandle entity,
-            vtkNew<vtkUnstructuredGrid> &grid)
-  {
-    //we need to walk everything below the entity and get all the volume elements
-    //from those volume elements
-    smoab::EntityType start;
-    smoab::EntityType end;
-    switch(dimensonality)
-      {
-      case 2:
-        start = moab::MBEDGE;
-        end = moab::MBTET;
-        break;
-      case 3:
-        start = moab::MBTET;
-        end = moab::MBENTITYSET;
-        break;
-      default:
-        //invalid dimension to load
-        return;
-        break;
-      }
-
-
-    moab::Range pointRange = interface.addCells(start,end,entity,grid.GetPointer());
-
-    //right side return since we want to allocate right into the vtkPoints
-    //since this is heavy data
-    vtkNew<vtkPoints> points;
-    interface.addCoordinates(pointRange,points.GetPointer());
-  }
-}
 
 vtkStandardNewMacro(vtkMoabReader)
 //------------------------------------------------------------------------------
@@ -108,6 +72,7 @@ void vtkMoabReader::CreateSubBlocks(vtkNew<vtkMultiBlockDataSet> & root,
   //multiblock elemenent for each
 
   smoab::Interface interface(this->FileName);
+  smoab::DataSetConverter converter(interface);
 
   smoab::Range parents = interface.findEntityRootParents(interface.getRoot());
   smoab::Range geom3dParents = parents.subset_by_dimension(dimensionality);
@@ -120,7 +85,8 @@ void vtkMoabReader::CreateSubBlocks(vtkNew<vtkMultiBlockDataSet> & root,
     {
     vtkNew<vtkUnstructuredGrid> block;
     root->SetBlock(index,block.GetPointer());
-    detail::createGrid(interface,dimensionality,*i,block);
+
+    converter.fill(*i, block.GetPointer());
     }
 }
 
