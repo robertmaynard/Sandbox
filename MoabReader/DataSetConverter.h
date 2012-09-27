@@ -102,7 +102,7 @@ public:
                          vtkIdType* cellLocations,
                          unsigned char* cellTypes) const
     {
-
+    vtkIdType currentVtkConnectivityIndex = 0;
     vtkIdType index = 0;
     ConnConstIterator c = this->Connectivity.begin();
     for(InfoConstIterator i = this->Info.begin();
@@ -117,23 +117,33 @@ public:
                   numCells,
                   static_cast<unsigned char>((*i).type));
 
-      std::for_each(cellLocations,
-                    cellLocations+numCells,
-                    detail::CellPositionFunctor(numVerts));
-
-      //cell arrays start and end are different, since we
-      //have to account for element that states the length of each cell
-      cellArray[0]=numVerts;
-      for(int j=0; j < numVerts; ++j, ++c)
+      //for each cell in this collection that have the same type
+      for(int j=0;j < numCells; ++j)
         {
-        //this is going to be a root of some failures when we start
-        //reading really large datasets under 32bit.
-        cellArray[j+1] = static_cast<vtkIdType>(*c);
+        cellLocations[j]= currentVtkConnectivityIndex + (j * (numVerts+1));
+
+        //cell arrays start and end are different, since we
+        //have to account for element that states the length of each cell
+        cellArray[0]=numVerts;
+        for(int k=0; k < numVerts; ++k, ++c)
+          {
+          //this is going to be a root of some failures when we start
+          //reading really large datasets under 32bit.
+          const EntityHandle* pointIndexHandle = *c;
+          EntityConstIterator result = std::lower_bound(this->UniqueIds.begin(),
+                                                        this->UniqueIds.end(),
+                                                        *pointIndexHandle);
+          std::size_t newId = std::distance(this->UniqueIds.begin(),
+                                            result);
+          cellArray[k+1] = static_cast<vtkIdType>(newId);
+          }
+
+        currentVtkConnectivityIndex += numVerts+1;
+        cellArray += numVerts+1;
         }
 
       cellLocations += numCells;
       cellTypes += numCells;
-      cellArray += numCells * (numVerts+1); //account for the extra vtk cell length
       }
 
     }
@@ -147,6 +157,7 @@ private:
   std::vector<RunLengthInfo> Info;
 
   typedef std::vector<EntityHandle>::iterator EntityIterator;
+  typedef std::vector<EntityHandle>::const_iterator EntityConstIterator;
   typedef std::vector<EntityHandle*>::const_iterator ConnConstIterator;
   typedef std::vector<RunLengthInfo>::const_iterator InfoConstIterator;
 };
