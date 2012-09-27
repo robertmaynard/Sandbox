@@ -4,8 +4,11 @@
 #include "SimpleMoab.h"
 #include "CellTypeToType.h"
 
-#include <vtkPoints.h>
+#include <vtkCellArray.h>
+#include <vtkIdTypeArray.h>
 #include <vtkNew.h>
+#include <vtkPoints.h>
+#include <vtkUnsignedCharArray.h>
 #include <vtkUnstructuredGrid.h>
 
 #include <algorithm>
@@ -33,26 +36,25 @@ public:
     }
 
   //----------------------------------------------------------------------------
-  void compactIdsAndSet(vtkUnstructuredGrid* grid)
+  void compactIds(vtkIdType& numCells, vtkIdType& connectivityLength)
     {
     //converts all the ids to be ordered starting at zero, and also
     //keeping the orginal logical ordering. Stores the result of this
     //operation in the unstrucutred grid that is passed in
 
     //lets determine the total length of the connectivity
-    vtkIdType connectivityLength = 0;
-    vtkIdType totalNumCells = 0;
+    connectivityLength = 0;
+    numCells = 0;
     for(InfoConstIterator i = this->Info.begin();
         i != this->Info.end();
         ++i)
       {
       connectivityLength += (*i).numCells * (*i).numVerts;
-      totalNumCells += (*i).numCells;
+      numCells += (*i).numCells;
       }
 
     this->UniqueIds.reserve(connectivityLength);
-    this->copyConnectivity( );
-
+    this->copyConnectivity(this->UniqueIds);
 
 
     std::sort(this->UniqueIds.begin(),this->UniqueIds.end());
@@ -62,8 +64,6 @@ public:
 
     const std::size_t newSize = std::distance(this->UniqueIds.begin(),newEnd);
     this->UniqueIds.resize(newSize); //release unneeded space
-
-    this->fillGrid(grid,totalNumCells, connectivityLength);
     }
 
   //----------------------------------------------------------------------------
@@ -76,24 +76,69 @@ public:
     std::copy(UniqueIds.rbegin(),UniqueIds.rend(),moab::range_inserter(result));
     return result;
     }
-private:
-
-  void copyConnectivity()
-    {
-
-    }
 
   //----------------------------------------------------------------------------
-  void fillGrid(vtkUnstructuredGrid* grid,
-                int numCells,
-                int numConnectivity) const
+  //copy the connectivity from the moab held arrays to the user input vector
+  void copyConnectivity(std::vector<EntityHandle>& output) const
     {
-    //correct the connectivity size to account for the vtk padding
-    int vtkConnectivity = numCells + numConnectivity;
-
-
-    //for each item in the connectivy add it to the grid!
+    //walk the info to find the length of each sub connectivity array,
+    //and insert them into the vector, ordering is implied by the order
+    //the connecitivy sub array are added to this class
+    ConnConstIterator c = this->Connectivity.begin();
+    for(InfoConstIterator i = this->Info.begin();
+        i != this->Info.end();
+        ++i,++c)
+      {
+      //remember our Connectivity is a vector of pointers whose
+      //length is held in the info vector.
+      const int connLength = (*i).numCells * (*i).numVerts;
+      std::copy(*c,*c+connLength,std::back_inserter(output));
+      }
     }
+
+  //copy the information from this contianer to a vtk cell array, and
+  //related lookup information
+  void copyToVtkCellInfo(vtkIdType* cellArray,
+                         vtkIdType* cellLocations,
+                         unsigned char* cellTypes) const
+    {
+
+    vtkIdType index = 0;
+    ConnConstIterator c = this->Connectivity.begin();
+    for(InfoConstIterator i = this->Info.begin();
+        i != this->Info.end();
+        ++i, ++index, ++c)
+      {
+      //for this group of the same cell type we need to fill the cellTypes
+      const int numCells = (*i).numCells;
+      const int numVerts = (*i).numVerts;
+
+      std::fill_n(cellTypes,
+                  numCells,
+                  static_cast<unsigned char>((*i).type));
+
+      std::for_each(cellLocations,
+                    cellLocations+numCells,
+                    detail::CellPositionFunctor(numVerts));
+
+      //cell arrays start and end are different, since we
+      //have to account for element that states the length of each cell
+      cellArray[0]=numVerts;
+      for(int j=0; j < numVerts; ++j, ++c)
+        {
+        //this is going to be a root of some failures when we start
+        //reading really large datasets under 32bit.
+        cellArray[j+1] = static_cast<vtkIdType>(*c);
+        }
+
+      cellLocations += numCells;
+      cellTypes += numCells;
+      cellArray += numCells * (numVerts+1); //account for the extra vtk cell length
+      }
+
+    }
+
+private:
 
   std::vector<EntityHandle*> Connectivity;
   std::vector<EntityHandle> UniqueIds;
@@ -102,6 +147,7 @@ private:
   std::vector<RunLengthInfo> Info;
 
   typedef std::vector<EntityHandle>::iterator EntityIterator;
+  typedef std::vector<EntityHandle*>::const_iterator ConnConstIterator;
   typedef std::vector<RunLengthInfo>::const_iterator InfoConstIterator;
 };
 }
@@ -174,8 +220,10 @@ public:
     //now that mixConn has all the cells properly stored, lets fixup
     //the ids so that they start at zero and keep the same logical ordering
     //as before.
-    mixConn.compactIdsAndSet(grid);
+    vtkIdType numCells, connLen;
+    mixConn.compactIds(numCells,connLen);
 
+    this->fillGrid(mixConn,grid,numCells,connLen);
 
     return mixConn.uniquePointIds();
     }
@@ -215,6 +263,36 @@ public:
       }
     }
 
+  //----------------------------------------------------------------------------
+  void fillGrid(detail::MixedCellConnectivity const& mixedCells,
+                vtkUnstructuredGrid* grid,
+                vtkIdType numCells,
+                vtkIdType numConnectivity) const
+    {
+    //correct the connectivity size to account for the vtk padding
+    const vtkIdType vtkConnectivity = numCells + numConnectivity;
+
+    vtkNew<vtkIdTypeArray> cellArray;
+    vtkNew<vtkIdTypeArray> cellLocations;
+    vtkNew<vtkUnsignedCharArray> cellTypes;
+
+    cellArray->SetNumberOfValues(vtkConnectivity);
+    cellLocations->SetNumberOfValues(numCells);
+    cellTypes->SetNumberOfValues(numCells);
+
+    vtkIdType* rawArray = static_cast<vtkIdType*>(cellArray->GetVoidPointer(0));
+    vtkIdType* rawLocations = static_cast<vtkIdType*>(cellLocations->GetVoidPointer(0));
+    unsigned char* rawTypes = static_cast<unsigned char*>(cellTypes->GetVoidPointer(0));
+
+    mixedCells.copyToVtkCellInfo(rawArray,rawLocations,rawTypes);
+
+    vtkNew<vtkCellArray> cells;
+    cells->SetCells(numCells,cellArray.GetPointer());
+    grid->SetCells(cellTypes.GetPointer(),
+                   cellLocations.GetPointer(),
+                   cells.GetPointer(),
+                   NULL,NULL);
+    }
 };
 
 }
