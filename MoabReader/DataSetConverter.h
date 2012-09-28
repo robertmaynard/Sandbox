@@ -214,7 +214,6 @@ public:
                                   connectivity,
                                   numVerts,
                                   iterationCount);
-      count += iterationCount;
       //if we didn't read anything, break!
       if(iterationCount == 0)
         {
@@ -223,10 +222,12 @@ public:
 
       //identify the cell type that we currently have,
       //store that along with the connectivity in a temp storage vector
-      moab::EntityType type = this->Moab->type_from_handle(connectivity[0]);
-      int vtkCellType = smoab::vtkCellType(type,numVerts); //have vtk cell type, for all these cells
+      moab::EntityType type = this->Moab->type_from_handle(*cells.begin()+count);
 
+
+      int vtkCellType = smoab::vtkCellType(type,numVerts); //have vtk cell type, for all these cells
       mixConn.add(vtkCellType,numVerts,connectivity,iterationCount);
+      count += iterationCount;
       }
 
     //now that mixConn has all the cells properly stored, lets fixup
