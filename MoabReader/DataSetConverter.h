@@ -103,11 +103,10 @@ public:
                          unsigned char* cellTypes) const
     {
     vtkIdType currentVtkConnectivityIndex = 0;
-    vtkIdType index = 0;
     ConnConstIterator c = this->Connectivity.begin();
     for(InfoConstIterator i = this->Info.begin();
         i != this->Info.end();
-        ++i, ++index, ++c)
+        ++i, ++c)
       {
       //for this group of the same cell type we need to fill the cellTypes
       const int numCells = (*i).numCells;
@@ -125,14 +124,14 @@ public:
         //cell arrays start and end are different, since we
         //have to account for element that states the length of each cell
         cellArray[0]=numVerts;
-        for(int k=0; k < numVerts; ++k, ++c)
+        EntityHandle* moabConnectivity = *c;
+        for(int k=0; k < numVerts; ++k, ++moabConnectivity )
           {
           //this is going to be a root of some failures when we start
           //reading really large datasets under 32bit.
-          const EntityHandle* pointIndexHandle = *c;
           EntityConstIterator result = std::lower_bound(this->UniqueIds.begin(),
                                                         this->UniqueIds.end(),
-                                                        *pointIndexHandle);
+                                                        *moabConnectivity);
           std::size_t newId = std::distance(this->UniqueIds.begin(),
                                             result);
           cellArray[k+1] = static_cast<vtkIdType>(newId);
@@ -254,26 +253,7 @@ public:
     //don't need to use an extra copy and we can bypass all vtk's check
     //on out of bounds
     double *rawPoints = static_cast<double*>(pointContainer->GetVoidPointer(0));
-
-    double *x,*y,*z;
-    int count=0;
-    while(count != pointEntities.size())
-      {
-      int iterationCount=0;
-      this->Moab->coords_iterate(pointEntities.begin()+count,
-                               pointEntities.end(),
-                               x,y,z,
-                               iterationCount);
-      count+=iterationCount;
-
-      //copy the elements we found over to the vtkPoints
-      for(int i=0; i < iterationCount; ++i, rawPoints+=3)
-        {
-        rawPoints[i] = x[i];
-        rawPoints[i+1] = y[i];
-        rawPoints[i+2] = z[i];
-        }
-      }
+    this->Moab->get_coords(pointEntities,rawPoints);
     }
 
   //----------------------------------------------------------------------------
