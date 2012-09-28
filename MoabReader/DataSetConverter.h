@@ -21,18 +21,40 @@ namespace detail
 class MixedCellConnectivity
 {
 public:
-  MixedCellConnectivity():
+  MixedCellConnectivity(smoab::Range const& cells, moab::Interface* moab):
     Connectivity(),
-    UniqueIds()
-  {
-  }
-
-  //----------------------------------------------------------------------------
-  void add(int vtkCellType, int numVerts, smoab::EntityHandle* conn, int numCells)
+    UniquePoints(),
+    Info()
     {
-    RunLengthInfo info = { vtkCellType, numVerts, numCells };
-    this->Info.push_back(info);
-    this->Connectivity.push_back(conn);
+    int count = 0;
+    while(count != cells.size())
+      {
+      EntityHandle* connectivity;
+      int numVerts=0, iterationCount=0;
+      //use the highly efficent calls, since we know that are of the same dimension
+      moab->connect_iterate(cells.begin()+count,
+                            cells.end(),
+                            connectivity,
+                            numVerts,
+                            iterationCount);
+      //if we didn't read anything, break!
+      if(iterationCount == 0)
+        {
+        break;
+        }
+
+      //identify the cell type that we currently have,
+      //store that along with the connectivity in a temp storage vector
+      const moab::EntityType type = moab->type_from_handle(*cells.begin()+count);
+      //all these cells are contiously of the same type
+      int vtkCellType = smoab::vtkCellType(type,numVerts);
+
+      RunLengthInfo info = { vtkCellType, numVerts, iterationCount };
+      this->Info.push_back(info);
+      this->Connectivity.push_back(connectivity);
+
+      count += iterationCount;
+      }
     }
 
   //----------------------------------------------------------------------------
@@ -53,28 +75,27 @@ public:
       numCells += (*i).numCells;
       }
 
-    this->UniqueIds.reserve(connectivityLength);
-    this->copyConnectivity(this->UniqueIds);
+    this->UniquePoints.reserve(connectivityLength);
 
+    this->copyConnectivity(this->UniquePoints);
+    std::sort(this->UniquePoints.begin(),this->UniquePoints.end());
 
-    std::sort(this->UniqueIds.begin(),this->UniqueIds.end());
+    typedef std::vector<EntityHandle>::iterator EntityIterator;
+    EntityIterator newEnd = std::unique(this->UniquePoints.begin(),
+                                        this->UniquePoints.end());
 
-    EntityIterator newEnd = std::unique(this->UniqueIds.begin(),
-                                        this->UniqueIds.end());
-
-    const std::size_t newSize = std::distance(this->UniqueIds.begin(),newEnd);
-    this->UniqueIds.resize(newSize); //release unneeded space
+    const std::size_t newSize = std::distance(this->UniquePoints.begin(),newEnd);
+    this->UniquePoints.resize(newSize);
     }
 
   //----------------------------------------------------------------------------
-  smoab::Range uniquePointIds()
+  void moabPoints(smoab::Range& range) const
     {
     //from the documentation a reverse iterator is the fastest way
-    //to insert into a range. that is why mixConn.begin is really rbegin, and
-    //the same with end
-    moab::Range result;
-    std::copy(UniqueIds.rbegin(),UniqueIds.rend(),moab::range_inserter(result));
-    return result;
+    //to insert into a range.
+    std::copy(this->UniquePoints.rbegin(),
+              this->UniquePoints.rend(),
+              moab::range_inserter(range));
     }
 
   //----------------------------------------------------------------------------
@@ -131,10 +152,15 @@ public:
           {
           //this is going to be a root of some failures when we start
           //reading really large datasets under 32bit.
-          EntityConstIterator result = std::lower_bound(this->UniqueIds.begin(),
-                                                        this->UniqueIds.end(),
-                                                        *moabConnectivity);
-          std::size_t newId = std::distance(this->UniqueIds.begin(),
+
+
+          //fyi, don't use a range ds for unique points, distance
+          //function is horribly slow they need to override it
+          EntityConstIterator result = std::lower_bound(
+                                         this->UniquePoints.begin(),
+                                         this->UniquePoints.end(),
+                                         *moabConnectivity);
+          std::size_t newId = std::distance(this->UniquePoints.begin(),
                                             result);
           cellArray[k+1] = static_cast<vtkIdType>(newId);
           }
@@ -152,12 +178,11 @@ public:
 private:
 
   std::vector<EntityHandle*> Connectivity;
-  std::vector<EntityHandle> UniqueIds;
+  std::vector<EntityHandle> UniquePoints;
 
   struct RunLengthInfo{ int type; int numVerts; int numCells; };
   std::vector<RunLengthInfo> Info;
 
-  typedef std::vector<EntityHandle>::iterator EntityIterator;
   typedef std::vector<EntityHandle>::const_iterator EntityConstIterator;
   typedef std::vector<EntityHandle*>::const_iterator ConnConstIterator;
   typedef std::vector<RunLengthInfo>::const_iterator InfoConstIterator;
@@ -182,70 +207,32 @@ public:
   bool fill(const smoab::EntityHandle& entity,
             vtkUnstructuredGrid* grid) const
     {
-
-    smoab::Range pointRange = this->addCells(entity,grid);
-
-    vtkNew<vtkPoints> newPoints;
-    this->addCoordinates(pointRange,newPoints.GetPointer());
-    grid->SetPoints(newPoints.GetPointer());
-
-    this->readPointProperties(pointRange,grid);
-
-    return true;
-    }
-
-  //----------------------------------------------------------------------------
-  //given a range of entity types, add them to an unstructured grid
-  //we return a Range object that holds all the point ids that we used
-  //which is sorted and only has unique values.
-  ///we use entity types so that we can determine vtk cell type :(
-  moab::Range addCells(smoab::EntityHandle root,
-                       vtkUnstructuredGrid* grid) const
-    {
-    moab::Range cells = this->Interface.findEntitiesWithDimension(root,
+    //create a helper datastructure which can determines all the unique point ids
+    //and converts moab connecitvity info to vtk connectivity
+    moab::Range cells = this->Interface.findEntitiesWithDimension(entity,
                                                                   this->GeomDimTag.value());
-
-
-    detail::MixedCellConnectivity mixConn;
-
-    int count = 0;
-    while(count != cells.size())
-      {
-      EntityHandle* connectivity;
-      int numVerts=0, iterationCount=0;
-      //use the highly efficent calls, since we know that are of the same dimension
-      this->Moab->connect_iterate(cells.begin()+count,
-                                  cells.end(),
-                                  connectivity,
-                                  numVerts,
-                                  iterationCount);
-      //if we didn't read anything, break!
-      if(iterationCount == 0)
-        {
-        break;
-        }
-
-      //identify the cell type that we currently have,
-      //store that along with the connectivity in a temp storage vector
-      moab::EntityType type = this->Moab->type_from_handle(*cells.begin()+count);
-
-
-      int vtkCellType = smoab::vtkCellType(type,numVerts); //have vtk cell type, for all these cells
-      mixConn.add(vtkCellType,numVerts,connectivity,iterationCount);
-      count += iterationCount;
-      }
+    detail::MixedCellConnectivity mixConn(cells,this->Moab);
 
     //now that mixConn has all the cells properly stored, lets fixup
     //the ids so that they start at zero and keep the same logical ordering
     //as before.
     vtkIdType numCells, connLen;
     mixConn.compactIds(numCells,connLen);
-
     this->fillGrid(mixConn,grid,numCells,connLen);
 
-    this->readCellProperties(mixConn, grid);
 
-    return mixConn.uniquePointIds();
+    this->readCellProperties(cells,grid);
+
+    smoab::Range moabPoints;
+    mixConn.moabPoints(moabPoints);
+
+    vtkNew<vtkPoints> newPoints;
+    this->addCoordinates(moabPoints,newPoints.GetPointer());
+    grid->SetPoints(newPoints.GetPointer());
+
+    this->readPointProperties(moabPoints,grid);
+
+    return true;
     }
 
   //----------------------------------------------------------------------------
@@ -267,7 +254,7 @@ public:
 private:
 
   //----------------------------------------------------------------------------
-  void readPointProperties(smoab::Range pointEntities,
+  void readPointProperties(smoab::Range const& pointEntities,
                            vtkUnstructuredGrid* grid) const
     {
     //we want all the entities for the points so we find a tag, we know
@@ -276,7 +263,7 @@ private:
     }
 
   //----------------------------------------------------------------------------
-  void readCellProperties(detail::MixedCellConnectivity const& mixedCells,
+  void readCellProperties(smoab::Range const& mixedCells,
                           vtkUnstructuredGrid* grid) const
     {
     //mixed cells can give use all the entities in a vector that are cell ids
