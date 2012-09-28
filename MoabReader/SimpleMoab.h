@@ -5,6 +5,7 @@
 #include "moab/Core.hpp"
 #include "moab/Interface.hpp"
 #include "moab/Range.hpp"
+#include "moab/ReadUtilIface.hpp"
 
 
 #include <iostream>
@@ -42,15 +43,23 @@ struct GroupTag: Tag{ GroupTag():Tag("GROUP"){}};
 
 //light weight wrapper on a moab this->Moab that exposes only the reduced class
 //that we need
-struct Interface
+class Interface
 {
-  Interface(const std::string &file):
-    Moab(new moab::Core())
+public:
+  Interface(const std::string &file)
     {
+    this->Moab = new moab::Core();
     this->Moab->load_file(file.c_str());
     }
 
-  ~Interface(){delete this->Moab;}
+  ~Interface()
+    {
+    if(this->Moab)
+      {
+      delete this->Moab;
+      this->Moab = NULL;
+      }
+    }
 
   //----------------------------------------------------------------------------
   moab::Tag getMoabTag(const smoab::Tag& simpleTag) const
