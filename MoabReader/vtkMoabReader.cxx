@@ -16,6 +16,7 @@ vtkStandardNewMacro(vtkMoabReader)
 vtkMoabReader::vtkMoabReader()
   {
   this->SetNumberOfInputPorts(0);
+  this->FileName = NULL;
   }
 
 //------------------------------------------------------------------------------
@@ -75,13 +76,16 @@ void vtkMoabReader::CreateSubBlocks(vtkNew<vtkMultiBlockDataSet> & root,
   smoab::DataSetConverter converter(interface);
 
   smoab::Range parents = interface.findEntityRootParents(interface.getRoot());
-  smoab::Range geom3dParents = parents.subset_by_dimension(dimensionality);
+
+  //subset by dimension isn't the correct call!, that is geometeric dimension
+  //of the entity type. We want to subset if it has the geom tag GEOM_DIMENSION
+  smoab::Range geomParents = parents.subset_by_dimension(dimensionality);
   parents.clear(); //remove this range as it is unneeded
 
   //now each item in range can be extracted into a different grid
   typedef smoab::Range::iterator iterator;
   vtkIdType index = 0;
-  for(iterator i=geom3dParents.begin(); i != geom3dParents.end(); ++i, ++index)
+  for(iterator i=geomParents.begin(); i != geomParents.end(); ++i, ++index)
     {
     vtkNew<vtkUnstructuredGrid> block;
     root->SetBlock(index,block.GetPointer());
