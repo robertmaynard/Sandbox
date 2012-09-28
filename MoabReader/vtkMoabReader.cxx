@@ -72,14 +72,14 @@ void vtkMoabReader::CreateSubBlocks(vtkNew<vtkMultiBlockDataSet> & root,
   //basic premise: query the database for all 3d elements and create a new
   //multiblock elemenent for each
 
+  smoab::GeomTag dimTag(dimensionality);
   smoab::Interface interface(this->FileName);
-  smoab::DataSetConverter converter(interface);
+  smoab::DataSetConverter converter(interface,dimTag);
 
   smoab::EntityHandle rootHandle = interface.getRoot();
   smoab::Range parents = interface.findEntityRootParents(rootHandle);
-  smoab::Range dimEnts = interface.findEntitiesWithTag(
-                           smoab::GeomTag(dimensionality),
-                           rootHandle);
+  smoab::Range dimEnts = interface.findEntitiesWithTag(dimTag,
+                                                       rootHandle);
 
   smoab::Range geomParents = smoab::intersect(parents,dimEnts);
 

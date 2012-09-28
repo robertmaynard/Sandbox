@@ -167,16 +167,19 @@ class DataSetConverter
 {
   const smoab::Interface& Interface;
   moab::Interface* Moab;
+  smoab::GeomTag GeomDimTag;
 
 public:
-  DataSetConverter(const smoab::Interface& interface ):
+  DataSetConverter(const smoab::Interface& interface,const smoab::GeomTag& dim):
     Interface(interface),
-    Moab(interface.Moab)
+    Moab(interface.Moab),
+    GeomDimTag(dim)
     {
     }
 
   //----------------------------------------------------------------------------
-  bool fill(const smoab::EntityHandle& entity, vtkUnstructuredGrid* grid) const
+  bool fill(const smoab::EntityHandle& entity,
+            vtkUnstructuredGrid* grid) const
     {
     smoab::Range pointRange = this->addCells(entity,grid);
 
@@ -195,9 +198,8 @@ public:
   moab::Range addCells(moab::EntityHandle root,
                        vtkUnstructuredGrid* grid) const
     {
-
     moab::Range cells = this->Interface.findEntitiesWithDimension(root,
-                          this->Moab->dimension_from_handle(root));
+                                                                  this->GeomDimTag.value());
 
 
     detail::MixedCellConnectivity mixConn;
