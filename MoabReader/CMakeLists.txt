@@ -13,12 +13,16 @@ find_package(ParaView REQUIRED)
 include(${ParaView_USE_FILE})
 include_directories(${PARAVIEW_INCLUDE_DIRS})
 
-add_library(vtkMoabReader
-            vtkMoabReader.cxx
-            SimpleMoab.h
-            )
+set(headers
+  SimpleMoab.h
+  DataSetConverter.h
+  CellTypeToType.h)
 
-message(STATUS "VTK_LIBRARIES: ${VTK_LIBRARIES}")
-target_link_libraries(vtkMoabReader
-                      ${VTK_LIBRARIES}
+add_paraview_plugin(vtkMoabReaderPlugin "5.0"
+   SERVER_MANAGER_XML vtkMoabReader.xml
+   SERVER_MANAGER_SOURCES vtkMoabReader.cxx
+   SERVER_SOURCES ${headers}
+   GUI_RESOURCE_FILES vtkMoabReaderGUI.xml)
+
+target_link_libraries(vtkMoabReaderPlugin
                       ${MOAB_LIBRARY})
