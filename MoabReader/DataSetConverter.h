@@ -165,7 +165,7 @@ private:
 
 class DataSetConverter
 {
-  smoab::Interface Interface;
+  const smoab::Interface& Interface;
   moab::Interface* Moab;
 
 public:
