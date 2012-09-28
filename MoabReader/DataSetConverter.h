@@ -117,6 +117,8 @@ public:
                   static_cast<unsigned char>((*i).type));
 
       //for each cell in this collection that have the same type
+      //grab the raw array now, so we can properly increment for each vert in each cell
+      EntityHandle* moabConnectivity = *c;
       for(int j=0;j < numCells; ++j)
         {
         cellLocations[j]= currentVtkConnectivityIndex;
@@ -124,7 +126,7 @@ public:
         //cell arrays start and end are different, since we
         //have to account for element that states the length of each cell
         cellArray[0]=numVerts;
-        EntityHandle* moabConnectivity = *c;
+
         for(int k=0; k < numVerts; ++k, ++moabConnectivity )
           {
           //this is going to be a root of some failures when we start
