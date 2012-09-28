@@ -182,11 +182,14 @@ public:
   bool fill(const smoab::EntityHandle& entity,
             vtkUnstructuredGrid* grid) const
     {
+
     smoab::Range pointRange = this->addCells(entity,grid);
 
     vtkNew<vtkPoints> newPoints;
     this->addCoordinates(pointRange,newPoints.GetPointer());
     grid->SetPoints(newPoints.GetPointer());
+
+    this->readPointProperties(pointRange,grid);
 
     return true;
     }
@@ -196,7 +199,7 @@ public:
   //we return a Range object that holds all the point ids that we used
   //which is sorted and only has unique values.
   ///we use entity types so that we can determine vtk cell type :(
-  moab::Range addCells(moab::EntityHandle root,
+  moab::Range addCells(smoab::EntityHandle root,
                        vtkUnstructuredGrid* grid) const
     {
     moab::Range cells = this->Interface.findEntitiesWithDimension(root,
@@ -240,6 +243,8 @@ public:
 
     this->fillGrid(mixConn,grid,numCells,connLen);
 
+    this->readCellProperties(mixConn, grid);
+
     return mixConn.uniquePointIds();
     }
 
@@ -257,6 +262,25 @@ public:
     //on out of bounds
     double *rawPoints = static_cast<double*>(pointContainer->GetVoidPointer(0));
     this->Moab->get_coords(pointEntities,rawPoints);
+    }
+
+private:
+
+  //----------------------------------------------------------------------------
+  void readPointProperties(smoab::Range pointEntities,
+                           vtkUnstructuredGrid* grid) const
+    {
+    //we want all the entities for the points so we find a tag, we know
+    //it is a point tag
+
+    }
+
+  //----------------------------------------------------------------------------
+  void readCellProperties(detail::MixedCellConnectivity const& mixedCells,
+                          vtkUnstructuredGrid* grid) const
+    {
+    //mixed cells can give use all the entities in a vector that are cell ids
+
     }
 
   //----------------------------------------------------------------------------
