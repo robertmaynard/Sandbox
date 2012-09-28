@@ -90,12 +90,18 @@ private:
 
     //so we get all the tags
     typedef std::vector<moab::Tag>::const_iterator iterator;
-//    std::vector<moab::Tag> tags = this->Interface.getTags(*pointEntities);
+    std::vector<moab::Tag> tags;
+    this->Moab->tag_get_tags_on_entity(pointEntities.front(),tags);
 
-//    for(iterator i=tags.begin(),i!=tags.end();++i)
-//      {
+    //foreach tag,
+    for(iterator i=tags.begin();i!=tags.end();++i)
+      {
+      void* tagData;
+      this->Moab->tag_get_data(*i,pointEntities,tagData);
 
-//      }
+      //now we determine type (int/double) and verify it is dense
+      //we really need a function that does this all by hand
+      }
 
     }
 
