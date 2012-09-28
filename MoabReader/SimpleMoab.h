@@ -17,29 +17,54 @@ typedef moab::Range Range;
 typedef moab::EntityHandle EntityHandle;
 typedef moab::EntityType EntityType;
 
+//bring in range functions
+using moab::intersect;
+using moab::subtract;
+using moab::unite;
+
 //forward declare this->Moab for Tag
 struct Interface;
 
 //forward declar the DataSetConverter so it can be a friend of Interface
 class DataSetConverter;
 
-struct Tag
+class Tag
 {
   const std::string Name_;
-
+public:
   Tag(std::string const& n):Name_(n)
     {
     }
+
+  virtual ~Tag()
+    {
+    }
+
   const char* name() const { return this->Name_.c_str(); }
   moab::DataType virtual dataType() const { return moab::MB_TYPE_INTEGER; }
+  virtual bool isComparable() const { return false; }
+  virtual int value() const { return int(); }
 };
 
 //lightweight structs to wrap set names, so we detected
-//incorrect names at compile time
-struct MaterialTag : Tag{ MaterialTag():Tag("MATERIAL_SET"){}};
-struct DirichletTag : Tag{ DirichletTag():Tag("DIRICHLET_SET"){}};
-struct NeumannTag: Tag{ NeumannTag():Tag("NEUMANN_SET"){}};
-struct GroupTag: Tag{ GroupTag():Tag("GROUP"){}};
+//incorrect names at compile time. In the future I expect material and
+//boundary conditions to be comparable
+class MaterialTag : public Tag{ public: MaterialTag():Tag("MATERIAL_SET"){}};
+class DirichletTag : public Tag{ public: DirichletTag():Tag("DIRICHLET_SET"){}};
+class NeumannTag: public Tag{public:  NeumannTag():Tag("NEUMANN_SET"){}};
+class GroupTag: public Tag{ public: GroupTag():Tag("GROUP"){}};
+
+//geom is the only comparable tag, since it can have a dimension.
+class GeomTag: public Tag
+  {
+  int dim;
+public:
+  GeomTag(int d):Tag("GEOM_DIMENSION"),dim(d){}
+  GeomTag():Tag("GEOM_DIMENSION"), dim(0){}
+
+  bool isComparable() const { return dim > 0; }
+  int value() const { return dim; }
+  };
 
 //light weight wrapper on a moab this->Moab that exposes only the reduced class
 //that we need
@@ -98,7 +123,34 @@ public:
 
     // get all the entities of that type in the mesh
     this->Moab->get_entities_by_type_and_tag(root, type, &t, NULL, 1,result);
-    return result;
+
+
+    if(tag.isComparable())
+      {
+      int value=0;
+      //now we have to remove any that doesn't match the tag value
+      smoab::Range resultMatchingTag;
+      typedef moab::Range::iterator iterator;
+      for(iterator i=result.begin();
+          i != result.end();
+          ++i)
+        {
+        value = 0;
+        moab::EntityHandle handle = *i;
+        this->Moab->tag_get_data(t, &handle, 1, &value);
+        if(value == tag.value())
+          {
+          resultMatchingTag.insert(*i);
+          }
+        }
+
+      return resultMatchingTag;
+      }
+    else
+      {
+      //we return all the items we found
+      return result;
+      }
     }
 
   //----------------------------------------------------------------------------
@@ -129,7 +181,7 @@ public:
       if(numParents==0)
         {
         this->Moab->num_child_meshsets(*i,&numChildren);
-        if(numChildren>0)
+        if(numChildren>=0)
           {
           parents.insert(*i);
           }

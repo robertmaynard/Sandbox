@@ -75,12 +75,16 @@ void vtkMoabReader::CreateSubBlocks(vtkNew<vtkMultiBlockDataSet> & root,
   smoab::Interface interface(this->FileName);
   smoab::DataSetConverter converter(interface);
 
-  smoab::Range parents = interface.findEntityRootParents(interface.getRoot());
+  smoab::EntityHandle rootHandle = interface.getRoot();
+  smoab::Range parents = interface.findEntityRootParents(rootHandle);
+  smoab::Range dimEnts = interface.findEntitiesWithTag(
+                           smoab::GeomTag(dimensionality),
+                           rootHandle);
 
-  //subset by dimension isn't the correct call!, that is geometeric dimension
-  //of the entity type. We want to subset if it has the geom tag GEOM_DIMENSION
-  smoab::Range geomParents = parents.subset_by_dimension(dimensionality);
+  smoab::Range geomParents = smoab::intersect(parents,dimEnts);
+
   parents.clear(); //remove this range as it is unneeded
+  dimEnts.clear();
 
   //now each item in range can be extracted into a different grid
   typedef smoab::Range::iterator iterator;
