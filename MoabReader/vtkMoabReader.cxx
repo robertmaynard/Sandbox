@@ -48,29 +48,36 @@ int vtkMoabReader::RequestData(vtkInformation *vtkNotUsed(request),
     vtkMultiBlockDataSet::SafeDownCast(outInfo->Get(vtkDataObject::DATA_OBJECT()));
 
   vtkNew<vtkMultiBlockDataSet> volumeRoot;
+  vtkNew<vtkMultiBlockDataSet> boundaryRoot;
   vtkNew<vtkMultiBlockDataSet> surfaceRoot;
   vtkNew<vtkMultiBlockDataSet> neumannRoot;
   vtkNew<vtkMultiBlockDataSet> dirichletRoot;
 
   const int blockIndex = output->GetNumberOfBlocks();
   output->SetBlock(blockIndex,volumeRoot.GetPointer());
-  output->SetBlock(blockIndex+1,surfaceRoot.GetPointer());
-  output->SetBlock(blockIndex+2,neumannRoot.GetPointer());
-  output->SetBlock(blockIndex+3,dirichletRoot.GetPointer());
+  output->SetBlock(blockIndex+1,boundaryRoot.GetPointer());
+  output->SetBlock(blockIndex+2,surfaceRoot.GetPointer());
+  output->SetBlock(blockIndex+3,neumannRoot.GetPointer());
+  output->SetBlock(blockIndex+4,dirichletRoot.GetPointer());
 
   //boring work, set the names of the blocks
   output->GetMetaData(blockIndex)->Set(vtkCompositeDataSet::NAME(), "Volumes");
-  output->GetMetaData(blockIndex+1)->Set(vtkCompositeDataSet::NAME(), "Surfaces");
-  output->GetMetaData(blockIndex+2)->Set(vtkCompositeDataSet::NAME(), "Neumann Sets");
-  output->GetMetaData(blockIndex+3)->Set(vtkCompositeDataSet::NAME(), "Dirichlet Sets");
+  output->GetMetaData(blockIndex+1)->Set(vtkCompositeDataSet::NAME(), "Boundary");
+  output->GetMetaData(blockIndex+2)->Set(vtkCompositeDataSet::NAME(), "Surfaces");
+  output->GetMetaData(blockIndex+3)->Set(vtkCompositeDataSet::NAME(), "Neumann Sets");
+  output->GetMetaData(blockIndex+4)->Set(vtkCompositeDataSet::NAME(), "Dirichlet Sets");
 
 
   smoab::GeomTag geom3Tag(3);
   smoab::GeomTag geom2Tag(2);
+  smoab::GeomTag geom1Tag(2);
   smoab::NeumannTag neTag;
   smoab::DirichletTag diTag;
 
   this->CreateSubBlocks(volumeRoot, &geom3Tag);
+  this->CreateSubBlocks(boundaryRoot, &geom3Tag, &geom2Tag);
+  this->CreateSubBlocks(boundaryRoot, &geom3Tag, &geom1Tag);
+
   this->CreateSubBlocks(surfaceRoot, &geom2Tag);
   this->CreateSubBlocks(neumannRoot, &neTag);
   this->CreateSubBlocks(dirichletRoot, &diTag);
@@ -82,17 +89,21 @@ int vtkMoabReader::RequestData(vtkInformation *vtkNotUsed(request),
 
 //------------------------------------------------------------------------------
 void vtkMoabReader::CreateSubBlocks(vtkNew<vtkMultiBlockDataSet> & root,
-                                    smoab::Tag const* tag)
+                                    smoab::Tag const* parentTag,
+                                    smoab::Tag const* extractTag)
 {
-
+  if(!extractTag)
+    {
+    extractTag = parentTag;
+    }
   //basic premise: query the database for all tagged elements and create a new
   //multiblock elemenent for each
   smoab::Interface interface(this->FileName);
-  smoab::DataSetConverter converter(interface,tag);
+  smoab::DataSetConverter converter(interface,extractTag);
 
   smoab::EntityHandle rootHandle = interface.getRoot();
   smoab::Range parents = interface.findEntityRootParents(rootHandle);
-  smoab::Range dimEnts = interface.findEntitiesWithTag(*tag,
+  smoab::Range dimEnts = interface.findEntitiesWithTag(*parentTag,
                                                        rootHandle);
 
   smoab::Range geomParents = smoab::intersect(parents,dimEnts);

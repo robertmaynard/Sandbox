@@ -157,8 +157,18 @@ public:
   smoab::Range findEntitiesWithDimension(const smoab::EntityHandle root,
                                          int dimension) const
     {
+    typedef smoab::Range::iterator iterator;
+
     smoab::Range result;
     this->Moab->get_entities_by_dimension(root,dimension,result);
+
+
+    smoab::Range children;
+    this->Moab->get_child_meshsets(root,children,0);
+    for(iterator i=children.begin(); i !=children.end();++i)
+      {
+      this->Moab->get_entities_by_dimension(*i,dimension,result);
+      }
     return result;
     }
 

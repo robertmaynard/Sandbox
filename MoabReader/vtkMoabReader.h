@@ -34,7 +34,9 @@ protected:
                   vtkInformationVector **vtkNotUsed(inputVector),
                   vtkInformationVector *outputVector);
 private:
-  void CreateSubBlocks(vtkNew<vtkMultiBlockDataSet> &root, smoab::Tag const* tag);
+  void CreateSubBlocks(vtkNew<vtkMultiBlockDataSet> &root,
+                       smoab::Tag const* parentTag,
+                       smoab::Tag const* extractTag=NULL);
 
   vtkMoabReader(const vtkMoabReader&);  // Not implemented.
   void operator=(const vtkMoabReader&);  // Not implemented.

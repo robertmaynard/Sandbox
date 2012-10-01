@@ -37,7 +37,6 @@ int main(int argc, char **argv)
 
 
 
-
 //    std::cin >> inputOption;
     inputOption = 2;
 
@@ -61,7 +60,7 @@ int main(int argc, char **argv)
       case 2:
         std::cout << "Raw Sets" << std::endl;
         interface->get_entities_by_type(rootHandle,
-                                        moab::MBENTITYSET,
+                                        moab::MBTRI,
                                         range);
         printRange(range,interface);
 exit(1);
