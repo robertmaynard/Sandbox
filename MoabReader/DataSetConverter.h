@@ -84,28 +84,79 @@ public:
     }
 
 private:
-
   //----------------------------------------------------------------------------
-  void readProperties(smoab::Range const& pointEntities,
+  void readProperties(smoab::Range const& entities,
                            vtkFieldData* field) const
     {
-    //read all properties on a collection of entities and store the
-    //properteries into the field data.
-    if(pointEntities.empty()) { return; }
+    if(entities.empty()) { return; }
 
-
-    //so we get all the tags
+    //so we get all the tags and parse out the sparse and dense tags
+    //that we support
     typedef std::vector<moab::Tag>::const_iterator iterator;
     std::vector<moab::Tag> tags;
-    this->Moab->tag_get_tags_on_entity(pointEntities.front(),tags);
+    this->Moab->tag_get_tags_on_entity(entities.front(),tags);
 
-    //foreach tag,
+    this->readDenseTags(tags,entities,field);
+    this->readSparseTags(tags,entities,field);
+    }
+
+  //----------------------------------------------------------------------------
+  void readSparseTags(std::vector<moab::Tag> &tags,
+                      smoab::Range const& entities,
+                      vtkFieldData* field) const
+    {
+    typedef std::vector<moab::Tag>::const_iterator iterator;
+
     for(iterator i=tags.begin();i!=tags.end();++i)
       {
+      moab::TagType tagType;
       moab::DataType tagDataType;
+
+      this->Moab->tag_get_type(*i,tagType);
       this->Moab->tag_get_data_type(*i,tagDataType);
 
-      if(tagDataType != moab::MB_TYPE_DOUBLE &&
+      if(tagType != moab::MB_TAG_SPARSE &&
+         tagDataType != moab::MB_TYPE_DOUBLE &&
+         tagDataType != moab::MB_TYPE_INTEGER)
+        {
+        //unsupported type, skip to next tag
+        continue;
+        }
+
+      std::string name;
+      this->Moab->tag_get_name(*i,name);
+      std::cout << "Sparse tag: " << name << std::endl;
+      }
+
+    }
+
+  void readDenseTags(std::vector<moab::Tag> &tags,
+                     smoab::Range const& entities,
+                     vtkFieldData* field) const
+    {
+    typedef std::vector<moab::Tag>::const_iterator iterator;
+
+    //strip out the global id tag, as it's name field is invlaid.
+    moab::Tag globalIdTag;
+    moab::ErrorCode rval =
+        this->Moab->tag_get_handle(GLOBAL_ID_TAG_NAME,1,
+                                   moab::MB_TYPE_INTEGER,globalIdTag);
+    if(rval==moab::MB_SUCCESS)
+      {
+      std::remove(tags.begin(),tags.end(),globalIdTag);
+      }
+
+
+    for(iterator i=tags.begin();i!=tags.end();++i)
+      {
+      moab::TagType tagType;
+      moab::DataType tagDataType;
+
+      this->Moab->tag_get_type(*i,tagType);
+      this->Moab->tag_get_data_type(*i,tagDataType);
+
+      if(tagType != moab::MB_TAG_DENSE &&
+         tagDataType != moab::MB_TYPE_DOUBLE &&
          tagDataType != moab::MB_TYPE_INTEGER)
         {
         //unsupported type, skip to next tag
@@ -118,10 +169,11 @@ private:
 
       //read the number of components of the tag
       int numComps = 1;
+
       this->Moab->tag_get_length(*i,numComps);
 
       //read the data if it is one of the two types we support
-      int size = pointEntities.size();
+      int size = entities.size();
       if(tagDataType == moab::MB_TYPE_DOUBLE)
         {
         vtkNew<vtkDoubleArray> array;
@@ -130,7 +182,7 @@ private:
         array->SetNumberOfTuples(size);
 
         //read directly into the double array
-        this->Moab->tag_get_data(*i,pointEntities,
+        this->Moab->tag_get_data(*i,entities,
                                  array->GetVoidPointer(0));
         field->AddArray(array.GetPointer());
         }
@@ -142,7 +194,7 @@ private:
         array->SetNumberOfTuples(size);
 
         //read directly into the double array
-        this->Moab->tag_get_data(*i,pointEntities,
+        this->Moab->tag_get_data(*i,entities,
                                  array->GetVoidPointer(0));
         field->AddArray(array.GetPointer());
         }
@@ -150,7 +202,6 @@ private:
         {
         }
       }
-
     }
 
   //----------------------------------------------------------------------------

@@ -5,8 +5,7 @@
 #include "moab/Core.hpp"
 #include "moab/Interface.hpp"
 #include "moab/Range.hpp"
-#include "moab/ReadUtilIface.hpp"
-
+#include "MBTagConventions.hpp"
 
 #include <iostream>
 
