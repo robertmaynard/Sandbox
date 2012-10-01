@@ -6,8 +6,13 @@
 #include "MixedCellConnectivity.h"
 
 #include <vtkCellArray.h>
+#include <vtkCellData.h>
+#include <vtkDoubleArray.h>
+#include <vtkFieldData.h>
+#include <vtkIntArray.h>
 #include <vtkIdTypeArray.h>
 #include <vtkNew.h>
+#include <vtkPointData.h>
 #include <vtkPoints.h>
 #include <vtkUnsignedCharArray.h>
 #include <vtkUnstructuredGrid.h>
@@ -47,7 +52,7 @@ public:
     this->fillGrid(mixConn,grid,numCells,connLen);
 
 
-    this->readCellProperties(cells,grid);
+    this->readProperties(cells,grid->GetCellData());
 
     smoab::Range moabPoints;
     mixConn.moabPoints(moabPoints);
@@ -56,7 +61,8 @@ public:
     this->addCoordinates(moabPoints,newPoints.GetPointer());
     grid->SetPoints(newPoints.GetPointer());
 
-    this->readPointProperties(moabPoints,grid);
+    this->readProperties(moabPoints,grid->GetPointData());
+
 
     return true;
     }
@@ -80,11 +86,11 @@ public:
 private:
 
   //----------------------------------------------------------------------------
-  void readPointProperties(smoab::Range const& pointEntities,
-                           vtkUnstructuredGrid* grid) const
+  void readProperties(smoab::Range const& pointEntities,
+                           vtkFieldData* field) const
     {
-    //we want all the entities for the points so we find a tag, we know
-    //it is a point tag
+    //read all properties on a collection of entities and store the
+    //properteries into the field data.
     if(pointEntities.empty()) { return; }
 
 
@@ -96,20 +102,54 @@ private:
     //foreach tag,
     for(iterator i=tags.begin();i!=tags.end();++i)
       {
-      void* tagData;
-      this->Moab->tag_get_data(*i,pointEntities,tagData);
+      moab::DataType tagDataType;
+      this->Moab->tag_get_data_type(*i,tagDataType);
 
-      //now we determine type (int/double) and verify it is dense
-      //we really need a function that does this all by hand
+      if(tagDataType != moab::MB_TYPE_DOUBLE &&
+         tagDataType != moab::MB_TYPE_INTEGER)
+        {
+        //unsupported type, skip to next tag
+        continue;
+        }
+
+      //read the name of the tag
+      std::string name;
+      this->Moab->tag_get_name(*i,name);
+
+      //read the number of components of the tag
+      int numComps = 1;
+      this->Moab->tag_get_length(*i,numComps);
+
+      //read the data if it is one of the two types we support
+      int size = pointEntities.size();
+      if(tagDataType == moab::MB_TYPE_DOUBLE)
+        {
+        vtkNew<vtkDoubleArray> array;
+        array->SetName(name.c_str());
+        array->SetNumberOfComponents(numComps);
+        array->SetNumberOfTuples(size);
+
+        //read directly into the double array
+        this->Moab->tag_get_data(*i,pointEntities,
+                                 array->GetVoidPointer(0));
+        field->AddArray(array.GetPointer());
+        }
+      else if(tagDataType == moab::MB_TYPE_INTEGER)
+        {
+        vtkNew<vtkIntArray> array;
+        array->SetName(name.c_str());
+        array->SetNumberOfComponents(numComps);
+        array->SetNumberOfTuples(size);
+
+        //read directly into the double array
+        this->Moab->tag_get_data(*i,pointEntities,
+                                 array->GetVoidPointer(0));
+        field->AddArray(array.GetPointer());
+        }
+      else
+        {
+        }
       }
-
-    }
-
-  //----------------------------------------------------------------------------
-  void readCellProperties(smoab::Range const& cellEntities,
-                          vtkUnstructuredGrid* grid) const
-    {
-    //mixed cells can give use all the entities in a vector that are cell ids
 
     }
 
