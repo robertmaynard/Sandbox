@@ -94,7 +94,14 @@ void vtkMoabReader::CreateSubBlocks(vtkNew<vtkMultiBlockDataSet> & root,
     vtkNew<vtkUnstructuredGrid> block;
     root->SetBlock(index,block.GetPointer());
 
+    //fill the dataset with geometry and properties
     converter.fill(*i, block.GetPointer());
+
+    std::string name = converter.name(*i);
+    if(name.size() > 0)
+      {
+      root->GetMetaData(index)->Set(vtkCompositeDataSet::NAME(), name.c_str());
+      }
     }
 }
 

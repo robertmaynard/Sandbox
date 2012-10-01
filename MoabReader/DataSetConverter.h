@@ -35,6 +35,23 @@ public:
     }
 
   //----------------------------------------------------------------------------
+  std::string name(const smoab::EntityHandle& entity) const
+    {
+    moab::Tag nameTag;
+    moab::ErrorCode rval = this->Moab->tag_get_handle(NAME_TAG_NAME,
+                                                      NAME_TAG_SIZE,
+                                                      moab::MB_TYPE_OPAQUE,
+                                                      nameTag);
+    if(rval != moab::MB_SUCCESS) { return std::string(); }
+
+    char name[NAME_TAG_SIZE];
+    rval = this->Moab->tag_get_data(nameTag,&entity,1,&name);
+    if(rval != moab::MB_SUCCESS) { return std::string(); }
+
+    return std::string(name);
+    }
+
+  //----------------------------------------------------------------------------
   bool fill(const smoab::EntityHandle& entity,
             vtkUnstructuredGrid* grid) const
     {
