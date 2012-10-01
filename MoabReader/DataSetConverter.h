@@ -81,6 +81,11 @@ public:
     this->readProperties(moabPoints,grid->GetPointData());
 
 
+
+    this->readSparseTag(smoab::MaterialTag(),entity,
+                        grid->GetNumberOfCells(),
+                        grid->GetCellData());
+
     return true;
     }
 
@@ -114,56 +119,36 @@ private:
     this->Moab->tag_get_tags_on_entity(entities.front(),tags);
 
     this->readDenseTags(tags,entities,field);
-    this->readSparseTags(tags,entities,field);
     }
 
   //----------------------------------------------------------------------------
-  void readSparseTags(std::vector<moab::Tag> &tags,
-                      smoab::Range const& entities,
+  void readSparseTag(smoab::Tag tag,
+                      smoab::EntityHandle const& entity,
+                      vtkIdType length,
                       vtkFieldData* field) const
     {
+
     typedef std::vector<moab::Tag>::const_iterator iterator;
+    moab::Tag mtag = this->Interface.getMoabTag(tag);
 
-    for(iterator i=tags.begin();i!=tags.end();++i)
-      {
-      moab::TagType tagType;
-      moab::DataType tagDataType;
+    int value=0;
+    moab::ErrorCode rval = this->Moab->tag_get_data(mtag,&entity,1,&value);
+    if(rval!=moab::MB_SUCCESS) { return; }
 
-      this->Moab->tag_get_type(*i,tagType);
-      this->Moab->tag_get_data_type(*i,tagDataType);
+    vtkNew<vtkIntArray> materialSet;
+    materialSet->SetNumberOfValues(length);
+    memset(materialSet->GetVoidPointer(0),value,length);
 
-      if(tagType != moab::MB_TAG_SPARSE &&
-         tagDataType != moab::MB_TYPE_DOUBLE &&
-         tagDataType != moab::MB_TYPE_INTEGER)
-        {
-        //unsupported type, skip to next tag
-        continue;
-        }
-
-      std::string name;
-      this->Moab->tag_get_name(*i,name);
-      std::cout << "Sparse tag: " << name << std::endl;
-      }
-
+    field->AddArray(materialSet.GetPointer());
     }
 
+  //----------------------------------------------------------------------------
   void readDenseTags(std::vector<moab::Tag> &tags,
                      smoab::Range const& entities,
                      vtkFieldData* field) const
     {
     typedef std::vector<moab::Tag>::const_iterator iterator;
 
-    //strip out the global id tag, as it's name field is invlaid.
-    moab::Tag globalIdTag;
-    moab::ErrorCode rval =
-        this->Moab->tag_get_handle(GLOBAL_ID_TAG_NAME,1,
-                                   moab::MB_TYPE_INTEGER,globalIdTag);
-    if(rval==moab::MB_SUCCESS)
-      {
-      std::remove(tags.begin(),tags.end(),globalIdTag);
-      }
-
-
     for(iterator i=tags.begin();i!=tags.end();++i)
       {
       moab::TagType tagType;
@@ -172,8 +157,13 @@ private:
       this->Moab->tag_get_type(*i,tagType);
       this->Moab->tag_get_data_type(*i,tagDataType);
 
-      if(tagType != moab::MB_TAG_DENSE &&
-         tagDataType != moab::MB_TYPE_DOUBLE &&
+      //make sure it is only dense
+      if(tagType != moab::MB_TAG_DENSE)
+        {
+        continue;
+        }
+      //and only integer and double
+      if(tagDataType != moab::MB_TYPE_DOUBLE &&
          tagDataType != moab::MB_TYPE_INTEGER)
         {
         //unsupported type, skip to next tag
@@ -182,6 +172,7 @@ private:
 
       //read the name of the tag
       std::string name;
+      name.reserve(32);
       this->Moab->tag_get_name(*i,name);
 
       //read the number of components of the tag
