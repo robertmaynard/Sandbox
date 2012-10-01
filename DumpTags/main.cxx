@@ -38,8 +38,8 @@ int main(int argc, char **argv)
 
 
 
-    std::cin >> inputOption;
-//    inputOption = 7;
+//    std::cin >> inputOption;
+    inputOption = 2;
 
     moab::Range range, range2, range3;
     size_t sizes[3];
@@ -64,6 +64,7 @@ int main(int argc, char **argv)
                                         moab::MBENTITYSET,
                                         range);
         printRange(range,interface);
+exit(1);
         break;
       case 3:
         std::cout << "All Groups " << std::endl;

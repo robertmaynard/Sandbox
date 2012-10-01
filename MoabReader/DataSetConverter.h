@@ -24,15 +24,16 @@ class DataSetConverter
 {
   const smoab::Interface& Interface;
   moab::Interface* Moab;
-  smoab::GeomTag GeomDimTag;
+  const smoab::Tag *Tag;
 
 public:
-  DataSetConverter(const smoab::Interface& interface,const smoab::GeomTag& dim):
+  DataSetConverter(const smoab::Interface& interface, const smoab::Tag* tag):
     Interface(interface),
     Moab(interface.Moab),
-    GeomDimTag(dim)
+    Tag(tag)
     {
     }
+
 
   //----------------------------------------------------------------------------
   std::string name(const smoab::EntityHandle& entity) const
@@ -57,8 +58,19 @@ public:
     {
     //create a helper datastructure which can determines all the unique point ids
     //and converts moab connecitvity info to vtk connectivity
-    moab::Range cells = this->Interface.findEntitiesWithDimension(entity,
-                                                                  this->GeomDimTag.value());
+    moab::Range cells;
+    if(this->Tag->isComparable())
+      {
+      //if we are comparable only find the cells that match our tags dimension
+      cells = this->Interface.findEntitiesWithDimension(entity,Tag->value());
+      }
+    else
+      {
+      //this is a bad representation of all other tags, but we are presuming that
+      //neuman and dirichlet are on entitysets with no children
+      this->Moab->get_entities_by_handle(entity,cells);
+      }
+
     smoab::MixedCellConnectivity mixConn(cells,this->Moab);
 
     //now that mixConn has all the cells properly stored, lets fixup

@@ -8,6 +8,8 @@
 class vtkInformation;
 class vtkInformationVector;
 
+namespace smoab{ class Tag; }
+
 class vtkMoabReader : public vtkMultiBlockDataSetAlgorithm
 {
 public:
@@ -32,8 +34,7 @@ protected:
                   vtkInformationVector **vtkNotUsed(inputVector),
                   vtkInformationVector *outputVector);
 private:
-
-  void CreateSubBlocks(vtkNew<vtkMultiBlockDataSet> &root, int dimensionality);
+  void CreateSubBlocks(vtkNew<vtkMultiBlockDataSet> &root, smoab::Tag const* tag);
 
   vtkMoabReader(const vtkMoabReader&);  // Not implemented.
   void operator=(const vtkMoabReader&);  // Not implemented.
