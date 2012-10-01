@@ -137,7 +137,10 @@ private:
 
     vtkNew<vtkIntArray> materialSet;
     materialSet->SetNumberOfValues(length);
-    memset(materialSet->GetVoidPointer(0),value,length);
+    materialSet->SetName(tag.name());
+
+    int *raw = static_cast<int*>(materialSet->GetVoidPointer(0));
+    std::fill(raw,raw+length,value);
 
     field->AddArray(materialSet.GetPointer());
     }
