@@ -54,7 +54,8 @@ public:
 
   //----------------------------------------------------------------------------
   bool fill(const smoab::EntityHandle& entity,
-            vtkUnstructuredGrid* grid) const
+            vtkUnstructuredGrid* grid,
+            int index) const
     {
     //create a helper datastructure which can determines all the unique point ids
     //and converts moab connecitvity info to vtk connectivity
@@ -97,7 +98,13 @@ public:
     this->readSparseTag(smoab::MaterialTag(),entity,
                         grid->GetNumberOfCells(),
                         grid->GetCellData());
+    vtkNew<vtkIdTypeArray> BlockId;
+    BlockId->SetName("BlockId");
+    BlockId->SetNumberOfValues(numCells);
 
+    vtkIdType *raw = static_cast<vtkIdType*>(BlockId->GetVoidPointer(0));
+    std::fill(raw,raw+numCells,index);
+    grid->GetCellData()->AddArray(BlockId.GetPointer());
     return true;
     }
 

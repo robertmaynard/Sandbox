@@ -118,7 +118,7 @@ void vtkMoabReader::CreateSubBlocks(vtkNew<vtkMultiBlockDataSet> & root,
     {
     vtkNew<vtkUnstructuredGrid> block;
     //fill the dataset with geometry and properties
-    converter.fill(*i, block.GetPointer());
+    converter.fill(*i, block.GetPointer(),index);
 
     //only add it if we have cells found
     if(block->GetNumberOfCells() > 0)
