@@ -40,7 +40,7 @@ public:
 
   void readMaterialIds(bool add) { this->ReadMaterialIds = add; }
   bool readMaterialIds() const { return this->ReadMaterialIds; }
-  const char* materialIdName() const { return "BlockId"; }
+  const char* materialIdName() const { return "Material"; }
 
   void readProperties(bool readProps) { this->ReadProperties = readProps; }
   bool readProperties() const { return this->ReadProperties; }
@@ -84,7 +84,8 @@ public:
       typedef std::vector<vtkIdType>::const_iterator IdConstIterator;
       typedef std::vector<vtkIdType>::iterator IdIterator;
 
-      std::vector<smoab::EntityHandle> searchableCells(cells.size());
+      std::vector<smoab::EntityHandle> searchableCells;
+      searchableCells.reserve(grid->GetNumberOfCells());
       std::copy(cells.begin(),cells.end(),std::back_inserter(searchableCells));
       cells.clear(); //release memory we don't need
 
@@ -93,38 +94,38 @@ public:
       //first off iterate the entities and determine which ones
       //have moab material ids
 
-      //wrap this area with scope, to remove local variables
+        //wrap this area with scope, to remove local variables
       {
-      smoab::MaterialTag tag;
-      IdIterator materialIndex = materialIds.begin();
-      for(iterator i=entities.begin();
-          i != entities.end();
-          ++i, ++materialIndex)
-        {
-        moab::Tag mtag = this->Interface.getMoabTag(tag);
-
-        int value=-1;
-        this->Moab->tag_get_data(mtag,&(*i),1,&value);
-        *materialIndex=static_cast<vtkIdType>(value);
-        }
-
-      //now determine ids for all entities that don't have materials
-      IdConstIterator maxPos = std::max_element(materialIds.begin(),
-                                               materialIds.end());
-      vtkIdType maxMaterial = *maxPos;
-      for(IdIterator i=materialIds.begin(); i!= materialIds.end(); ++i)
-        {
-        if(*i==-1)
+        smoab::MaterialTag tag;
+        IdIterator materialIndex = materialIds.begin();
+        for(iterator i=entities.begin();
+            i != entities.end();
+            ++i, ++materialIndex)
           {
-          *i = ++maxMaterial;
+          moab::Tag mtag = this->Interface.getMoabTag(tag);
+
+          int value=-1;
+          this->Moab->tag_get_data(mtag,&(*i),1,&value);
+          *materialIndex=static_cast<vtkIdType>(value);
           }
-        }
+
+        //now determine ids for all entities that don't have materials
+        IdConstIterator maxPos = std::max_element(materialIds.begin(),
+                                                 materialIds.end());
+        vtkIdType maxMaterial = *maxPos;
+        for(IdIterator i=materialIds.begin(); i!= materialIds.end(); ++i)
+          {
+          if(*i==-1)
+            {
+            *i = ++maxMaterial;
+            }
+          }
       }
 
       //now we create the material field, and set all the values
       vtkNew<vtkIdTypeArray> materialSet;
       materialSet->SetName(this->materialIdName());
-      materialSet->SetNumberOfValues(cells.size());
+      materialSet->SetNumberOfValues(grid->GetNumberOfCells());
 
       IdConstIterator materialValue = materialIds.begin();
       for(iterator i=entities.begin(); i!= entities.end(); ++i, ++materialValue)
