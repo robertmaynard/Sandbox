@@ -97,6 +97,25 @@ public:
     }
 
   //----------------------------------------------------------------------------
+  //returns the moab name for the given entity handle if it has a sparse Name tag
+  std::string name(const smoab::EntityHandle& entity) const
+    {
+    moab::Tag nameTag;
+    moab::ErrorCode rval = this->Moab->tag_get_handle(NAME_TAG_NAME,
+                                                      NAME_TAG_SIZE,
+                                                      moab::MB_TYPE_OPAQUE,
+                                                      nameTag);
+    if(rval != moab::MB_SUCCESS) { return std::string(); }
+
+    char name[NAME_TAG_SIZE];
+    rval = this->Moab->tag_get_data(nameTag,&entity,1,&name);
+    if(rval != moab::MB_SUCCESS) { return std::string(); }
+
+    return std::string(name);
+    }
+
+
+  //----------------------------------------------------------------------------
   smoab::EntityHandle getRoot() const { return this->Moab->get_root_set(); }
 
   //----------------------------------------------------------------------------
@@ -129,7 +148,7 @@ public:
       int value=0;
       //now we have to remove any that doesn't match the tag value
       smoab::Range resultMatchingTag;
-      typedef moab::Range::iterator iterator;
+      typedef moab::Range::const_iterator iterator;
       for(iterator i=result.begin();
           i != result.end();
           ++i)
@@ -157,7 +176,7 @@ public:
   smoab::Range findEntitiesWithDimension(const smoab::EntityHandle root,
                                          int dimension) const
     {
-    typedef smoab::Range::iterator iterator;
+    typedef smoab::Range::const_iterator iterator;
 
     smoab::Range result;
     this->Moab->get_entities_by_dimension(root,dimension,result);
@@ -179,7 +198,7 @@ public:
     {
     smoab::Range parents;
 
-    typedef moab::Range::iterator iterator;
+    typedef moab::Range::const_iterator iterator;
     moab::Range sets;
 
     this->Moab->get_entities_by_type(root, moab::MBENTITYSET, sets);
@@ -205,7 +224,7 @@ public:
     {
     smoab::Range detached;
 
-    typedef moab::Range::iterator iterator;
+    typedef moab::Range::const_iterator iterator;
     moab::Range sets;
 
     this->Moab->get_entities_by_type(root, moab::MBENTITYSET, sets);
@@ -230,7 +249,7 @@ public:
   smoab::Range findEntitiesWithMultipleParents(smoab::EntityHandle const& root)
     {
     smoab::Range multipleParents;
-    typedef moab::Range::iterator iterator;
+    typedef moab::Range::const_iterator iterator;
 
     //for all the elements in the range, find all items with multiple parents
     moab::Range children;
@@ -251,7 +270,7 @@ public:
   //prints all elements in a range objects
   void printRange(smoab::Range const& range)
     {
-    typedef Range::iterator iterator;
+    typedef Range::const_iterator iterator;
     for(iterator i=range.begin(); i!=range.end(); ++i)
       {
       std::cout << "entity id: " << *i << std::endl;
