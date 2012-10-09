@@ -27,6 +27,7 @@ class DataSetConverter
   const smoab::Tag *Tag;
   bool ReadMaterialIds;
   bool ReadProperties;
+  std::string MaterialName;
 
 public:
   DataSetConverter(const smoab::Interface& interface, const smoab::Tag* tag):
@@ -34,13 +35,16 @@ public:
     Moab(interface.Moab),
     Tag(tag),
     ReadMaterialIds(false),
-    ReadProperties(false)
+    ReadProperties(false),
+    MaterialName("Material")
     {
     }
 
   void readMaterialIds(bool add) { this->ReadMaterialIds = add; }
   bool readMaterialIds() const { return this->ReadMaterialIds; }
-  const char* materialIdName() const { return "Material"; }
+
+  void materialIdName(const std::string& name) { this->MaterialName = name; }
+  const std::string& materialIdName() const { return this->MaterialName; }
 
   void readProperties(bool readProps) { this->ReadProperties = readProps; }
   bool readProperties() const { return this->ReadProperties; }
@@ -81,8 +85,8 @@ public:
     if(this->readMaterialIds())
       {
       typedef std::vector<smoab::EntityHandle>::const_iterator EntityHandleIterator;
-      typedef std::vector<vtkIdType>::const_iterator IdConstIterator;
-      typedef std::vector<vtkIdType>::iterator IdIterator;
+      typedef std::vector<int>::const_iterator IdConstIterator;
+      typedef std::vector<int>::iterator IdIterator;
 
       std::vector<smoab::EntityHandle> searchableCells;
       searchableCells.reserve(grid->GetNumberOfCells());
@@ -90,7 +94,7 @@ public:
       cells.clear(); //release memory we don't need
 
 
-      std::vector<vtkIdType> materialIds(entities.size());
+      std::vector<int> materialIds(entities.size());
       //first off iterate the entities and determine which ones
       //have moab material ids
 
@@ -106,13 +110,13 @@ public:
 
           int value=-1;
           this->Moab->tag_get_data(mtag,&(*i),1,&value);
-          *materialIndex=static_cast<vtkIdType>(value);
+          *materialIndex=static_cast<int>(value);
           }
 
         //now determine ids for all entities that don't have materials
         IdConstIterator maxPos = std::max_element(materialIds.begin(),
                                                  materialIds.end());
-        vtkIdType maxMaterial = *maxPos;
+        int maxMaterial = *maxPos;
         for(IdIterator i=materialIds.begin(); i!= materialIds.end(); ++i)
           {
           if(*i==-1)
@@ -123,8 +127,8 @@ public:
       }
 
       //now we create the material field, and set all the values
-      vtkNew<vtkIdTypeArray> materialSet;
-      materialSet->SetName(this->materialIdName());
+      vtkNew<vtkIntArray> materialSet;
+      materialSet->SetName(this->materialIdName().c_str());
       materialSet->SetNumberOfValues(grid->GetNumberOfCells());
 
       IdConstIterator materialValue = materialIds.begin();
@@ -146,7 +150,7 @@ public:
                                                          s_end,
                                                          *j);
           std::size_t newId = std::distance(s_begin,result);
-          materialSet->SetValue(static_cast<vtkIdType>(newId), *materialValue);
+          materialSet->SetValue(static_cast<int>(newId), *materialValue);
           }
         }
 
@@ -273,11 +277,11 @@ private:
       value = defaultValue;
       }
 
-    vtkNew<vtkIdTypeArray> materialSet;
+    vtkNew<vtkIntArray> materialSet;
     materialSet->SetNumberOfValues(length);
-    materialSet->SetName(this->materialIdName());
+    materialSet->SetName(this->materialIdName().c_str());
 
-    vtkIdType *raw = static_cast<vtkIdType*>(materialSet->GetVoidPointer(0));
+    int *raw = static_cast<int*>(materialSet->GetVoidPointer(0));
     std::fill(raw,raw+length,value);
 
     field->AddArray(materialSet.GetPointer());
