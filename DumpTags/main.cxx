@@ -78,20 +78,51 @@ int main(int argc, char **argv)
         break;
       case 8:
         {
-        smoab::Range geomEnts = interface.findEntitiesWithTag(smoab::GeomTag(3), rootHandle);
         smoab::Range parents = interface.findEntityRootParents(rootHandle);
 
-        smoab::Range subset = smoab::intersect(geomEnts,parents);
-        interface.printRange(subset);
+
+        smoab::Range geomEnts = interface.findEntitiesWithTag(smoab::GeomTag(3), rootHandle);
+        smoab::Range surfaceEnts = interface.findEntitiesWithTag(smoab::GeomTag(2), rootHandle);
+        smoab::Range surfaces = smoab::intersect(surfaceEnts,parents);
+        smoab::Range solids = smoab::intersect(geomEnts,parents);
+
+        geomEnts.clear();
+        surfaceEnts.clear();
 
         typedef smoab::Range::const_iterator Iterator;
-        for(Iterator i=subset.begin();
-            i != subset.end();
-            ++i)
-          {
-          //look for all vertex indices in the hex model.
-          //than lets look and see if they are contained in the surface entity
-          //sets ever.
+        std::cout << "Number of subset Ents: " << surfaces.size() << std::endl;
+        for(Iterator surface = surfaces.begin();
+            surface != surfaces.end();
+            ++surface)
+        {
+          moab::EntityHandle handle = *surface;
+          smoab::Range surfaceVertices = interface.findEntities(handle,moab::MBVERTEX);
+          std::cout << "num of vertices: " << surfaceVertices.size() << std::endl;
+
+          for(Iterator solid=solids.begin();
+              solid != solids.end();
+              ++solid)
+            {
+            //look for all vertex indices in the hex model.
+            //than lets look and see if they are contained in the surface entity
+            //sets ever.
+            moab::EntityHandle solidHandle = *solid;
+            smoab::Range hexes = interface.findEntities(solidHandle,moab::MBHEX);
+            smoab::Range vertAdj = interface.findAdjacentEntities(hexes,1);
+
+            std::cout << "vertAdj: " << vertAdj.size() << std::endl;
+
+            smoab::Range intersectionResult = smoab::intersect(vertAdj,surfaceVertices);
+            if(intersectionResult.psize() > 0)
+              {
+              std::cout << "The entity id: " << solidHandle  << "has relations to the surface" << std::endl;
+              }
+
+        }
+
+
+
+
 
           //we need to look at Adjacencies of the cell as that holds
           //the face and edge!!!!!! when it has a matching surface face
@@ -102,13 +133,6 @@ int main(int argc, char **argv)
           //  Vertex 80, Vertex 70, Vertex 81, Vertex 86, Vertex 270, Vertex 262, Vertex 271, Vertex 276
           //  Edge 29, Edge 32, Edge 46, Edge 48
           //  Quad 14
-          smoab::Range geom1Ents = interface.findEntities(*i, moab::MBHEX);
-          std::vector<smoab::EntityHandle> pointIds;
-          pointIds.reserve(geom1Ents.size() * 8);
-
-          interface.getCoordinates()
-
-          interface.printRange(geom1Ents);
           }
         }
         break;
