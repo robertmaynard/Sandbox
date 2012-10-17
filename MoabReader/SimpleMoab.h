@@ -11,6 +11,11 @@
 
 namespace smoab
 {
+//adjacency intersect / union named enum to match
+//the types from moab
+enum adjacency_type{INTERSECT=moab::Interface::INTERSECT,
+                    UNION=moab::Interface::UNION};
+
 //make our range equal to moabs range
 typedef moab::Range Range;
 typedef moab::EntityHandle EntityHandle;
@@ -188,6 +193,39 @@ public:
       {
       this->Moab->get_entities_by_dimension(*i,dimension,result);
       }
+    return result;
+    }
+
+  //----------------------------------------------------------------------------
+  smoab::Range findAdjacentEntities(const smoab::EntityHandle& entity,
+                                    int dimension) const
+    {
+    const int adjType = static_cast<int>(smoab::INTERSECT);
+    smoab::Range result;
+    const bool create_if_missing = false;
+    this->Moab->get_adjacencies(&entity,
+                                1,
+                                dimension,
+                                create_if_missing,
+                                result,
+                                adjType);
+    return result;
+    }
+
+    //----------------------------------------------------------------------------
+  smoab::Range findAdjacentEntities(const smoab::Range& range,
+                                    int dimension,
+                                    const smoab::adjacency_type type = smoab::UNION) const
+    {
+    //the smoab and moab adjacent intersection enums are in the same order
+    const int adjType = static_cast<int>(type);
+    smoab::Range result;
+    const bool create_if_missing = false;
+    this->Moab->get_adjacencies(range,dimension,
+                                create_if_missing,
+                                result,
+                                adjType);
+
     return result;
     }
 
