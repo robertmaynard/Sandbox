@@ -96,27 +96,37 @@ int main(int argc, char **argv)
             ++surface)
         {
           moab::EntityHandle handle = *surface;
-          smoab::Range surfaceVertices = interface.findEntities(handle,moab::MBQUAD);
-          std::cout << "num of vertices: " << surfaceVertices.size() << std::endl;
+          smoab::Range surfaceQuads = interface.findEntities(handle,moab::MBQUAD);
+          smoab::Range surfaceVerts = interface.findEntities(handle,moab::MBVERTEX);
 
           for(Iterator solid=solids.begin();
               solid != solids.end();
               ++solid)
             {
+              std::cout << "solid" << std::endl;
             //look for all vertex indices in the hex model.
             //than lets look and see if they are contained in the surface entity
             //sets ever.
             moab::EntityHandle solidHandle = *solid;
             smoab::Range hexes = interface.findEntities(solidHandle,moab::MBHEX);
-            smoab::Range vertAdj = interface.findAdjacentEntities(hexes,2);
-
-            std::cout << "vertAdj: " << vertAdj.size() << std::endl;
-
-            smoab::Range intersectionResult = smoab::intersect(vertAdj,surfaceVertices);
-            if(intersectionResult.psize() > 0)
+            for (Iterator hex = hexes.begin();
+                 hex != hexes.end(); ++hex)
               {
-              std::cout << "The entity id: " << solidHandle  << "has relations to the surface" << std::endl;
+              smoab::Range quadAdj = interface.findAdjacentEntities(*hex,2);
+              smoab::Range intersectionResult = smoab::intersect(quadAdj,surfaceQuads);
+              if(intersectionResult.size() == 1)
+                {
+                smoab::Range vertAdj = interface.findAdjacentEntities(intersectionResult[0],0);
+                smoab::Range fff =  smoab::intersect(vertAdj,surfaceVerts);
+                if(fff.size() == 4)
+                {
+                std::cout << "The entity id: " << *hex  << "relates to " << fff.size()  << " verts " << std::endl;
+                }
               }
+            }
+
+
+
 
         }
 
