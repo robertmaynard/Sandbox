@@ -1,8 +1,61 @@
 #ifndef __smoab_MixedCellConnectivity_h
 #define __smoab_MixedCellConnectivity_h
 
+#include "vtkCellType.h"
+#include <algorithm>
+
+namespace
+{
+
+template<int N> struct QuadratricOrdering{};
+
+template<> struct QuadratricOrdering<VTK_QUADRATIC_WEDGE>
+{
+  static const int NUM_VERTS = 15;
+  void reorder(vtkIdType* connectivity) const
+  {
+    std::swap_ranges(connectivity+9,connectivity+12,connectivity+12);
+  }
+};
+
+template<> struct QuadratricOrdering<VTK_TRIQUADRATIC_HEXAHEDRON>
+{
+  static const int NUM_VERTS = 27;
+  void reorder(vtkIdType* connectivity) const
+  {
+    std::swap_ranges(connectivity+12,connectivity+16,connectivity+16);
+
+    //move 20 to 22
+    //move 22 to 23
+    //move 23 to 20
+
+    //swap 20 with 22
+    std::swap(connectivity[20],connectivity[23]);
+
+    //swap 22 with 23
+    std::swap(connectivity[22],connectivity[23]);
+  }
+};
+
+template<typename QuadraticOrdering>
+void FixQuadraticIdOrdering(vtkIdType* connectivity, vtkIdType numCells,
+                            QuadraticOrdering& ordering)
+{
+  //skip the first index that holds the length of the cells
+  //if we skip it once here, and than properly increment it makes the code
+  //far easier
+  connectivity+=1;
+  for(vtkIdType i=0; i < numCells; ++i)
+    {
+    ordering.reorder(connectivity);
+    connectivity += ordering.NUM_VERTS + 1;
+    }
+}
+}
+
 namespace smoab
 {
+
 class MixedCellConnectivity
 {
 public:
@@ -32,10 +85,14 @@ public:
       //identify the cell type that we currently have,
       //store that along with the connectivity in a temp storage vector
       const moab::EntityType type = moab->type_from_handle(*cells.begin()+count);
-      //all these cells are contiously of the same type
-      int vtkCellType = smoab::vtkCellType(type,numVerts);
 
-      RunLengthInfo info = { vtkCellType, numVerts, iterationCount };
+      //while all these cells are contiously of the same type,
+      //quadric hexs in vtk have 20 points, but moab has 21 so we
+      //need to store this difference
+      int numVTKVerts = numVerts;
+      int vtkCellType = smoab::vtkCellType(type,numVTKVerts);
+
+      RunLengthInfo info = { vtkCellType, numVerts, (numVerts-numVTKVerts), iterationCount };
       this->Info.push_back(info);
       this->Connectivity.push_back(connectivity);
 
@@ -98,8 +155,25 @@ public:
       {
       //remember our Connectivity is a vector of pointers whose
       //length is held in the info vector.
-      const int connLength = (*i).numCells * (*i).numVerts;
-      std::copy(*c,*c+connLength,std::back_inserter(output));
+      const int numUnusedPoints = (*i).numUnusedVerts;
+      if(numUnusedPoints==0)
+        {
+        const int connLength = (*i).numCells * (*i).numVerts;
+        std::copy(*c,*c+connLength,std::back_inserter(output));
+        }
+      else
+        {
+        //we have cell connectivity that we need to skip,
+        //so we have to manual copy each cells connectivity
+        const int size = (*i).numCells;
+        const int numPoints = (*i).numVerts;
+        for(int j=0; j < size; ++j)
+          {
+          std::copy(*c,*c+numPoints,std::back_inserter(output));
+          }
+        c+=numPoints + (*i).numUnusedVerts;
+        }
+
       }
     }
 
@@ -151,8 +225,29 @@ public:
           cellArray[k+1] = static_cast<vtkIdType>(newId);
           }
 
+        //skip any extra unused points, which is currnetly only
+        //the extra center point in moab quadratic hex
+        moabConnectivity+=(*i).numUnusedVerts;
+
         currentVtkConnectivityIndex += numVerts+1;
         cellArray += numVerts+1;
+        }
+
+      //For Tri-Quadratic-Hex and Quadratric-Wedge Moab and VTK
+      //Differ on the order of the edge ids. For wedge we need to swap
+      //indices 9,10,11 with 12,13,14 for each cell. For Hex we sawp
+      //12,13,14,15 with 16,17,18,19
+      int vtkCellType = (*i).type;
+      vtkIdType* connectivity = cellArray - (numCells * (numVerts+1));
+      if(vtkCellType == VTK_TRIQUADRATIC_HEXAHEDRON)
+        {
+        ::QuadratricOrdering<VTK_TRIQUADRATIC_HEXAHEDRON> newOrdering;
+        ::FixQuadraticIdOrdering(connectivity, numCells, newOrdering);
+        }
+      else if(vtkCellType == VTK_QUADRATIC_WEDGE)
+        {
+        ::QuadratricOrdering<VTK_QUADRATIC_WEDGE> newOrdering;
+        ::FixQuadraticIdOrdering(connectivity, numCells, newOrdering);
         }
 
       cellLocations += numCells;
@@ -162,11 +257,10 @@ public:
     }
 
 private:
-
   std::vector<EntityHandle*> Connectivity;
   std::vector<EntityHandle> UniquePoints;
 
-  struct RunLengthInfo{ int type; int numVerts; int numCells; };
+  struct RunLengthInfo{ int type; int numVerts; int numUnusedVerts; int numCells; };
   std::vector<RunLengthInfo> Info;
 
   typedef std::vector<EntityHandle>::const_iterator EntityConstIterator;
