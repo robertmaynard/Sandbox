@@ -96,7 +96,7 @@ int main(int argc, char **argv)
             ++surface)
         {
           moab::EntityHandle handle = *surface;
-          smoab::Range surfaceVertices = interface.findEntities(handle,moab::MBVERTEX);
+          smoab::Range surfaceVertices = interface.findEntities(handle,moab::MBQUAD);
           std::cout << "num of vertices: " << surfaceVertices.size() << std::endl;
 
           for(Iterator solid=solids.begin();
@@ -108,7 +108,7 @@ int main(int argc, char **argv)
             //sets ever.
             moab::EntityHandle solidHandle = *solid;
             smoab::Range hexes = interface.findEntities(solidHandle,moab::MBHEX);
-            smoab::Range vertAdj = interface.findAdjacentEntities(hexes,1);
+            smoab::Range vertAdj = interface.findAdjacentEntities(hexes,2);
 
             std::cout << "vertAdj: " << vertAdj.size() << std::endl;
 
