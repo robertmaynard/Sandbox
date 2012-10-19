@@ -97,7 +97,6 @@ int main(int argc, char **argv)
         {
           moab::EntityHandle handle = *surface;
           smoab::Range surfaceQuads = interface.findEntities(handle,moab::MBQUAD);
-          smoab::Range surfaceVerts = interface.findEntities(handle,moab::MBVERTEX);
 
           for(Iterator solid=solids.begin();
               solid != solids.end();
@@ -112,15 +111,10 @@ int main(int argc, char **argv)
             for (Iterator hex = hexes.begin();
                  hex != hexes.end(); ++hex)
               {
-              smoab::Range quadAdj = interface.findAdjacentEntities(*hex,2);
-              smoab::Range intersectionResult = smoab::intersect(quadAdj,surfaceQuads);
-              if(intersectionResult.size() == 1)
+              std::vector<smoab::FaceEntity> result = interface.findCellFaces(*hex,surfaceQuads);
+              if(result.size() > 0)
                 {
-                smoab::Range vertAdj = interface.findAdjacentEntities(intersectionResult[0],0);
-                smoab::Range fff =  smoab::intersect(vertAdj,surfaceVerts);
-                if(fff.size() == 4)
-                {
-                std::cout << "The entity id: " << *hex  << "relates to " << fff.size()  << " verts " << std::endl;
+
                 }
               }
             }
