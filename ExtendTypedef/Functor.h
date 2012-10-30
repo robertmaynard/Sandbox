@@ -12,6 +12,7 @@ public:
   typedef arg::placeholders::_1 _1;
   typedef arg::placeholders::_2 _2;
   typedef arg::placeholders::_3 _3;
+  typedef arg::placeholders::_4 _4;
   typedef arg::Field Field;
   typedef arg::Replace Replace;
   typedef arg::InsertedArg InsertedArg;

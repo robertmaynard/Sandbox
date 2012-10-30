@@ -59,7 +59,9 @@ namespace detail
   };
 }
 
-template<typename Functor, typename ExecArgToReplace>
+//needs a better name, what about ReplaceExecSymbol
+//or is the entire worklet functor going to be extended?
+template<typename Functor, typename ExecArgToReplace, typename ControlArgToUse>
 struct Modify
 {
   typedef ConvertToBoost<Functor> BoostTypes;
@@ -83,7 +85,17 @@ struct Modify
   //and to have the proper type added
   typedef typename boost::mpl::push_back<
             typename BoostTypes::ControlSignature,
-            arg::InsertedArg>::type ControlSignature;
+            ControlArgToUse>::type ControlSignature;
+
+};
+
+template<typename Functor, typename CSig, typename ESig>
+struct ExtendFunctor : public Functor
+{
+  typedef void ControlSignature(typename boost::mpl::at_c<CSig,0>::type,
+                                typename boost::mpl::at_c<CSig,1>::type);
+  typedef void ExecutionSignature(typename boost::mpl::at_c<ESig,0>::type,
+                                  typename boost::mpl::at_c<ESig,1>::type);
 
 };
 
