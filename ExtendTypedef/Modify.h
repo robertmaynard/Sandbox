@@ -28,11 +28,10 @@ struct ConvertToBoost
   typedef boost::mpl::size<ExecutionSignature> ExecSize;
 };
 
-
-template<typename BInt>
-struct BoostIntToArg
+template<int Value>
+struct IntToArg
 {
-  typedef arg::Arg<BInt::value> type;
+  typedef arg::Arg<Value> type;
 };
 
 template<typename Signature>
@@ -42,22 +41,20 @@ struct GetTypes
   typedef typename boost::mpl::at_c<Signature,1>::type Arg2Type;
 };
 
-
-
 namespace detail
 {
-  template<typename ExecArgToReplace, typename Value>
+  template<typename ExecArgToReplace, int Value>
   struct replace
   {
   template<typename Arg>
   struct apply
     {
     typedef boost::is_same<ExecArgToReplace, Arg> AreSame;
-    typedef typename BoostIntToArg<Value>::type ReplacementArg;
+    typedef typename IntToArg<Value>::type ReplacementArg;
     typedef typename boost::mpl::if_<AreSame,
                               ReplacementArg,
                               Arg>::type type;
-    //typedef Arg type;
+
     };
   };
 }
@@ -73,14 +70,21 @@ struct Modify
   typedef typename boost::mpl::plus<ContSize,
           boost::mpl::int_<1> >::type NewPlaceHolder;
 
-  // typedef boost::mpl::vector_c<std::size_t,NewPlaceHolder::value >
-  //           startingState;
-
+  //We replace each element that matches the ExecArgToReplace types
+  //with the ::arg::Arg<NewPlaceHolder> which we are going to next
+  //push back into the control signature
   typedef typename boost::mpl::transform<
             typename BoostTypes::ExecutionSignature,
-            detail::replace<ExecArgToReplace,NewPlaceHolder > >::type ExecutionReplaceResult;
+            detail::replace<ExecArgToReplace,
+                            NewPlaceHolder::value >
+            >::type ExecutionSignature;
 
-  typedef ExecutionReplaceResult ExecutionSignature;
+  //now we have to extend the control signature to be one larger,
+  //and to have the proper type added
+  typedef typename boost::mpl::push_back<
+            typename BoostTypes::ControlSignature,
+            arg::InsertedArg>::type ControlSignature;
+
 };
 
 
