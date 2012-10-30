@@ -59,19 +59,18 @@ namespace detail
   };
 }
 
-//needs a better name, what about ReplaceExecSymbol
-//or is the entire worklet functor going to be extended?
 template<typename Functor, typename ExecArgToReplace, typename ControlArgToUse>
-struct Modify
+struct ReplaceAndExtend
 {
+private:
   typedef ConvertToBoost<Functor> BoostTypes;
-  typedef typename BoostTypes::ContSize ContSize;
 
   //walk the ExecutionControlSignature and find all the elements
   //that match the ExecArgToReplace
-  typedef typename boost::mpl::plus<ContSize,
+  typedef typename boost::mpl::plus<typename BoostTypes::ContSize,
           boost::mpl::int_<1> >::type NewPlaceHolder;
 
+public:
   //We replace each element that matches the ExecArgToReplace types
   //with the ::arg::Arg<NewPlaceHolder> which we are going to next
   //push back into the control signature
@@ -87,11 +86,23 @@ struct Modify
             typename BoostTypes::ControlSignature,
             ControlArgToUse>::type ControlSignature;
 
+
+  typedef boost::mpl::size<ControlSignature>   ContSize;
+  typedef boost::mpl::size<ExecutionSignature> ExecSize;
+
 };
 
-template<typename Functor, typename CSig, typename ESig>
+//next step is to convert the boost mpl types back to a worklet
+//signature. To get this to work with all functor we need to use
+//boost pre-processor
+template<typename Functor, typename ExtendedFunctorSigs>
 struct ExtendFunctor : public Functor
 {
+private:
+  typedef typename ExtendedFunctorSigs::ControlSignature CSig;
+  typedef typename ExtendedFunctorSigs::ExecutionSignature ESig;
+
+public:
   typedef void ControlSignature(typename boost::mpl::at_c<CSig,0>::type,
                                 typename boost::mpl::at_c<CSig,1>::type);
   typedef void ExecutionSignature(typename boost::mpl::at_c<ESig,0>::type,
