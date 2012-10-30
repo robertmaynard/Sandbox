@@ -3,10 +3,10 @@
 
 int main()
 {
-  typedef Modify<functor::Derived>::Arg1Type AType;
-  typedef Modify<functor::Derived>::Arg2Type BType;
+  typedef Modify<functor::Derived,arg::Replace> ModifiedType;
 
-  AType a=1;
-  BType b=1;
+  typedef GetTypes<ModifiedType::ExecutionSignature> Types;
 
+  Types::Arg1Type a;
+  Types::Arg2Type b;
 }
