@@ -4,6 +4,8 @@
 namespace arg
 {
 class Field {};
+class Replace {};
+class InsertedArg {};
 
 template <int> class Arg {};
 
