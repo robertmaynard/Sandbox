@@ -4,6 +4,7 @@
 
 #include "Arg.h"
 
+#include <boost/function_types/components.hpp>
 #include <boost/function_types/parameter_types.hpp>
 
 #include <boost/type_traits/is_same.hpp>
@@ -18,10 +19,10 @@
 template<typename Functor>
 struct ConvertToBoost
 {
-  typedef boost::function_types::parameter_types<
+  typedef boost::function_types::components<
             typename Functor::ControlSignature> ControlSignature;
 
-  typedef boost::function_types::parameter_types<
+  typedef boost::function_types::components<
             typename Functor::ExecutionSignature> ExecutionSignature;
 
   typedef boost::mpl::size<ControlSignature>   ContSize;
@@ -32,13 +33,6 @@ template<int Value>
 struct IntToArg
 {
   typedef arg::Arg<Value> type;
-};
-
-template<typename Signature>
-struct GetTypes
-{
-  typedef typename boost::mpl::at_c<Signature,0>::type Arg1Type;
-  typedef typename boost::mpl::at_c<Signature,1>::type Arg2Type;
 };
 
 namespace detail
@@ -60,15 +54,11 @@ namespace detail
 }
 
 template<typename Functor, typename ExecArgToReplace, typename ControlArgToUse>
-struct ReplaceAndExtend
+struct ReplaceAndExtendSignatures
 {
 private:
   typedef ConvertToBoost<Functor> BoostTypes;
-
-  //walk the ExecutionControlSignature and find all the elements
-  //that match the ExecArgToReplace
-  typedef typename boost::mpl::plus<typename BoostTypes::ContSize,
-          boost::mpl::int_<1> >::type NewPlaceHolder;
+  typedef typename BoostTypes::ContSize NewPlaceHolderPos;
 
 public:
   //We replace each element that matches the ExecArgToReplace types
@@ -77,7 +67,7 @@ public:
   typedef typename boost::mpl::transform<
             typename BoostTypes::ExecutionSignature,
             detail::replace<ExecArgToReplace,
-                            NewPlaceHolder::value >
+                            NewPlaceHolderPos::value >
             >::type ExecutionSignature;
 
   //now we have to extend the control signature to be one larger,
@@ -92,6 +82,21 @@ public:
 
 };
 
+template<typename Signature>
+struct GetTypes
+{
+  typedef typename boost::mpl::at_c<Signature,0>::type Arg0Type;
+  typedef typename boost::mpl::at_c<Signature,1>::type Arg1Type;
+  typedef typename boost::mpl::at_c<Signature,2>::type Arg2Type;
+  typedef typename boost::mpl::at_c<Signature,3>::type Arg3Type;
+  typedef typename boost::mpl::at_c<Signature,4>::type Arg4Type;
+  typedef typename boost::mpl::at_c<Signature,5>::type Arg5Type;
+  typedef typename boost::mpl::at_c<Signature,6>::type Arg6Type;
+  typedef typename boost::mpl::at_c<Signature,7>::type Arg7Type;
+  typedef typename boost::mpl::at_c<Signature,8>::type Arg8Type;
+  typedef typename boost::mpl::at_c<Signature,9>::type Arg9Type;
+};
+
 //next step is to convert the boost mpl types back to a worklet
 //signature. To get this to work with all functor we need to use
 //boost pre-processor
@@ -103,10 +108,10 @@ private:
   typedef typename ExtendedFunctorSigs::ExecutionSignature ESig;
 
 public:
-  typedef void ControlSignature(typename boost::mpl::at_c<CSig,0>::type,
-                                typename boost::mpl::at_c<CSig,1>::type);
-  typedef void ExecutionSignature(typename boost::mpl::at_c<ESig,0>::type,
-                                  typename boost::mpl::at_c<ESig,1>::type);
+  typedef typename boost::mpl::at_c<CSig,0>::type
+          ControlSignature(typename boost::mpl::at_c<CSig,1>::type);
+  typedef typename boost::mpl::at_c<ESig,0>::type
+          ExecutionSignature(typename boost::mpl::at_c<ESig,1>::type);
 
 };
 

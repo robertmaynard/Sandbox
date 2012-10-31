@@ -22,16 +22,16 @@ public:
 class Derived : public  Base
 {
 public:
-  typedef void ControlSignature(Field);
-  typedef void ExecutionSignature(_1,Replace);
+  typedef int ControlSignature(Field,Field);
+  typedef int ExecutionSignature(Replace,_1,_2);
 };
 
 
-class DerivedTwo : public  Base
+class DerivedReturn: public  Base
 {
 public:
-  typedef void ControlSignature(Field,Field,Field);
-  typedef void ExecutionSignature(_1,Replace,_2,_3);
+  typedef int ControlSignature(Field);
+  typedef _1 ExecutionSignature(Replace);
 };
 
 }
