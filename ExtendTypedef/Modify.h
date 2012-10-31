@@ -82,41 +82,36 @@ public:
 
 };
 
-template<typename Signature>
+template<typename Sig>
 struct GetTypes
 {
-  typedef typename boost::mpl::at_c<Signature,0>::type Arg0Type;
-  typedef typename boost::mpl::at_c<Signature,1>::type Arg1Type;
-  typedef typename boost::mpl::at_c<Signature,2>::type Arg2Type;
-  typedef typename boost::mpl::at_c<Signature,3>::type Arg3Type;
-  typedef typename boost::mpl::at_c<Signature,4>::type Arg4Type;
-  typedef typename boost::mpl::at_c<Signature,5>::type Arg5Type;
-  typedef typename boost::mpl::at_c<Signature,6>::type Arg6Type;
-  typedef typename boost::mpl::at_c<Signature,7>::type Arg7Type;
-  typedef typename boost::mpl::at_c<Signature,8>::type Arg8Type;
-  typedef typename boost::mpl::at_c<Signature,9>::type Arg9Type;
+  typedef typename boost::mpl::at_c<Sig,0>::type Arg0Type;
+  typedef typename boost::mpl::at_c<Sig,1>::type Arg1Type;
+  typedef typename boost::mpl::at_c<Sig,2>::type Arg2Type;
+  typedef typename boost::mpl::at_c<Sig,3>::type Arg3Type;
+  typedef typename boost::mpl::at_c<Sig,4>::type Arg4Type;
+  typedef typename boost::mpl::at_c<Sig,5>::type Arg5Type;
+  typedef typename boost::mpl::at_c<Sig,6>::type Arg6Type;
+  typedef typename boost::mpl::at_c<Sig,7>::type Arg7Type;
+  typedef typename boost::mpl::at_c<Sig,8>::type Arg8Type;
+  typedef typename boost::mpl::at_c<Sig,9>::type Arg9Type;
 };
-
-//next step is to convert the boost mpl types back to a worklet
-//signature. To get this to work with all functor we need to use
-//boost pre-processor
-template<typename Functor, typename ExtendedFunctorSigs>
-struct ExtendFunctor : public Functor
+template<typename Sig1, typename Sig2>
+struct VerifyTypes
 {
-private:
-  typedef typename ExtendedFunctorSigs::ControlSignature CSig;
-  typedef typename ExtendedFunctorSigs::ExecutionSignature ESig;
+  typedef GetTypes<Sig1> Sig1Types;
+  typedef GetTypes<Sig2> Sig2Types;
 
-public:
-  typedef typename boost::mpl::at_c<CSig,0>::type
-          ControlSignature(typename boost::mpl::at_c<CSig,1>::type);
-  typedef typename boost::mpl::at_c<ESig,0>::type
-          ExecutionSignature(typename boost::mpl::at_c<ESig,1>::type);
-
+  BOOST_MPL_ASSERT(( boost::is_same<typename Sig1Types::Arg0Type, typename Sig2Types::Arg0Type > ));
+  BOOST_MPL_ASSERT(( boost::is_same<typename Sig1Types::Arg1Type, typename Sig2Types::Arg1Type > ));
+  BOOST_MPL_ASSERT(( boost::is_same<typename Sig1Types::Arg2Type, typename Sig2Types::Arg2Type > ));
+  BOOST_MPL_ASSERT(( boost::is_same<typename Sig1Types::Arg3Type, typename Sig2Types::Arg3Type > ));
+  BOOST_MPL_ASSERT(( boost::is_same<typename Sig1Types::Arg4Type, typename Sig2Types::Arg4Type > ));
+  BOOST_MPL_ASSERT(( boost::is_same<typename Sig1Types::Arg5Type, typename Sig2Types::Arg5Type > ));
+  BOOST_MPL_ASSERT(( boost::is_same<typename Sig1Types::Arg6Type, typename Sig2Types::Arg6Type > ));
+  BOOST_MPL_ASSERT(( boost::is_same<typename Sig1Types::Arg7Type, typename Sig2Types::Arg7Type > ));
+  BOOST_MPL_ASSERT(( boost::is_same<typename Sig1Types::Arg8Type, typename Sig2Types::Arg8Type > ));
+  BOOST_MPL_ASSERT(( boost::is_same<typename Sig1Types::Arg9Type, typename Sig2Types::Arg9Type > ));
 };
-
-
-
-
 
 #endif
