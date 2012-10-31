@@ -13,6 +13,12 @@ public:
   typedef arg::placeholders::_2 _2;
   typedef arg::placeholders::_3 _3;
   typedef arg::placeholders::_4 _4;
+  typedef arg::placeholders::_5 _5;
+  typedef arg::placeholders::_6 _6;
+  typedef arg::placeholders::_7 _7;
+  typedef arg::placeholders::_8 _8;
+  typedef arg::placeholders::_9 _9;
+
   typedef arg::Field Field;
   typedef arg::Replace Replace;
   typedef arg::InsertedArg InsertedArg;
@@ -33,6 +39,14 @@ public:
   typedef int ControlSignature(Field);
   typedef _1 ExecutionSignature(Replace);
 };
+
+class DerivedLotsOfArgs: public  Base
+{
+public:
+  typedef int ControlSignature(Field);
+  typedef _1 ExecutionSignature(Replace);
+};
+
 
 }
 

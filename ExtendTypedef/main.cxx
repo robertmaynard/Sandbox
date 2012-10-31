@@ -1,5 +1,7 @@
 #include "Functor.h"
 #include "Modify.h"
+#include "ExtendFunctor.h"
+#include "BuildSignature.h"
 
 #include <boost/mpl/assert.hpp>
 #include <boost/mpl/for_each.hpp>
@@ -31,7 +33,12 @@ struct verifyFunctor
   typedef ReplaceAndExtendSignatures<Functor,
                  arg::Replace,
                  arg::InsertedArg> ModifiedType;
-  typedef ExtendFunctor<Functor,ModifiedType> RealFunctor;
+
+  typedef BuildSignature<typename ModifiedType::ControlSignature> NewContSig;
+  typedef BuildSignature<typename ModifiedType::ExecutionSignature> NewExecSig;
+
+
+  typedef ExtendedFunctor<Functor,NewContSig,NewExecSig> RealFunctor;
 
   typedef ConvertToBoost<RealFunctor> BoostExtendFunctor;
 
@@ -43,16 +50,10 @@ struct verifyFunctor
 
 
   //also do a compile time verifification that the ExtendFunctor method work properly
-  // typedef GetTypes<typename ModifiedType::ExecutionSignature> ETypes;
-  // typedef GetTypes<typename ModifiedType::ControlSignature> CTypes;
-  // typedef GetTypes<typename BoostExtendFunctor::ExecutionSignature> ExtendedETypes;
-  // typedef GetTypes<typename BoostExtendFunctor::ControlSignature> ExtendedCTypes;
-  // BOOST_MPL_ASSERT(( boost::is_same<typename ETypes::Arg0Type, typename ExtendedETypes::Arg0Type > ));
-  // BOOST_MPL_ASSERT(( boost::is_same<typename CTypes::Arg0Type, typename ExtendedCTypes::Arg0Type > ));
-  // BOOST_MPL_ASSERT(( boost::is_same<typename ETypes::Arg1Type, typename ExtendedETypes::Arg1Type > ));
-  // BOOST_MPL_ASSERT(( boost::is_same<typename CTypes::Arg1Type, typename ExtendedCTypes::Arg1Type > ));
-  // BOOST_MPL_ASSERT(( boost::is_same<typename ETypes::Arg2Type, typename ExtendedETypes::Arg2Type > ));
-  // BOOST_MPL_ASSERT(( boost::is_same<typename CTypes::Arg2Type, typename ExtendedCTypes::Arg2Type > ));
+  typedef VerifyTypes<typename ModifiedType::ExecutionSignature,
+                      typename BoostExtendFunctor::ExecutionSignature> ExecSigVerified;
+  typedef VerifyTypes<typename ModifiedType::ControlSignature,
+                      typename BoostExtendFunctor::ControlSignature> ContSigVerified;
   }
 };
 
