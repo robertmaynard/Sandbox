@@ -66,4 +66,8 @@ int main()
   std::cout  << std::endl << "VerifiedTwo" << std::endl;
   typedef verifyFunctor<functor::DerivedReturn> VerifiedTwo;
   VerifiedTwo vt; vt();
+
+  std::cout  << std::endl << "VerifiedLotsOfArgs" << std::endl;
+  typedef verifyFunctor<functor::DerivedLotsOfArgs> VerifiedLotsArgs;
+  VerifiedLotsArgs va; va();
 }

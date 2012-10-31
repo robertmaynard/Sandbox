@@ -43,8 +43,8 @@ public:
 class DerivedLotsOfArgs: public  Base
 {
 public:
-  typedef int ControlSignature(Field);
-  typedef _1 ExecutionSignature(Replace);
+  typedef int ControlSignature(Field,Field,Field,Field,Field,Field,Field,Field);
+  typedef _8 ExecutionSignature(Replace, _1, _2, _3, _4, _5, _6, _7);
 };
 
 
