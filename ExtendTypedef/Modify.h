@@ -10,9 +10,9 @@
 #include <boost/type_traits/is_same.hpp>
 
 #include <boost/mpl/at.hpp>
+#include <boost/mpl/contains.hpp>
 #include <boost/mpl/if.hpp>
-#include <boost/mpl/transform.hpp>
-#include <boost/mpl/plus.hpp>
+#include <boost/mpl/replace.hpp>
 #include <boost/mpl/size.hpp>
 #include <boost/mpl/vector_c.hpp>
 
@@ -29,28 +29,38 @@ struct ConvertToBoost
   typedef boost::mpl::size<ExecutionSignature> ExecSize;
 };
 
-template<int Value>
-struct IntToArg
-{
-  typedef arg::Arg<Value> type;
-};
-
 namespace detail
 {
-  template<typename ExecArgToReplace, int Value>
-  struct replace
-  {
-  template<typename Arg>
-  struct apply
-    {
-    typedef boost::is_same<ExecArgToReplace, Arg> AreSame;
-    typedef typename IntToArg<Value>::type ReplacementArg;
-    typedef typename boost::mpl::if_<AreSame,
-                              ReplacementArg,
-                              Arg>::type type;
 
-    };
+  template<typename Value>
+  struct MPLIntToArg
+  {
+    typedef arg::Arg<Value::value> type;
   };
+
+  template<typename Sequence, typename OldType, typename NewType>
+  struct Replace
+  {
+    //determine if the execution arg we are searching to replace exists
+    typedef typename boost::mpl::contains<Sequence,OldType>::type found;
+
+    //We replace each element that matches the ExecArgToReplace types
+    //with the ::arg::Arg<NewPlaceHolder> which we are going to next
+    //push back into the control signature
+    typedef typename boost::mpl::replace<
+              Sequence,
+              OldType,
+              NewType>::type type;
+  };
+
+
+  template<typename Sequence, typename Type>
+  struct PushBack
+  {
+    //push back type to the given sequence
+    typedef typename boost::mpl::push_back<Sequence,Type>::type type;
+  };
+
 }
 
 template<typename Functor, typename ExecArgToReplace, typename ControlArgToUse>
@@ -59,27 +69,30 @@ struct ReplaceAndExtendSignatures
 private:
   typedef ConvertToBoost<Functor> BoostTypes;
   typedef typename BoostTypes::ContSize NewPlaceHolderPos;
+  typedef typename detail::MPLIntToArg<NewPlaceHolderPos>::type ReplacementArg;
 
+  //create the struct that will return us the new control signature if
+  //we find the exec arg in the exec signature. This is extracted
+  //from the mpl::if_ to make it more readable
+  typedef typename ::detail::PushBack<
+        typename BoostTypes::ControlSignature, ControlArgToUse> PushBackContSig;
 public:
-  //We replace each element that matches the ExecArgToReplace types
-  //with the ::arg::Arg<NewPlaceHolder> which we are going to next
-  //push back into the control signature
-  typedef typename boost::mpl::transform<
-            typename BoostTypes::ExecutionSignature,
-            detail::replace<ExecArgToReplace,
-                            NewPlaceHolderPos::value >
-            >::type ExecutionSignature;
 
-  //now we have to extend the control signature to be one larger,
-  //and to have the proper type added
-  typedef typename boost::mpl::push_back<
-            typename BoostTypes::ControlSignature,
-            ControlArgToUse>::type ControlSignature;
+  typedef ::detail::Replace<typename BoostTypes::ExecutionSignature,
+                            ExecArgToReplace,
+                            ReplacementArg> ReplacedExecSigArg;
 
 
-  typedef boost::mpl::size<ControlSignature>   ContSize;
-  typedef boost::mpl::size<ExecutionSignature> ExecSize;
+  //expose our new execution signature
+  typedef typename ReplacedExecSigArg::type ExecutionSignature;
 
+
+  //check ReplacedExecSigArg to see if we did actually find the execArg
+  //in the signature. If not found use the original control signature
+  typedef typename boost::mpl::if_<
+          typename ReplacedExecSigArg::found,
+          typename PushBackContSig::type,
+          typename BoostTypes::ControlSignature>::type ControlSignature;
 };
 
 template<typename Sig>
