@@ -70,4 +70,8 @@ int main()
   std::cout  << std::endl << "VerifiedLotsOfArgs" << std::endl;
   typedef verifyFunctor<functor::DerivedLotsOfArgs> VerifiedLotsArgs;
   VerifiedLotsArgs va; va();
+
+  std::cout  << std::endl << "VerifiedLotsOfArgs no Replace Arg" << std::endl;
+  typedef verifyFunctor<functor::DerivedLotsOfArgs2> VerifiedLotsArgs2;
+  VerifiedLotsArgs2 va2; va2();
 }

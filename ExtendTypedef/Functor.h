@@ -47,6 +47,14 @@ public:
   typedef _8 ExecutionSignature(Replace, _1, _2, _3, _4, _5, _6, _7);
 };
 
+class DerivedLotsOfArgs2: public  Base
+{
+public:
+  typedef int ControlSignature(Field,Field,Field,Field,Field,Field,Field,Field);
+  //don't use 9 on purpose to verify we can handle args we don't reference
+  typedef _8 ExecutionSignature(_1, _2, _3, _4, _5, _6, _7, _8);
+};
+
 
 }
 
