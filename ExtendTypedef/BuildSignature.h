@@ -14,16 +14,21 @@
 #  include <boost/preprocessor/repetition/enum_shifted_params.hpp>
 #  include <boost/preprocessor/repetition/enum_shifted.hpp>
 
-#  define _arg_enum___(x)      BOOST_PP_ENUM_SHIFTED(BOOST_PP_ITERATION(), _arg_enum_, x)
-#  define _arg_enum_(z,n,x)    x(n)
-#  define _MPL_ARG_(n) typename boost::mpl::at_c<T,n>::type
-
 namespace detail
   {
-  template<int N, typename T> struct BuildSig;
 
-# define BOOST_PP_ITERATION_PARAMS_1 (3, (1, 11, "BuildSignature.h"))
-# include BOOST_PP_ITERATE()
+#   define _arg_enum___(x)      BOOST_PP_ENUM_SHIFTED(BOOST_PP_ITERATION(), _arg_enum_, x)
+#   define _arg_enum_(z,n,x)    x(n)
+#   define _MPL_ARG_(n) typename boost::mpl::at_c<T,n>::type
+
+    template<int N, typename T> struct BuildSig;
+
+#   define BOOST_PP_ITERATION_PARAMS_1 (3, (1, 11, "BuildSignature.h"))
+#   include BOOST_PP_ITERATE()
+
+#   undef _arg_enum___
+#   undef _arg_enum_
+#   undef _MPL_ARG_
   }
 
 template<typename T>
