@@ -1,11 +1,55 @@
-#ifndef __smoab_CellTypeToType_h
-#define __smoab_CellTypeToType_h
+#ifndef __smoab_detail_CellTypeToType_h
+#define __smoab_detail_CellTypeToType_h
 
-#include "SimpleMoab.h"
 #include "vtkCellType.h"
+#include <algorithm>
 
-namespace smoab
+namespace smoab{ namespace detail{
+
+template<int N> struct QuadratricOrdering{};
+
+template<> struct QuadratricOrdering<VTK_QUADRATIC_WEDGE>
 {
+  static const int NUM_VERTS = 15;
+  void reorder(vtkIdType* connectivity) const
+  {
+    std::swap_ranges(connectivity+9,connectivity+12,connectivity+12);
+  }
+};
+
+template<> struct QuadratricOrdering<VTK_TRIQUADRATIC_HEXAHEDRON>
+{
+  static const int NUM_VERTS = 27;
+  void reorder(vtkIdType* connectivity) const
+  {
+    std::swap_ranges(connectivity+12,connectivity+16,connectivity+16);
+
+    //move 20 to 22
+    //move 22 to 23
+    //move 23 to 20
+
+    //swap 20 with 22
+    std::swap(connectivity[20],connectivity[23]);
+
+    //swap 22 with 23
+    std::swap(connectivity[22],connectivity[23]);
+  }
+};
+
+template<typename QuadraticOrdering>
+void FixQuadraticIdOrdering(vtkIdType* connectivity, vtkIdType numCells,
+                            QuadraticOrdering& ordering)
+{
+  //skip the first index that holds the length of the cells
+  //if we skip it once here, and than properly increment it makes the code
+  //far easier
+  connectivity+=1;
+  for(vtkIdType i=0; i < numCells; ++i)
+    {
+    ordering.reorder(connectivity);
+    connectivity += ordering.NUM_VERTS + 1;
+    }
+
 
 int vtkCellType(moab::EntityType t, int &num_connect)
   {
@@ -53,6 +97,7 @@ int vtkCellType(moab::EntityType t, int &num_connect)
     }
   return ctype;
   }
-}
+
+} } //namespace smaob::detail
 
 #endif // CELLTYPETOTYPE_H
