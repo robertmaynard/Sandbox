@@ -2,6 +2,8 @@
 #define __smoab_detail_ContinousCellInfo_h
 
 
+namespace smoab { namespace detail {
+
 struct ContinousCellInfo
 {
   int type;
@@ -10,3 +12,7 @@ struct ContinousCellInfo
   int numCells;
 
 };
+
+} } //namespace smoab::detail
+
+#endif

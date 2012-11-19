@@ -1,5 +1,5 @@
-#ifndef __smoab_detail_ReduceHighOrderCells_h
-#define __smoab_detail_ReduceHighOrderCells_h
+#ifndef __smoab_detail_ReduceSpectralMesh_h
+#define __smoab_detail_ReduceSpectralMesh_h
 
 #include "SimpleMoab.h"
 #include "vtkCellType.h"
@@ -10,10 +10,10 @@
 namespace smoab{ namespace detail{
 
 
-class ReduceHighOrderCells
+class ReduceSpectralMesh
 {
 public:
-  ReduceHighOrderCells(smoab::Range const& cells, moab::Interface* moab):
+  ReduceSpectralMeshReduceHighOrderCell(smoab::Range const& cells, moab::Interface* moab):
     LinearCellConnectivity(),
     HighOrderCellConnectivity()
     {
@@ -52,14 +52,6 @@ public:
       //while all these cells are contiously of the same type,
       //quadric hexs in vtk have 20 points, but moab has 21 so we
       //need to store this difference
-      int numVTKVerts = numVerts;
-      int vtkCellType = smoab::detail::vtkCellType(type,numVTKVerts);
-
-      RunLengthInfo info = { vtkCellType, numVerts, (numVerts-numVTKVerts), iterationCount };
-      this->Info.push_back(info);
-      this->Connectivity.push_back(connectivity);
-
-      count += iterationCount;
       }
     }
 

@@ -15,9 +15,7 @@ include_directories(${PARAVIEW_INCLUDE_DIRS})
 
 set(headers
   SimpleMoab.h
-  CellTypeToType.h
   DataSetConverter.h
-  MixedCellConnectivity.h
   )
 
 add_paraview_plugin(vtkMoabReaderPlugin "5.0"

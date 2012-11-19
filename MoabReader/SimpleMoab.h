@@ -308,14 +308,14 @@ public:
   //for a given entity extract from a range all the entities that represent
   //a face of that entity. So if entityhandle is a hex, we will extract all
   //the quads that represent a face
-  std::vector<smoab::FaceEntity> findCellFaces(smoab::EntityHandle const& cell,
-                                              const smoab::Range& possibleFaces)
-  {
-    smoab::Range twoDAdj = interface.findAdjacentEntities(*cell,2);
-    smoab::Range intersection = smoab::intersect(twDAdj,possibleFaces);
+  // std::vector<smoab::FaceEntity> findCellFaces(smoab::EntityHandle const& cell,
+  //                                             const smoab::Range& possibleFaces)
+  // {
+  //   smoab::Range twoDAdj = interface.findAdjacentEntities(*cell,2);
+  //   smoab::Range intersection = smoab::intersect(twDAdj,possibleFaces);
 
 
-  }
+  // }
 
   //----------------------------------------------------------------------------
   //prints all elements in a range objects

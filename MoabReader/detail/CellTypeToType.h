@@ -49,6 +49,7 @@ void FixQuadraticIdOrdering(vtkIdType* connectivity, vtkIdType numCells,
     ordering.reorder(connectivity);
     connectivity += ordering.NUM_VERTS + 1;
     }
+}
 
 
 int vtkCellType(moab::EntityType t, int &num_connect)

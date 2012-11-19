@@ -2,13 +2,12 @@
 #define __smoab_MixedCellConnectivity_h
 
 #include "CellTypeToType.h"
-#include "ReduceHighOrderCells.h"
+#include "ContinousCellInfo.h"
 
 #include <algorithm>
 #include <vector>
 
-namespace smoab
-{
+namespace smoab { namespace detail {
 
 class MixedCellConnectivity
 {
@@ -46,7 +45,7 @@ public:
       int numVTKVerts = numVerts;
       int vtkCellType = smoab::detail::vtkCellType(type,numVTKVerts);
 
-      RunLengthInfo info = { vtkCellType, numVerts, (numVerts-numVTKVerts), iterationCount };
+      ContinousCellInfo info = { vtkCellType, numVerts, (numVerts-numVTKVerts), iterationCount };
       this->Info.push_back(info);
       this->Connectivity.push_back(connectivity);
 
@@ -196,12 +195,12 @@ public:
       if(vtkCellType == VTK_TRIQUADRATIC_HEXAHEDRON)
         {
         smoab::detail::QuadratricOrdering<VTK_TRIQUADRATIC_HEXAHEDRON> newOrdering;
-        smob::detail::FixQuadraticIdOrdering(connectivity, numCells, newOrdering);
+        smoab::detail::FixQuadraticIdOrdering(connectivity, numCells, newOrdering);
         }
       else if(vtkCellType == VTK_QUADRATIC_WEDGE)
         {
-        smob::detail::QuadratricOrdering<VTK_QUADRATIC_WEDGE> newOrdering;
-        smob::detail::FixQuadraticIdOrdering(connectivity, numCells, newOrdering);
+        smoab::detail::QuadratricOrdering<VTK_QUADRATIC_WEDGE> newOrdering;
+        smoab::detail::FixQuadraticIdOrdering(connectivity, numCells, newOrdering);
         }
 
       cellLocations += numCells;
@@ -218,7 +217,8 @@ private:
 
   typedef std::vector<EntityHandle>::const_iterator EntityConstIterator;
   typedef std::vector<EntityHandle*>::const_iterator ConnConstIterator;
-  typedef std::vector<RunLengthInfo>::const_iterator InfoConstIterator;
+  typedef std::vector<detail::ContinousCellInfo>::const_iterator InfoConstIterator;
 };
-}
+} }  //namespace smoab::detail
+
 #endif // __smoab_MixedCellConnectivity_h

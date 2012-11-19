@@ -2,8 +2,7 @@
 #define __smoab_DataSetConverter_h
 
 #include "SimpleMoab.h"
-#include "CellTypeToType.h"
-#include "MixedCellConnectivity.h"
+#include "detail/MixedCellConnectivity.h"
 
 #include <vtkCellArray.h>
 #include <vtkCellData.h>
@@ -210,7 +209,7 @@ public:
                           vtkUnstructuredGrid* grid) const
     {
 
-    smoab::MixedCellConnectivity mixConn(cells,this->Moab);
+    smoab::detail::MixedCellConnectivity mixConn(cells,this->Moab);
 
     //now that mixConn has all the cells properly stored, lets fixup
     //the ids so that they start at zero and keep the same logical ordering
@@ -360,7 +359,7 @@ private:
     }
 
   //----------------------------------------------------------------------------
-  void setGridsTopology(smoab::MixedCellConnectivity const& mixedCells,
+  void setGridsTopology(smoab::detail::MixedCellConnectivity const& mixedCells,
                 vtkUnstructuredGrid* grid,
                 vtkIdType numCells,
                 vtkIdType numConnectivity) const
