@@ -23,7 +23,7 @@ template<typename VTKGridType> struct setCells;
 template<> struct setCells<vtkUnstructuredGrid>
 {
   typedef vtkUnstructuredGrid VTKGridType;
-  void operator()(VTKGridType* grid,
+  void operator()(VTKGridType* grid, int,
                   vtkUnsignedCharArray* types,
                   vtkIdTypeArray* locations,
                   vtkCellArray*   cells) const
@@ -35,12 +35,28 @@ template<> struct setCells<vtkUnstructuredGrid>
 template<> struct setCells<vtkPolyData>
 {
   typedef vtkPolyData VTKGridType;
-  void operator()(VTKGridType* grid,
+  void operator()(VTKGridType* grid, int dim,
                   vtkUnsignedCharArray*,
                   vtkIdTypeArray*,
                   vtkCellArray*   cells) const
     {
-    grid->SetPolys(cells);
+    //this is explicitly checking 0 and 3
+    //a dimensionality of zero is returned when we are reading
+    //none topology tags so this is a hack, as we presume those
+    //are quads/triangles
+    if( dim == 0 || dim == 3)
+      {
+      grid->SetPolys(cells);
+      }
+    else if( dim == 1 )
+      {
+      grid->SetVerts(cells);
+      }
+    else if( dim == 2)
+      {
+      grid->SetLines(cells);
+      }
+
     }
 };
 
@@ -50,14 +66,18 @@ template<> struct setCells<vtkPolyData>
 class LoadGeometry
 {
   moab::Interface* Interface;
+  const smoab::Tag *TopologyTag;
   smoab::detail::MixedCellConnectivity MixConn;
   smoab::Range Points;
 
 public:
   //----------------------------------------------------------------------------
   //warning cells input to constructor is held by reference
-  LoadGeometry(const smoab::Range& cells, const smoab::Interface& interface):
+  LoadGeometry(const smoab::Range& cells,
+               const smoab::Tag* topologyTag,
+               const smoab::Interface& interface):
     Interface(interface.Moab),
+    TopologyTag(topologyTag),
     MixConn(cells,interface.Moab),
     Points()
     {
@@ -129,7 +149,9 @@ private:
     vtkNew<vtkCellArray> cells;
     cells->SetCells(numCells,cellArray.GetPointer());
 
+
     setCells<vtkDataSetType>()(grid,
+                               this->TopologyTag->value(),
                                cellTypes.GetPointer(),
                                cellLocations.GetPointer(),
                                cells.GetPointer());

@@ -5,17 +5,12 @@
 #include "detail/LoadGeometry.h"
 #include "detail/ReadMaterialTag.h"
 
-#include <vtkCellArray.h>
 #include <vtkCellData.h>
 #include <vtkDoubleArray.h>
 #include <vtkFieldData.h>
 #include <vtkIntArray.h>
 #include <vtkIdTypeArray.h>
 #include <vtkNew.h>
-#include <vtkPointData.h>
-#include <vtkPoints.h>
-#include <vtkUnsignedCharArray.h>
-#include <vtkUnstructuredGrid.h>
 
 #include <algorithm>
 
@@ -54,8 +49,9 @@ public:
   //grid. Currently doesn't support reading properties.
   //Will read in material ids,  if no material id is assigned to an entity,
   //its cells will be given an unique id
+  template<typename VTKGridType>
   bool fill(const smoab::Range& entities,
-            vtkUnstructuredGrid* grid) const
+            VTKGridType* grid) const
     {
     //create a helper datastructure which can determines all the unique point ids
     //and converts moab connecitvity info to vtk connectivity
@@ -81,7 +77,7 @@ public:
       }
 
     //convert the datastructure from a list of cells to a vtk unstructured grid
-    detail::LoadGeometry loadGeom(cells,this->Interface);
+    detail::LoadGeometry loadGeom(cells,this->Tag,this->Interface);
     loadGeom.fill(grid);
 
     if(this->readMaterialIds())
@@ -102,8 +98,9 @@ public:
   //given a single entity handle create a unstructured grid from it.
   //optional third parameter is the material id to use if readMaterialIds
   //is on, and no material sparse tag is found for this entity
+  template<typename VTKGridType>
   bool fill(const smoab::EntityHandle& entity,
-            vtkUnstructuredGrid* grid,
+            VTKGridType* grid,
             const int materialId=0) const
     {
     //create a helper datastructure which can determines all the unique point ids
@@ -124,7 +121,7 @@ public:
 
 
     //convert the datastructure from a list of cells to a vtk unstructured grid
-    detail::LoadGeometry loadGeom(cells,this->Interface);
+    detail::LoadGeometry loadGeom(cells,this->Tag,this->Interface);
     loadGeom.fill(grid);
 
     const smoab::Range& points = loadGeom.moabPoints();
