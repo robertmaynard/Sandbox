@@ -29,8 +29,11 @@ using moab::unite;
 //forward declare this->Moab for Tag
 struct Interface;
 
-//forward declar the DataSetConverter so it can be a friend of Interface
+//forward declare the DataSetConverter so it can be a friend of Interface
 class DataSetConverter;
+
+//forward declare the LoadGeometry so it can be a friend of Interface
+namespace detail{ class LoadGeometry; }
 
 class Tag
 {
@@ -66,6 +69,8 @@ public:
   GeomTag(int d):Tag("GEOM_DIMENSION"),dim(d){}
   GeomTag():Tag("GEOM_DIMENSION"), dim(0){}
 
+  virtual ~GeomTag(){}
+
   bool isComparable() const { return dim > 0; }
   int value() const { return dim; }
   };
@@ -99,6 +104,21 @@ public:
                                simpleTag.dataType(),
                                tag);
     return tag;
+    }
+
+  //----------------------------------------------------------------------------
+  template<typename T>
+  T getTagData(moab::Tag tag, const smoab::EntityHandle& entity, T value) const
+    {
+    this->Moab->tag_get_data(tag,&entity,1,&value);
+    return value;
+    }
+
+  //----------------------------------------------------------------------------
+  template<typename T>
+  T getTagData(smoab::Tag tag, const smoab::EntityHandle& entity, T value = T()) const
+    {
+    return this->getTagData(getMoabTag(tag),entity,value);
     }
 
   //----------------------------------------------------------------------------
@@ -179,7 +199,7 @@ public:
   //----------------------------------------------------------------------------
   //Find all entities from a given root of a given dimensionality
   smoab::Range findEntitiesWithDimension(const smoab::EntityHandle root,
-                                         int dimension) const
+                                         const int dimension) const
     {
     typedef smoab::Range::const_iterator iterator;
 
@@ -197,8 +217,9 @@ public:
     }
 
   //----------------------------------------------------------------------------
-  smoab::Range findAdjacentEntities(const smoab::EntityHandle& entity,
-                                    int dimension) const
+  //find all entities that are adjacent to a single entity
+  smoab::Range findAdjacencies(const smoab::EntityHandle& entity,
+                               int dimension) const
     {
     const int adjType = static_cast<int>(smoab::INTERSECT);
     smoab::Range result;
@@ -213,7 +234,7 @@ public:
     }
 
     //----------------------------------------------------------------------------
-  smoab::Range findAdjacentEntities(const smoab::Range& range,
+  smoab::Range findAdjacencies(const smoab::Range& range,
                                     int dimension,
                                     const smoab::adjacency_type type = smoab::UNION) const
     {
@@ -230,9 +251,18 @@ public:
     }
 
   //----------------------------------------------------------------------------
+  //given a single entity handle find all non entity set mesh entities
+  smoab::Range findSubMeshEntities(smoab::EntityHandle const& entity) const
+    {
+    smoab::Range result;
+    this->Moab->get_entities_by_handle(entity,result);
+    return result;
+    }
+
+  //----------------------------------------------------------------------------
   //Find all elements in the database that have children and zero parents.
   //this doesn't find
-  smoab::Range findEntityRootParents(smoab::EntityHandle const& root) const
+  smoab::Range findEntityRootParents(const smoab::EntityHandle& root) const
     {
     smoab::Range parents;
 
@@ -258,7 +288,7 @@ public:
 
   //----------------------------------------------------------------------------
   //finds entities that have zero children and zero parents
-  smoab::Range findDetachedEntities(moab::EntityHandle const& root) const
+  smoab::Range findDetachedEntities(const moab::EntityHandle& root) const
     {
     smoab::Range detached;
 
@@ -284,7 +314,7 @@ public:
 
   //----------------------------------------------------------------------------
   //find all children of the entity passed in that has multiple parents
-  smoab::Range findEntitiesWithMultipleParents(smoab::EntityHandle const& root)
+  smoab::Range findEntitiesWithMultipleParents(const smoab::EntityHandle& root)
     {
     smoab::Range multipleParents;
     typedef moab::Range::const_iterator iterator;
@@ -319,7 +349,7 @@ public:
 
   //----------------------------------------------------------------------------
   //prints all elements in a range objects
-  void printRange(smoab::Range const& range)
+  void printRange(const smoab::Range& range)
     {
     typedef Range::const_iterator iterator;
     for(iterator i=range.begin(); i!=range.end(); ++i)
@@ -330,6 +360,7 @@ public:
     }
 
   friend class smoab::DataSetConverter;
+  friend class smoab::detail::LoadGeometry;
 private:
   moab::Interface* Moab;
 };
