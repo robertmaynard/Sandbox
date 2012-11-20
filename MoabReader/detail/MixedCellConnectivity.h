@@ -12,6 +12,7 @@ namespace smoab { namespace detail {
 class MixedCellConnectivity
 {
 public:
+
   MixedCellConnectivity(smoab::Range const& cells, moab::Interface* moab):
     Connectivity(),
     UniquePoints(),
