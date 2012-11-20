@@ -2,7 +2,8 @@
 #define __smoab_DataSetConverter_h
 
 #include "SimpleMoab.h"
-#include "detail/MixedCellConnectivity.h"
+#include "detail/LoadGeometry.h"
+#include "detail/ReadMaterialTag.h"
 
 #include <vtkCellArray.h>
 #include <vtkCellData.h>
@@ -67,7 +68,8 @@ public:
       if(this->Tag->isComparable())
         {
         //if we are comparable only find the cells that match our tags dimension
-        smoab::Range entitiesCells = this->Interface.findEntitiesWithDimension(*i,Tag->value());
+        smoab::Range entitiesCells =
+            this->Interface.findEntitiesWithDimension(*i,this->Tag->value());
         cells.insert(entitiesCells.begin(),entitiesCells.end());
         }
       else
@@ -78,83 +80,19 @@ public:
         }
       }
 
-    smoab::Range points;
-    this->loadCellsAndPoints(cells,points,grid);
+    //convert the datastructure from a list of cells to a vtk unstructured grid
+    detail::LoadGeometry loadGeom(cells,this->Interface);
+    loadGeom.fill(grid);
 
     if(this->readMaterialIds())
       {
-      typedef std::vector<smoab::EntityHandle>::const_iterator EntityHandleIterator;
-      typedef std::vector<int>::const_iterator IdConstIterator;
-      typedef std::vector<int>::iterator IdIterator;
-
-      std::vector<smoab::EntityHandle> searchableCells;
-      searchableCells.reserve(grid->GetNumberOfCells());
-      std::copy(cells.begin(),cells.end(),std::back_inserter(searchableCells));
-      cells.clear(); //release memory we don't need
-
-
-      std::vector<int> materialIds(entities.size());
-      //first off iterate the entities and determine which ones
-      //have moab material ids
-
-        //wrap this area with scope, to remove local variables
-      {
-        smoab::MaterialTag tag;
-        IdIterator materialIndex = materialIds.begin();
-        for(iterator i=entities.begin();
-            i != entities.end();
-            ++i, ++materialIndex)
-          {
-          moab::Tag mtag = this->Interface.getMoabTag(tag);
-
-          int value=-1;
-          this->Moab->tag_get_data(mtag,&(*i),1,&value);
-          *materialIndex=static_cast<int>(value);
-          }
-
-        //now determine ids for all entities that don't have materials
-        IdConstIterator maxPos = std::max_element(materialIds.begin(),
-                                                 materialIds.end());
-        int maxMaterial = *maxPos;
-        for(IdIterator i=materialIds.begin(); i!= materialIds.end(); ++i)
-          {
-          if(*i==-1)
-            {
-            *i = ++maxMaterial;
-            }
-          }
-      }
-
-      //now we create the material field, and set all the values
-      vtkNew<vtkIntArray> materialSet;
-      materialSet->SetName(this->materialIdName().c_str());
-      materialSet->SetNumberOfValues(grid->GetNumberOfCells());
-
-      IdConstIterator materialValue = materialIds.begin();
-      for(iterator i=entities.begin(); i!= entities.end(); ++i, ++materialValue)
-        {
-        //this is a time vs memory trade off, I don't want to store
-        //the all the cell ids twice over, lets use more time
-        smoab::Range entitiesCells;
-        if(this->Tag->isComparable())
-          {entitiesCells = this->Interface.findEntitiesWithDimension(*i,Tag->value());}
-        else
-          {this->Moab->get_entities_by_handle(*i,entitiesCells);}
-
-        EntityHandleIterator s_begin = searchableCells.begin();
-        EntityHandleIterator s_end = searchableCells.end();
-        for(iterator j=entitiesCells.begin(); j != entitiesCells.end();++j)
-          {
-          EntityHandleIterator result = std::lower_bound(s_begin,
-                                                         s_end,
-                                                         *j);
-          std::size_t newId = std::distance(s_begin,result);
-          materialSet->SetValue(static_cast<int>(newId), *materialValue);
-          }
-        }
-
-      grid->GetCellData()->AddArray(materialSet.GetPointer());
-
+      vtkNew<vtkIntArray> materials;
+      detail::ReadMaterialTag materialTagReading(this->MaterialName,
+                                                 entities,
+                                                 cells,
+                                                 this->Interface);
+      materialTagReading.fill(materials.GetPointer(),this->Tag);
+      grid->GetCellData()->AddArray(materials.GetPointer());
       }
 
     return true;
@@ -174,7 +112,8 @@ public:
     if(this->Tag->isComparable())
       {
       //if we are comparable only find the cells that match our tags dimension
-      cells = this->Interface.findEntitiesWithDimension(entity,Tag->value());
+      cells = this->Interface.findEntitiesWithDimension(entity,
+                                                        this->Tag->value());
       }
     else
       {
@@ -183,9 +122,12 @@ public:
       this->Moab->get_entities_by_handle(entity,cells);
       }
 
-    smoab::Range points;
-    this->loadCellsAndPoints(cells,points,grid);
 
+    //convert the datastructure from a list of cells to a vtk unstructured grid
+    detail::LoadGeometry loadGeom(cells,this->Interface);
+    loadGeom.fill(grid);
+
+    const smoab::Range& points = loadGeom.moabPoints();
 
     if(this->readProperties())
       {
@@ -201,45 +143,6 @@ public:
                           materialId);
       }
     return true;
-    }
-
-  //----------------------------------------------------------------------------
-  void loadCellsAndPoints(const smoab::Range& cells,
-                          smoab::Range& points,
-                          vtkUnstructuredGrid* grid) const
-    {
-
-    smoab::detail::MixedCellConnectivity mixConn(cells,this->Moab);
-
-    //now that mixConn has all the cells properly stored, lets fixup
-    //the ids so that they start at zero and keep the same logical ordering
-    //as before.
-    vtkIdType numCells, connLen;
-    mixConn.compactIds(numCells,connLen);
-    this->setGridsTopology(mixConn,grid,numCells,connLen);
-
-    mixConn.moabPoints(points);
-
-    vtkNew<vtkPoints> newPoints;
-    this->addCoordinates(points,newPoints.GetPointer());
-    grid->SetPoints(newPoints.GetPointer());
-
-    }
-
-  //----------------------------------------------------------------------------
-  void addCoordinates(smoab::Range pointEntities, vtkPoints* pointContainer) const
-    {
-    //since the smoab::range are always unique and sorted
-    //we can use the more efficient coords_iterate
-    //call in moab, which returns moab internal allocated memory
-    pointContainer->SetDataTypeToDouble();
-    pointContainer->SetNumberOfPoints(pointEntities.size());
-
-    //need a pointer to the allocated vtkPoints memory so that we
-    //don't need to use an extra copy and we can bypass all vtk's check
-    //on out of bounds
-    double *rawPoints = static_cast<double*>(pointContainer->GetVoidPointer(0));
-    this->Moab->get_coords(pointEntities,rawPoints);
     }
 
 private:
@@ -358,36 +261,7 @@ private:
       }
     }
 
-  //----------------------------------------------------------------------------
-  void setGridsTopology(smoab::detail::MixedCellConnectivity const& mixedCells,
-                vtkUnstructuredGrid* grid,
-                vtkIdType numCells,
-                vtkIdType numConnectivity) const
-    {
-    //correct the connectivity size to account for the vtk padding
-    const vtkIdType vtkConnectivity = numCells + numConnectivity;
 
-    vtkNew<vtkIdTypeArray> cellArray;
-    vtkNew<vtkIdTypeArray> cellLocations;
-    vtkNew<vtkUnsignedCharArray> cellTypes;
-
-    cellArray->SetNumberOfValues(vtkConnectivity);
-    cellLocations->SetNumberOfValues(numCells);
-    cellTypes->SetNumberOfValues(numCells);
-
-    vtkIdType* rawArray = static_cast<vtkIdType*>(cellArray->GetVoidPointer(0));
-    vtkIdType* rawLocations = static_cast<vtkIdType*>(cellLocations->GetVoidPointer(0));
-    unsigned char* rawTypes = static_cast<unsigned char*>(cellTypes->GetVoidPointer(0));
-
-    mixedCells.copyToVtkCellInfo(rawArray,rawLocations,rawTypes);
-
-    vtkNew<vtkCellArray> cells;
-    cells->SetCells(numCells,cellArray.GetPointer());
-    grid->SetCells(cellTypes.GetPointer(),
-                   cellLocations.GetPointer(),
-                   cells.GetPointer(),
-                   NULL,NULL);
-    }
 };
 
 }

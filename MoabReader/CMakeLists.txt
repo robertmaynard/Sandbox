@@ -14,8 +14,15 @@ include(${ParaView_USE_FILE})
 include_directories(${PARAVIEW_INCLUDE_DIRS})
 
 set(headers
-  SimpleMoab.h
   DataSetConverter.h
+  detail/CellTypeToType.h
+  detail/ContinousCellInfo.h
+  detail/LoadGeometry.h
+  detail/MixedCellConnectivity.h
+  detail/ReadMaterialTag.h
+  detail/ReduceSpectralMesh.h
+  ExtractShell.h
+  SimpleMoab.h
   )
 
 add_paraview_plugin(vtkMoabReaderPlugin "5.0"
