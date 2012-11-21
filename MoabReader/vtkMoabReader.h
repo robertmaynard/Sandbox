@@ -39,6 +39,10 @@ private:
                        smoab::Tag const* parentTag,
                        smoab::Tag const* extractTag=NULL);
 
+  void ExtractShell(vtkNew<vtkMultiBlockDataSet> &root,
+                       smoab::Interface* interface,
+                       smoab::Tag const* parentTag);
+
   vtkMoabReader(const vtkMoabReader&);  // Not implemented.
   void operator=(const vtkMoabReader&);  // Not implemented.
   char* FileName;

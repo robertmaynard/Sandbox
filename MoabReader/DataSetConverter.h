@@ -58,6 +58,7 @@ public:
     moab::Range cells;
 
     //append all the entities cells together into a single range
+    int dim = this->Tag->value();
     typedef smoab::Range::const_iterator iterator;
     for(iterator i=entities.begin(); i!= entities.end(); ++i)
       {
@@ -65,7 +66,7 @@ public:
         {
         //if we are comparable only find the cells that match our tags dimension
         smoab::Range entitiesCells =
-            this->Interface.findEntitiesWithDimension(*i,this->Tag->value());
+            this->Interface.findEntitiesWithDimension(*i,dim);
         cells.insert(entitiesCells.begin(),entitiesCells.end());
         }
       else
@@ -76,8 +77,8 @@ public:
         }
       }
 
-    //convert the datastructure from a list of cells to a vtk unstructured grid
-    detail::LoadGeometry loadGeom(cells,this->Tag,this->Interface);
+    //convert the datastructure from a list of cells to a vtk data set
+    detail::LoadGeometry loadGeom(cells,dim,this->Interface);
     loadGeom.fill(grid);
 
     if(this->readMaterialIds())
@@ -106,11 +107,11 @@ public:
     //create a helper datastructure which can determines all the unique point ids
     //and converts moab connecitvity info to vtk connectivity
     moab::Range cells;
+    int dim = this->Tag->value();
     if(this->Tag->isComparable())
       {
       //if we are comparable only find the cells that match our tags dimension
-      cells = this->Interface.findEntitiesWithDimension(entity,
-                                                        this->Tag->value());
+      cells = this->Interface.findEntitiesWithDimension(entity,dim);
       }
     else
       {
@@ -120,8 +121,8 @@ public:
       }
 
 
-    //convert the datastructure from a list of cells to a vtk unstructured grid
-    detail::LoadGeometry loadGeom(cells,this->Tag,this->Interface);
+    //convert the datastructure from a list of cells to a vtk data set
+    detail::LoadGeometry loadGeom(cells,dim,this->Interface);
     loadGeom.fill(grid);
 
     const smoab::Range& points = loadGeom.moabPoints();

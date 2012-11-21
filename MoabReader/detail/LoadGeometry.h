@@ -40,33 +40,31 @@ template<> struct setCells<vtkPolyData>
                   vtkIdTypeArray*,
                   vtkCellArray*   cells) const
     {
-    //this is explicitly checking 0 and 3
-    //a dimensionality of zero is returned when we are reading
-    //none topology tags so this is a hack, as we presume those
-    //are quads/triangles
-    if( dim == 0 || dim == 3)
-      {
-      grid->SetPolys(cells);
-      }
-    else if( dim == 1 )
+    if( dim == 0)
       {
       grid->SetVerts(cells);
       }
-    else if( dim == 2)
+    else if( dim == 1 )
       {
       grid->SetLines(cells);
       }
-
+    else if( dim == 2)
+      {
+      grid->SetPolys(cells);
+      }
     }
 };
 
 }
 //basic class that given a range of moab cells will convert them to am unstructured grid.
 //holds only references to input cells, so they can't go out of scope
+
+//The Topology tag is used to describe the dimensoniality of the cells we are reading
+// 0 == verts, 1 == lines, 2 == tri/quads, 3 = volume elements
 class LoadGeometry
 {
   moab::Interface* Interface;
-  const smoab::Tag *TopologyTag;
+  int TopologyDim;
   smoab::detail::MixedCellConnectivity MixConn;
   smoab::Range Points;
 
@@ -74,10 +72,10 @@ public:
   //----------------------------------------------------------------------------
   //warning cells input to constructor is held by reference
   LoadGeometry(const smoab::Range& cells,
-               const smoab::Tag* topologyTag,
+               int topologyDim,
                const smoab::Interface& interface):
     Interface(interface.Moab),
-    TopologyTag(topologyTag),
+    TopologyDim(topologyDim),
     MixConn(cells,interface.Moab),
     Points()
     {
@@ -151,7 +149,7 @@ private:
 
 
     setCells<vtkDataSetType>()(grid,
-                               this->TopologyTag->value(),
+                               this->TopologyDim,
                                cellTypes.GetPointer(),
                                cellLocations.GetPointer(),
                                cells.GetPointer());

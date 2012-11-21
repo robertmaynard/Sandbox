@@ -1,7 +1,9 @@
 #include "vtkMoabReader.h"
 
 #include "SimpleMoab.h"
+#include "ExtractShell.h"
 #include "DataSetConverter.h"
+
 
 #include "vtkNew.h"
 #include "vtkObjectFactory.h"
@@ -9,6 +11,8 @@
 #include "vtkInformationVector.h"
 #include "vtkMultiBlockDataSet.h"
 #include "vtkUnstructuredGrid.h"
+
+#include "vtkPolyData.h"
 
 
 vtkStandardNewMacro(vtkMoabReader)
@@ -67,7 +71,6 @@ int vtkMoabReader::RequestData(vtkInformation *vtkNotUsed(request),
   output->GetMetaData(blockIndex+3)->Set(vtkCompositeDataSet::NAME(), "Neumann Sets");
   output->GetMetaData(blockIndex+4)->Set(vtkCompositeDataSet::NAME(), "Dirichlet Sets");
 
-
   smoab::GeomTag geom3Tag(3);
   smoab::GeomTag geom2Tag(2);
   smoab::GeomTag geom1Tag(2);
@@ -82,6 +85,12 @@ int vtkMoabReader::RequestData(vtkInformation *vtkNotUsed(request),
   this->CreateSubBlocks(surfaceRoot, &interface, &geom2Tag);
   this->CreateSubBlocks(neumannRoot, &interface, &neTag);
   this->CreateSubBlocks(dirichletRoot, &interface, &diTag);
+
+
+  vtkNew<vtkMultiBlockDataSet> shellRoot;
+  output->SetBlock(blockIndex+5,shellRoot.GetPointer());
+  output->GetMetaData(blockIndex+5)->Set(vtkCompositeDataSet::NAME(), "Volume Shell");
+  this->ExtractShell(shellRoot,&interface,&geom3Tag);
 
 
   return 1;
@@ -133,6 +142,27 @@ void vtkMoabReader::CreateSubBlocks(vtkNew<vtkMultiBlockDataSet> & root,
       ++index;
       }
     }
+}
+
+//------------------------------------------------------------------------------
+void vtkMoabReader::ExtractShell(vtkNew<vtkMultiBlockDataSet> & root,
+                                smoab::Interface* interface,
+                                smoab::Tag const* parentTag)
+{
+
+  smoab::EntityHandle rootHandle = interface->getRoot();
+  smoab::Range parents = interface->findEntityRootParents(rootHandle);
+  smoab::Range dimEnts = interface->findEntitiesWithTag(*parentTag,
+                                                       rootHandle);
+
+  smoab::Range geomParents = smoab::intersect(parents,dimEnts);
+
+  smoab::ExtractShell shell(*interface,geomParents);
+
+  vtkNew<vtkPolyData> output;
+  shell.fill(output.GetPointer());
+
+  root->SetBlock(0,output.GetPointer());
 }
 
 //------------------------------------------------------------------------------

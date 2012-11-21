@@ -32,6 +32,9 @@ struct Interface;
 //forward declare the DataSetConverter so it can be a friend of Interface
 class DataSetConverter;
 
+//forward declare the ExtractShell so it can be a friend of Interface
+class ExtractShell;
+
 //forward declare the LoadGeometry so it can be a friend of Interface
 namespace detail{ class LoadGeometry; }
 
@@ -359,6 +362,7 @@ public:
       }
     }
 
+  friend class smoab::ExtractShell;
   friend class smoab::DataSetConverter;
   friend class smoab::detail::LoadGeometry;
 private:
