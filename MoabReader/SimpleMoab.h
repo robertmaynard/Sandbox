@@ -5,6 +5,8 @@
 #include "moab/Core.hpp"
 #include "moab/Interface.hpp"
 #include "moab/Range.hpp"
+#include "moab/CN.hpp"
+
 #include "MBTagConventions.hpp"
 
 #include <iostream>
@@ -31,9 +33,6 @@ struct Interface;
 
 //forward declare the DataSetConverter so it can be a friend of Interface
 class DataSetConverter;
-
-//forward declare the ExtractShell so it can be a friend of Interface
-class ExtractShell;
 
 //forward declare the LoadGeometry so it can be a friend of Interface
 namespace detail{ class LoadGeometry; }
@@ -236,7 +235,7 @@ public:
     return result;
     }
 
-    //----------------------------------------------------------------------------
+  //----------------------------------------------------------------------------
   smoab::Range findAdjacencies(const smoab::Range& range,
                                     int dimension,
                                     const smoab::adjacency_type type = smoab::UNION) const
@@ -245,6 +244,25 @@ public:
     const int adjType = static_cast<int>(type);
     smoab::Range result;
     const bool create_if_missing = false;
+    this->Moab->get_adjacencies(range,dimension,
+                                create_if_missing,
+                                result,
+                                adjType);
+
+    return result;
+    }
+
+  //----------------------------------------------------------------------------
+  //create adjacencies, only works when the dimension requested is lower than
+  //dimension of the range of entities
+  smoab::Range createAdjacencies(const smoab::Range& range,
+                                 int dimension,
+                                 const smoab::adjacency_type type = smoab::UNION) const
+    {
+    //the smoab and moab adjacent intersection enums are in the same order
+    const int adjType = static_cast<int>(type);
+    smoab::Range result;
+    const bool create_if_missing = true;
     this->Moab->get_adjacencies(range,dimension,
                                 create_if_missing,
                                 result,
@@ -345,17 +363,34 @@ public:
     }
 
   //----------------------------------------------------------------------------
-  //for a given entity extract from a range all the entities that represent
-  //a face of that entity. So if entityhandle is a hex, we will extract all
-  //the quads that represent a face
-  // std::vector<smoab::FaceEntity> findCellFaces(smoab::EntityHandle const& cell,
-  //                                             const smoab::Range& possibleFaces)
-  // {
-  //   smoab::Range twoDAdj = interface.findAdjacentEntities(*cell,2);
-  //   smoab::Range intersection = smoab::intersect(twDAdj,possibleFaces);
+  //a entityHandle with value zero means no side element was found
+  smoab::EntityHandle sideElement(smoab::EntityHandle const& cell,
+                                  int dim, int side) const
+    {
+    smoab::EntityHandle result(0);
+    this->Moab->side_element(cell,dim,side,result);
+    return result;
+    }
 
+  //----------------------------------------------------------------------------
+  //returns all the existing side elements of a cell, elements that
+  //are zero mean that side element doesn't exist
+  std::vector<smoab::EntityHandle> sideElements(
+                                    smoab::EntityHandle const& cell,
+                                    int dim) const
+    {
+    const EntityType volumeCellType = this->Moab->type_from_handle(cell);
+    const int numSides = static_cast<int>(moab::CN::NumSubEntities(
+                                          volumeCellType, dim));
 
-  // }
+    std::vector<smoab::EntityHandle> result(numSides);
+    for (int side = 0; side < numSides; ++side)
+      {
+      smoab::EntityHandle *sideElem = &result[side]; //get memory of vector
+      this->Moab->side_element(cell,dim,side,*sideElem);
+      }
+    return result;
+    }
 
   //----------------------------------------------------------------------------
   //prints all elements in a range objects
@@ -368,8 +403,6 @@ public:
       this->Moab->list_entity(*i);
       }
     }
-
-  friend class smoab::ExtractShell;
   friend class smoab::DataSetConverter;
   friend class smoab::detail::LoadGeometry;
 private:

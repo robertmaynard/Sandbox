@@ -3,14 +3,13 @@
 
 #include "SimpleMoab.h"
 #include "detail/LoadGeometry.h"
-#include "detail/ReadMaterialTag.h"
-
-#include <moab/CN.hpp>
+#include "detail/UsageTable.h"
 
 #include <vtkUnstructuredGrid.h>
 #include <vtkPolyData.h>
 
 #include <algorithm>
+#include <cassert>
 
 namespace smoab{
 
@@ -53,8 +52,8 @@ private:
                 smoab::Range &surfaceCells);
 
 
-  std::vector<EntityHandle> getFaceCells(const smoab::EntityHandle &cell);
-  //bool linearizeCell();
+  std::vector<EntityHandle> findFaceCells(const smoab::EntityHandle &cell);
+  std::vector<int> GetFaceRegionIds(const std::vector<EntityHandle> &faces);
 };
 
 
@@ -62,6 +61,8 @@ private:
 template<typename T>
 void ExtractShell::fill(T* grid)
 {
+  //we need to read the volume material ids first, as they help identify
+  //which volume cells should be kept
   smoab::Range surfaceCells;
   this->findSkin(this->VCells,surfaceCells);
 
@@ -69,19 +70,6 @@ void ExtractShell::fill(T* grid)
   const smoab::GeomTag geom2Tag(2);
   detail::LoadGeometry loadGeom(surfaceCells,geom2Tag.value(),this->Interface);
   loadGeom.fill(grid);
-
-  vtkNew<vtkIntArray> materials;
-  materials->SetName(this->MaterialName.c_str());
-  detail::ReadMaterialTag materialReader(this->MaterialName,
-                                         this->Parents,
-                                         surfaceCells,
-                                         this->Interface);
-
-
-  //fill the material array using geom2tag to determine how cells
-  //maps back to the parents.
-  materialReader.fill(materials.GetPointer(),&geom2Tag);
-  grid->GetCellData()->AddArray(materials.GetPointer());
 }
 
 
@@ -96,78 +84,54 @@ bool ExtractShell::findSkin(const smoab::Range &volumeCells,
 
   typedef smoab::Range::const_iterator Iterator;
 
-  smoab::UsageTable table;
-  smoab::FaceToCellMapping fcMap;
+  smoab::detail::UsageTable table;
+
+  this->Interface.createAdjacencies(volumeCells,2);
   for(Iterator i = volumeCells.begin(); i != volumeCells.end(); ++i)
     {
-    //the concern is how to I relate the face cells to the current
-    //volume cell, looks like i need a new data structure
-    std::vector<EntityHandle> faceCells = this->getFaceCells(*i);
+    std::vector<smoab::EntityHandle> faceCells = this->findFaceCells(*i);
 
-    //map faceCellId to cell entity handle and side index
-    fcMap.add(faceCells,*i);
+    //get the face cell region id's if they exist, we will use
+    //-1 to represent no region id for the face
+    std::vector<int> faceRegionIds = this->GetFaceRegionIds(faceCells);
 
-    table.incrementUsage(faceCells);
+    //increment these face cells relationship to the volume cells material
+    //id.
+    table.incrementUsage(faceCells,faceRegionIds);
     }
-
-  surfaceCells = table.getSingleUsageIds();
 
   //we will remove all cells that have multiple usages from the moab database
   //I really don't care if they already existed or not.
+  smoab::Range cellsToRemove = table.multipleUsage();
+  this->Interface.remove(cellsToRemove);
 
-  smoab::Range cellsToRemove = table.GetMultipleUsageIds();
-
-  this->Interface.Moab->remove_entities(this->Interface.getRoot(),
-                                        cellsToRemove);
-
-  //just have to store this somewhere
-  vtkNew<vtkIntArray> faceIdMap;
-  fcMap.generateSkinFaceMap(faceIdMap.GetPointer());
+  surfaceCells = table.singleUsage();
 
   return true;
 }
 
 //----------------------------------------------------------------------------
-std::vector<EntityHandle> ExtractShell::getFaceCells(const smoab::EntityHandle &cell)
+std::vector<smoab::EntityHandle> ExtractShell::findFaceCells(
+                                             const smoab::EntityHandle &cell)
 {
-  const moab::Interface *moab = this->Interface.Moab;
-  const EntityType volumeCellType = moab->type_from_handle(*i);
+  const int two2d(2);
+  smoab::Range adjacenices = this->Interface.findAdjacencies(cell,two2d);
+  std::vector<smoab::EntityHandle> faces =
+                             this->Interface.sideElements(cell,two2d);
 
-  //get the connectivity of the volume cell
-  std::vector<moab::EntityHandle> vcConn;
-  vcConn.reserve(moab::CN::MAX_NODES_PER_ELEMENT);
-  moab->get_connectivity(*i,1,vcConn,false); //false so we get High order connn
+  smoab::Range check;
+  std::copy(faces.rbegin(),faces.rend(),moab::range_inserter(check));
+  assert(adjacenices.contains(check));
 
-  //get the actual length this will allow us to determine
-  //if we need to linearize the cell or not down the road
-  const int num_connectivity = vcConn.size();
+  return faces;
+}
 
-
-  const short numSides = moab::CN::NumSubEntities( type, two2d );
-  for (short side = 0; side < numSides; ++side)
-    {
-    //for each side of the cell we need to find the connectivity.
-    //this api for moab is really unpleasent and filled with
-    //terms that aren't clear. We use nodeIncices since it looks
-    //like it handles high order nodes
-    std::vector<EntityHandle> sideCellConn;
-    int numSideNodes;
-    int cellConnIndices[moab::CN::MAX_NODES_PER_ELEMENT];
-
-    moab::CN::SubEntityNodeIndices(volumeCellType,
-                                 num_connectivity,
-                                 two2d,
-                                 side,
-                                 sideCellType,
-                                 numSideNodes,
-                                 cellConnIndices
-                                 );
-    for (int sideCellNode =0; sideCellNode< numSideNodes; ++sideCellNode)
-      {
-
-      }
-  }
-
+//----------------------------------------------------------------------------
+std::vector<int> ExtractShell::GetFaceRegionIds(
+                                        const std::vector<EntityHandle> &faces)
+{
+  return std::vector<int>(1,faces.size());
+}
 
 }
 

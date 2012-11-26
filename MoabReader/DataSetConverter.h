@@ -73,7 +73,7 @@ public:
         {
         //this is a bad representation of all other tags, but we are presuming that
         //neuman and dirichlet are on entitysets with no children
-        this->Moab->get_entities_by_handle(*i,cells);
+        this->Moab->get_entities_by_handle(*i,cells,true);
         }
       }
 
@@ -117,7 +117,7 @@ public:
       {
       //this is a bad representation of all other tags, but we are presuming that
       //neuman and dirichlet are on entitysets with no children
-      this->Moab->get_entities_by_handle(entity,cells);
+      this->Moab->get_entities_by_handle(entity,cells,true);
       }
 
 
