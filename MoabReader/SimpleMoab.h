@@ -317,7 +317,7 @@ public:
 
   //----------------------------------------------------------------------------
   //find all children of the entity passed in that has multiple parents
-  smoab::Range findEntitiesWithMultipleParents(const smoab::EntityHandle& root)
+  smoab::Range findEntitiesWithMultipleParents(const smoab::EntityHandle& root) const
     {
     smoab::Range multipleParents;
     typedef moab::Range::const_iterator iterator;
@@ -338,6 +338,13 @@ public:
     }
 
   //----------------------------------------------------------------------------
+  //remove a collection of entities from the database
+  void remove(smoab::Range const& toDelete) const
+    {
+    this->Moab->delete_entities(toDelete);
+    }
+
+  //----------------------------------------------------------------------------
   //for a given entity extract from a range all the entities that represent
   //a face of that entity. So if entityhandle is a hex, we will extract all
   //the quads that represent a face
@@ -352,7 +359,7 @@ public:
 
   //----------------------------------------------------------------------------
   //prints all elements in a range objects
-  void printRange(const smoab::Range& range)
+  void printRange(const smoab::Range& range) const
     {
     typedef Range::const_iterator iterator;
     for(iterator i=range.begin(); i!=range.end(); ++i)
