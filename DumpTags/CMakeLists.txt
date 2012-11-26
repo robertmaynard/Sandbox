@@ -11,7 +11,6 @@ include_directories(${MOAB_INCLUDE_DIRS})
 
 add_executable(DUMP
                main.cxx
-               tags.h
                )
 
 target_link_libraries(DUMP ${MOAB_LIBRARY})

@@ -26,8 +26,7 @@ int main(int argc, char **argv)
               << "\t3: List all 3D entities " << std::endl
               << "\t4: List all 2D entities " << std::endl
               << "\t5: Find Root Parents" << std::endl
-              << "\t6: Find Detached Entities" << std::endl
-              << "\t8: Intersect Surfaces and Volume faces" << std::endl;
+              << "\t6: Find Detached Entities" << std::endl;
 
 
 
@@ -75,70 +74,6 @@ int main(int argc, char **argv)
         std::cout << "All Detached Entity Sets" << std::endl;
         r = interface.findDetachedEntities(rootHandle);
         interface.printRange(r);
-        break;
-      case 8:
-        {
-        smoab::Range parents = interface.findEntityRootParents(rootHandle);
-
-
-        smoab::Range geomEnts = interface.findEntitiesWithTag(smoab::GeomTag(3), rootHandle);
-        smoab::Range surfaceEnts = interface.findEntitiesWithTag(smoab::GeomTag(2), rootHandle);
-        smoab::Range surfaces = smoab::intersect(surfaceEnts,parents);
-        smoab::Range solids = smoab::intersect(geomEnts,parents);
-
-        geomEnts.clear();
-        surfaceEnts.clear();
-
-        typedef smoab::Range::const_iterator Iterator;
-        std::cout << "Number of subset Ents: " << surfaces.size() << std::endl;
-        for(Iterator surface = surfaces.begin();
-            surface != surfaces.end();
-            ++surface)
-        {
-          moab::EntityHandle handle = *surface;
-          smoab::Range surfaceQuads = interface.findEntities(handle,moab::MBQUAD);
-
-          for(Iterator solid=solids.begin();
-              solid != solids.end();
-              ++solid)
-            {
-              std::cout << "solid" << std::endl;
-            //look for all vertex indices in the hex model.
-            //than lets look and see if they are contained in the surface entity
-            //sets ever.
-            moab::EntityHandle solidHandle = *solid;
-            smoab::Range hexes = interface.findEntities(solidHandle,moab::MBHEX);
-            for (Iterator hex = hexes.begin();
-                 hex != hexes.end(); ++hex)
-              {
-              std::vector<smoab::FaceEntity> result = interface.findCellFaces(*hex,surfaceQuads);
-              if(result.size() > 0)
-                {
-
-                }
-              }
-            }
-
-
-
-
-        }
-
-
-
-
-
-          //we need to look at Adjacencies of the cell as that holds
-          //the face and edge!!!!!! when it has a matching surface face
-          //aka
-          //entity id: 10376293541461622798
-          // Global id = 14
-          // Adjacencies:
-          //  Vertex 80, Vertex 70, Vertex 81, Vertex 86, Vertex 270, Vertex 262, Vertex 271, Vertex 276
-          //  Edge 29, Edge 32, Edge 46, Edge 48
-          //  Quad 14
-          }
-        }
         break;
       default:
         exit(1);
