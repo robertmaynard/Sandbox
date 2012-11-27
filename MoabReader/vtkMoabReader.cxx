@@ -1,7 +1,6 @@
 #include "vtkMoabReader.h"
 
 #include "SimpleMoab.h"
-#include "ExtractShell.h"
 #include "DataSetConverter.h"
 
 

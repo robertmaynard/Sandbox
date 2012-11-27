@@ -78,13 +78,14 @@ public:
 
     if(this->readMaterialIds())
       {
-      vtkNew<vtkIntArray> materials;
-      smoab::MaterialTag mtag;
-      detail::ReadSparseTag materialTagReading(mtag.name(),
-                                               entities,
+
+      detail::ReadSparseTag materialTagReading(entities,
                                                cells,
                                                this->Interface);
-      materialTagReading.fill(materials.GetPointer(),this->Tag);
+
+      vtkNew<vtkIntArray> materials;
+      smoab::MaterialTag mtag;
+      materialTagReading.fill(materials.GetPointer(),&mtag);
       grid->GetCellData()->AddArray(materials.GetPointer());
       }
 
@@ -131,21 +132,19 @@ public:
     if(this->readMaterialIds())
       {
       smoab::MaterialTag mtag;
-      detail::ReadSparseTag materialTagReading(mtag.name(),
-                                               singleEntityRange,
+      detail::ReadSparseTag materialTagReading(singleEntityRange,
                                                cells,
                                                this->Interface,
                                                materialId);
 
       vtkNew<vtkIntArray> materials;
-      materialTagReading.fill(materials.GetPointer(),this->Tag);
+      materialTagReading.fill(materials.GetPointer(),&mtag);
       grid->GetCellData()->AddArray(materials.GetPointer());
 
       }
 
     //by default we always try to load the default tag
-    detail::ReadSparseTag sTagReading(this->Tag.name(),
-                                     singleEntityRange,
+    detail::ReadSparseTag sTagReading(singleEntityRange,
                                      cells,
                                      this->Interface);
 

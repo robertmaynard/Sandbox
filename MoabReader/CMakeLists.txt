@@ -21,6 +21,7 @@ set(headers
   detail/MixedCellConnectivity.h
   detail/ReadSparseTag.h
   detail/ReduceSpectralMesh.h
+  detail/UsageTable.h
   SimpleMoab.h
   )
 

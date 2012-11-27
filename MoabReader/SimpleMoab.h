@@ -241,7 +241,7 @@ public:
     if(num_ents > 0)
       {
       //we have found entities of a given dimension
-      return this->Interface.findEntitiesWithDimension(entity,dim,recurse);
+      return this->findEntitiesWithDimension(entity,dim,recurse);
       }
     return smoab::Range();
     }
@@ -304,10 +304,10 @@ public:
 
   //----------------------------------------------------------------------------
   //given a single entity handle find all non entity set mesh entities
-  smoab::Range findSubMeshEntities(smoab::EntityHandle const& entity) const
+  smoab::Range findSubMeshEntities(smoab::EntityHandle const& entity, bool recurse=false) const
     {
     smoab::Range result;
-    this->Moab->get_entities_by_handle(entity,result);
+    this->Moab->get_entities_by_handle(entity,result,recurse);
     return result;
     }
 

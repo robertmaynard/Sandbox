@@ -15,14 +15,14 @@ namespace smoab { namespace detail {
 struct ReadSparseTag
 {
 
-  ReadSparseTag(const std::string& name,
-                const smoab::Range& ents,
+  ReadSparseTag(const smoab::Range& ents,
                 const smoab::Range& cells,
-                const smoab::Interface& interface):
+                const smoab::Interface& interface,
+                int defaultValue=-1):
     Interface(interface),
-    Name(name),
     MeshSets(ents),
-    Cells(cells)
+    Cells(cells),
+    DefaultValue(defaultValue)
     {
     }
 
@@ -30,15 +30,24 @@ struct ReadSparseTag
   //and meshsets.
   void fill(vtkIntArray* sparseTagArray, const Tag* cellTag) const;
 private:
+  void singleSetRead(vtkIntArray *sparseTagArray,
+                     const std::vector<int>& values,
+                     std::size_t length) const;
+
+  void multiSetRead(vtkIntArray *sparseTagArray,
+                    const std::vector<int>& values,
+                    std::size_t length,
+                    const smoab::Tag* cellTag) const;
+
   const smoab::Interface& Interface;
-  std::string Name;
   const smoab::Range& MeshSets;
   const smoab::Range& Cells;
+  int DefaultValue;
 };
 
 //----------------------------------------------------------------------------
 void ReadSparseTag::fill(vtkIntArray *sparseTagArray,
-                         const smoab::Tag* cellTag) const
+                         const smoab::Tag* sparseTag) const
 {
 
   typedef std::vector<int>::const_iterator IdConstIterator;
@@ -53,7 +62,7 @@ void ReadSparseTag::fill(vtkIntArray *sparseTagArray,
 
   //wrap this area with scope, to remove local variables
   {
-    const moab::Tag stag = this->Interface.getMoabTag(smoab::MaterialTag());
+    const moab::Tag stag = this->Interface.getMoabTag(*sparseTag);
     IdIterator tagIds = sparseTagValues.begin();
     int defaultValue=this->DefaultValue;
     for(RangeIterator i=this->MeshSets.begin();
@@ -61,59 +70,55 @@ void ReadSparseTag::fill(vtkIntArray *sparseTagArray,
         ++i, ++tagIds)
       {
 
-      *tagIds = this->Interface.getTagData(mtag,*i,defaultValue);
+      *tagIds = this->Interface.getTagData(stag,*i,defaultValue);
       }
 
     //now determine ids for all entities that don't have materials
     IdConstIterator maxPos = std::max_element(sparseTagValues.begin(),
                                              sparseTagValues.end());
-    int maxMaterial = *maxPos;
+    int maxValue = *maxPos;
     for(IdIterator i=sparseTagValues.begin(); i!= sparseTagValues.end(); ++i)
       {
       if(*i==-1)
         {
-        *i = ++maxMaterial;
+        *i = ++maxValue;
         }
       }
   }
 
+  sparseTagArray->SetName(sparseTag->name());
+  sparseTagArray->SetNumberOfValues(numCells);
   if(this->MeshSets.size() == 1)
     {
-    this->singleSet(sparseTagArray,sparseTagValue[0],numCells)
+    this->singleSetRead(sparseTagArray,sparseTagValues,numCells);
     }
   else
     {
-    this->multiSet(sparseTagArray,sparseTagValues,cellTag)
+    this->multiSetRead(sparseTagArray,sparseTagValues,numCells,sparseTag);
     }
 }
 
 //----------------------------------------------------------------------------
-void ReadSparseTag::multsingleSetiySet(vtkIntArray *sparseTagArray,
-                                       int value,
-                                       std::size_t length) const
+void ReadSparseTag::singleSetRead(vtkIntArray *sparseTagArray,
+                                  const std::vector<int>& values,
+                                  std::size_t length) const
   {
 
   //now we set all the values as this has a single meshset so we
   //have no complicated logic for mapping each cell to a meshset
-  sparseTagArray->SetName(this->Name.c_str());
-  sparseTagArray->SetNumberOfValues(length);
-
   int *raw = static_cast<int*>(sparseTagArray->GetVoidPointer(0));
-  std::fill(raw,raw+length,value);
+  std::fill(raw,raw+length,values[0]);
   }
 
-
-
 //----------------------------------------------------------------------------
-void ReadSparseTag::multiySet(vtkIntArray *sparseTagArray,
-                         const smoab::Tag* cellTag) const
+void ReadSparseTag::multiSetRead(vtkIntArray *sparseTagArray,
+                                 const std::vector<int>& sparseTagValues,
+                                 std::size_t numCells,
+                                 const smoab::Tag* sparseTag) const
   {
   typedef std::vector<smoab::EntityHandle>::const_iterator EntityHandleIterator;
-
-  //now we set all the values
-  sparseTagArray->SetName(this->Name.c_str());
-  sparseTagArray->SetNumberOfValues(numCells);
-
+  typedef std::vector<int>::const_iterator IdConstIterator;
+  typedef smoab::Range::const_iterator RangeIterator;
 
   //create the search structure as a range is really slow to search with
   //lower_bounds
@@ -125,18 +130,18 @@ void ReadSparseTag::multiySet(vtkIntArray *sparseTagArray,
 
 
 
-  IdConstIterator materialValue = sparseTagValues.begin();
-  const int dim = cellTag->value(); //only used if isComparable returns true
+  IdConstIterator currentTagValue = sparseTagValues.begin();
+  const int dim = sparseTag->value(); //only used if isComparable returns true
   for(RangeIterator i=this->MeshSets.begin();
-      i!=this->MeshSets.end(); ++i, ++materialValue)
+      i!=this->MeshSets.end(); ++i, ++currentTagValue)
     {
     //this is a time vs memory trade off, I don't want to store
     //the all the cell ids twice over, lets use more time
     smoab::Range entitiesCells;
-    if(cellTag->isComparable())
-      {entitiesCells = this->Interface.findEntitiesWithDimension(*i,dim);}
+    if(sparseTag->isComparable())
+      {entitiesCells = this->Interface.findEntitiesWithDimension(*i,dim,true);}
     else
-      {entitiesCells = this->Interface.findSubMeshEntities(*i);}
+      {entitiesCells = this->Interface.findHighestDimensionEntities(*i,true);}
 
     EntityHandleIterator s_begin = searchableCells.begin();
     EntityHandleIterator s_end = searchableCells.end();
@@ -146,9 +151,11 @@ void ReadSparseTag::multiySet(vtkIntArray *sparseTagArray,
                                                      s_end,
                                                      *j);
       std::size_t newId = std::distance(s_begin,result);
-      sparseTagArray->SetValue(static_cast<int>(newId), *materialValue);
+      sparseTagArray->SetValue(static_cast<int>(newId), *currentTagValue);
       }
     }
+
+}
 
 }
 }
