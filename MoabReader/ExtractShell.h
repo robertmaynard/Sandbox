@@ -130,6 +130,7 @@ std::vector<smoab::EntityHandle> ExtractShell::findFaceCells(
 std::vector<int> ExtractShell::GetFaceRegionIds(
                                         const std::vector<EntityHandle> &faces)
 {
+  //todo properly look up the correct region/material id for each face
   return std::vector<int>(1,faces.size());
 }
 

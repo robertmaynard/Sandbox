@@ -86,13 +86,6 @@ int vtkMoabReader::RequestData(vtkInformation *vtkNotUsed(request),
   this->CreateSubBlocks(neumannRoot, &interface, &neTag);
   this->CreateSubBlocks(dirichletRoot, &interface, &diTag);
 
-
-  vtkNew<vtkMultiBlockDataSet> shellRoot;
-  output->SetBlock(blockIndex+5,shellRoot.GetPointer());
-  output->GetMetaData(blockIndex+5)->Set(vtkCompositeDataSet::NAME(), "Volume Shell");
-  this->ExtractShell(shellRoot,&interface,&geom3Tag);
-
-
   return 1;
 }
 
@@ -144,39 +137,6 @@ void vtkMoabReader::CreateSubBlocks(vtkNew<vtkMultiBlockDataSet> & root,
       ++index;
       }
     }
-}
-
-//------------------------------------------------------------------------------
-void vtkMoabReader::ExtractShell(vtkNew<vtkMultiBlockDataSet> & root,
-                                smoab::Interface* interface,
-                                smoab::Tag const* parentTag)
-{
-
-  smoab::EntityHandle rootHandle = interface->getRoot();
-  smoab::Range parents = interface->findEntityRootParents(rootHandle);
-  smoab::Range dimEnts = interface->findEntitiesWithTag(*parentTag,
-                                                       rootHandle);
-
-  smoab::Range geomParents = smoab::intersect(parents,dimEnts);
-
-
-  // smoab::ExtractShell shell(*interface,geomParents);
-  // vtkNew<vtkPolyData> output;
-  // shell.fill(output.GetPointer());
-
-
-  typedef smoab::Range::const_iterator iterator;
-  int block=0;
-  for(iterator i=geomParents.begin(); i!= geomParents.end(); ++i,++block)
-    {
-    smoab::Range parent(*i,*i);
-    smoab::ExtractShell shell(*interface,parent);
-    vtkNew<vtkUnstructuredGrid> output;
-    shell.fill(output.GetPointer());
-    root->SetBlock(block,output.GetPointer());
-    }
-
-  // root->SetBlock(0,output.GetPointer());
 }
 
 //------------------------------------------------------------------------------

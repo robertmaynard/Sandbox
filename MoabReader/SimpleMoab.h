@@ -201,22 +201,27 @@ public:
   //----------------------------------------------------------------------------
   //Find all entities from a given root of a given dimensionality
   smoab::Range findEntitiesWithDimension(const smoab::EntityHandle root,
-                                         const int dimension) const
+                                         const int dimension,
+                                         bool recurse=false) const
     {
     typedef smoab::Range::const_iterator iterator;
 
     smoab::Range result;
-    this->Moab->get_entities_by_dimension(root,dimension,result);
+    this->Moab->get_entities_by_dimension(root,dimension,result,recurse);
 
-
-    smoab::Range children;
-    this->Moab->get_child_meshsets(root,children,0);
-    for(iterator i=children.begin(); i !=children.end();++i)
+    if(recurse)
       {
-      this->Moab->get_entities_by_dimension(*i,dimension,result);
+      smoab::Range children;
+      this->Moab->get_child_meshsets(root,children,0);
+      for(iterator i=children.begin(); i !=children.end();++i)
+        {
+        this->Moab->get_entities_by_dimension(*i,dimension,result);
+        }
       }
     return result;
     }
+
+
 
   //----------------------------------------------------------------------------
   //find all entities that are adjacent to a single entity
@@ -278,6 +283,23 @@ public:
     smoab::Range result;
     this->Moab->get_entities_by_handle(entity,result);
     return result;
+    }
+
+
+  //----------------------------------------------------------------------------
+  int numChildMeshSets(const smoab::EntityHandle& root) const
+    {
+    int numChildren;
+    this->Moab->num_child_meshsets(root,&numChildren);
+    return numChildren;
+    }
+
+  //----------------------------------------------------------------------------
+  smoab::Range getChildSets(const smoab::EntityHandle& root) const
+    {
+    smoab::Range children;
+    this->Moab->get_child_meshsets(root,children,0);
+    return children;
     }
 
   //----------------------------------------------------------------------------

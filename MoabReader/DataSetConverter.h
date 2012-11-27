@@ -60,20 +60,19 @@ public:
     //append all the entities cells together into a single range
     int dim = this->Tag->value();
     typedef smoab::Range::const_iterator iterator;
+    smoab::Range entitiesCells;
     for(iterator i=entities.begin(); i!= entities.end(); ++i)
       {
       if(this->Tag->isComparable())
         {
         //if we are comparable only find the cells that match our tags dimension
-        smoab::Range entitiesCells =
-            this->Interface.findEntitiesWithDimension(*i,dim);
+        entitiesCells =
+            this->Interface.findEntitiesWithDimension(*i,dim,true);
         cells.insert(entitiesCells.begin(),entitiesCells.end());
         }
       else
         {
-        //this is a bad representation of all other tags, but we are presuming that
-        //neuman and dirichlet are on entitysets with no children
-        this->Moab->get_entities_by_handle(*i,cells,true);
+        entitiesCells = this->loadSubEntities(*i);
         }
       }
 
@@ -111,15 +110,13 @@ public:
     if(this->Tag->isComparable())
       {
       //if we are comparable only find the cells that match our tags dimension
-      cells = this->Interface.findEntitiesWithDimension(entity,dim);
+      cells = this->Interface.findEntitiesWithDimension(entity,dim,true);
       }
     else
       {
-      //this is a bad representation of all other tags, but we are presuming that
-      //neuman and dirichlet are on entitysets with no children
-      this->Moab->get_entities_by_handle(entity,cells,true);
+      //load subentities
+      cells = this->loadSubEntities(entity);
       }
-
 
     //convert the datastructure from a list of cells to a vtk data set
     detail::LoadGeometry loadGeom(cells,dim,this->Interface);
@@ -131,11 +128,17 @@ public:
       {
       this->readProperties(cells,grid->GetCellData());
       this->readProperties(points,grid->GetPointData());
+      this->readSparseTag(*this->Tag,
+                          entity,
+                          grid->GetNumberOfCells(),
+                          grid->GetCellData(),
+                          0);
       }
 
     if(this->readMaterialIds())
       {
-      this->readSparseTag(smoab::MaterialTag(),entity,
+      smoab::MaterialTag mtag;
+      this->readSparseTag(mtag,entity,
                           grid->GetNumberOfCells(),
                           grid->GetCellData(),
                           materialId);
@@ -144,6 +147,32 @@ public:
     }
 
 private:
+    //----------------------------------------------------------------------------
+    smoab::Range loadSubEntities(const smoab::EntityHandle& entity) const
+      {
+      //the goal is to load all entities that are not entity sets of this
+      //node, while also subsetting by the highest dimension
+      smoab::Range cells;
+
+      //lets find the entities of only the highest dimension
+      int num_ents=0;
+      int dim=3;
+      while(num_ents<=0&&dim>0)
+          {
+          this->Moab->get_number_entities_by_dimension(entity,dim,num_ents,true);
+          --dim;
+          }
+      ++dim; //reincrement to correct last decrement
+      if(num_ents > 0)
+        {
+        //we have found entities of a given dimension
+        cells = this->Interface.findEntitiesWithDimension(entity,dim,true);
+        }
+
+
+      return cells;
+      }
+
   //----------------------------------------------------------------------------
   void readProperties(smoab::Range const& entities,
                            vtkFieldData* field) const
@@ -160,7 +189,7 @@ private:
     }
 
   //----------------------------------------------------------------------------
-  bool readSparseTag(smoab::Tag tag,
+  bool readSparseTag(const smoab::Tag& tag,
                       smoab::EntityHandle const& entity,
                       vtkIdType length,
                       vtkFieldData* field,
