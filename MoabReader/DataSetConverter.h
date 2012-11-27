@@ -3,7 +3,7 @@
 
 #include "SimpleMoab.h"
 #include "detail/LoadGeometry.h"
-#include "detail/ReadMaterialTag.h"
+#include "detail/ReadSparseTag.h"
 
 #include <vtkCellData.h>
 #include <vtkDoubleArray.h>
@@ -30,16 +30,12 @@ public:
     Moab(interface.Moab),
     Tag(tag),
     ReadMaterialIds(false),
-    ReadProperties(false),
-    MaterialName("Material")
+    ReadProperties(false)
     {
     }
 
   void readMaterialIds(bool add) { this->ReadMaterialIds = add; }
   bool readMaterialIds() const { return this->ReadMaterialIds; }
-
-  void materialIdName(const std::string& name) { this->MaterialName = name; }
-  const std::string& materialIdName() const { return this->MaterialName; }
 
   void readProperties(bool readProps) { this->ReadProperties = readProps; }
   bool readProperties() const { return this->ReadProperties; }
@@ -72,7 +68,7 @@ public:
         }
       else
         {
-        entitiesCells = this->loadSubEntities(*i);
+        entitiesCells = this->Interface.findHighestDimensionEntities(*i,true);
         }
       }
 
@@ -83,10 +79,11 @@ public:
     if(this->readMaterialIds())
       {
       vtkNew<vtkIntArray> materials;
-      detail::ReadMaterialTag materialTagReading(this->MaterialName,
-                                                 entities,
-                                                 cells,
-                                                 this->Interface);
+      smoab::MaterialTag mtag;
+      detail::ReadSparseTag materialTagReading(mtag.name(),
+                                               entities,
+                                               cells,
+                                               this->Interface);
       materialTagReading.fill(materials.GetPointer(),this->Tag);
       grid->GetCellData()->AddArray(materials.GetPointer());
       }
@@ -115,7 +112,7 @@ public:
     else
       {
       //load subentities
-      cells = this->loadSubEntities(entity);
+      cells = this->Interface.findHighestDimensionEntities(entity,true);
       }
 
     //convert the datastructure from a list of cells to a vtk data set
@@ -128,51 +125,38 @@ public:
       {
       this->readProperties(cells,grid->GetCellData());
       this->readProperties(points,grid->GetPointData());
-      this->readSparseTag(*this->Tag,
-                          entity,
-                          grid->GetNumberOfCells(),
-                          grid->GetCellData(),
-                          0);
       }
 
+    smoab::Range singleEntityRange(entity,entity);
     if(this->readMaterialIds())
       {
       smoab::MaterialTag mtag;
-      this->readSparseTag(mtag,entity,
-                          grid->GetNumberOfCells(),
-                          grid->GetCellData(),
-                          materialId);
+      detail::ReadSparseTag materialTagReading(mtag.name(),
+                                               singleEntityRange,
+                                               cells,
+                                               this->Interface,
+                                               materialId);
+
+      vtkNew<vtkIntArray> materials;
+      materialTagReading.fill(materials.GetPointer(),this->Tag);
+      grid->GetCellData()->AddArray(materials.GetPointer());
+
       }
+
+    //by default we always try to load the default tag
+    detail::ReadSparseTag sTagReading(this->Tag.name(),
+                                     singleEntityRange,
+                                     cells,
+                                     this->Interface);
+
+    vtkNew<vtkIntArray> sparseTagData;
+    sTagReading.fill(sparseTagData.GetPointer(),this->Tag);
+    grid->GetCellData()->AddArray(sparseTagData.GetPointer());
+
     return true;
     }
 
 private:
-    //----------------------------------------------------------------------------
-    smoab::Range loadSubEntities(const smoab::EntityHandle& entity) const
-      {
-      //the goal is to load all entities that are not entity sets of this
-      //node, while also subsetting by the highest dimension
-      smoab::Range cells;
-
-      //lets find the entities of only the highest dimension
-      int num_ents=0;
-      int dim=3;
-      while(num_ents<=0&&dim>0)
-          {
-          this->Moab->get_number_entities_by_dimension(entity,dim,num_ents,true);
-          --dim;
-          }
-      ++dim; //reincrement to correct last decrement
-      if(num_ents > 0)
-        {
-        //we have found entities of a given dimension
-        cells = this->Interface.findEntitiesWithDimension(entity,dim,true);
-        }
-
-
-      return cells;
-      }
-
   //----------------------------------------------------------------------------
   void readProperties(smoab::Range const& entities,
                            vtkFieldData* field) const
@@ -186,36 +170,6 @@ private:
     this->Moab->tag_get_tags_on_entity(entities.front(),tags);
 
     this->readDenseTags(tags,entities,field);
-    }
-
-  //----------------------------------------------------------------------------
-  bool readSparseTag(const smoab::Tag& tag,
-                      smoab::EntityHandle const& entity,
-                      vtkIdType length,
-                      vtkFieldData* field,
-                      vtkIdType defaultValue) const
-    {
-
-    typedef std::vector<moab::Tag>::const_iterator iterator;
-    moab::Tag mtag = this->Interface.getMoabTag(tag);
-
-    int value=0;
-    moab::ErrorCode rval = this->Moab->tag_get_data(mtag,&entity,1,&value);
-    if(rval!=moab::MB_SUCCESS)
-      {
-      value = defaultValue;
-      }
-
-    vtkNew<vtkIntArray> materialSet;
-    materialSet->SetNumberOfValues(length);
-    materialSet->SetName(this->materialIdName().c_str());
-
-    int *raw = static_cast<int*>(materialSet->GetVoidPointer(0));
-    std::fill(raw,raw+length,value);
-
-    field->AddArray(materialSet.GetPointer());
-
-    return true;
     }
 
   //----------------------------------------------------------------------------

@@ -222,6 +222,32 @@ public:
     }
 
 
+  //----------------------------------------------------------------------------
+  smoab::Range findHighestDimensionEntities(const smoab::EntityHandle& entity,
+                                            bool recurse=false) const
+    {
+    //the goal is to load all entities that are not entity sets of this
+    //node, while also subsetting by the highest dimension
+
+    //lets find the entities of only the highest dimension
+    int num_ents=0;
+    int dim=3;
+    while(num_ents<=0&&dim>0)
+      {
+      this->Moab->get_number_entities_by_dimension(entity,dim,num_ents,recurse);
+      --dim;
+      }
+    ++dim; //reincrement to correct last decrement
+    if(num_ents > 0)
+      {
+      //we have found entities of a given dimension
+      return this->Interface.findEntitiesWithDimension(entity,dim,recurse);
+      }
+    return smoab::Range();
+    }
+
+
+
 
   //----------------------------------------------------------------------------
   //find all entities that are adjacent to a single entity

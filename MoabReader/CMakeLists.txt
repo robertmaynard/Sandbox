@@ -19,9 +19,8 @@ set(headers
   detail/ContinousCellInfo.h
   detail/LoadGeometry.h
   detail/MixedCellConnectivity.h
-  detail/ReadMaterialTag.h
+  detail/ReadSparseTag.h
   detail/ReduceSpectralMesh.h
-  ExtractShell.h
   SimpleMoab.h
   )
 
