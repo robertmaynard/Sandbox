@@ -13,9 +13,12 @@
 
 namespace smoab{
 
-//we presume that we are extract the shell of a 3d volume, where the 2d
-//surface elements that constructed the 3d volume are contained
-//in the input parents
+/*
+This is a work in progress that had to be left as it was not needed.
+It might be needed again in the future when Neumann sets are not aviable
+*/
+
+
 class ExtractShell
 {
   const smoab::Interface& Interface;
