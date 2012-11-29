@@ -28,15 +28,6 @@ using moab::intersect;
 using moab::subtract;
 using moab::unite;
 
-//forward declare this->Moab for Tag
-struct Interface;
-
-//forward declare the DataSetConverter so it can be a friend of Interface
-class DataSetConverter;
-
-//forward declare the LoadGeometry so it can be a friend of Interface
-namespace detail{ class LoadGeometry; }
-
 class Tag
 {
   const std::string Name_;
@@ -77,6 +68,18 @@ public:
   int value() const { return dim; }
   };
 
+
+//forward declare this->Moab for Tag
+struct Interface;
+
+//forward declare the DataSetConverter so it can be a friend of Interface
+class DataSetConverter;
+
+//forward declare the LoadGeometry so it can be a friend of Interface
+namespace detail{ class LoadGeometry; }
+namespace detail{ class LoadPoly; }
+
+
 //light weight wrapper on a moab this->Moab that exposes only the reduced class
 //that we need
 class Interface
@@ -106,6 +109,22 @@ public:
                                simpleTag.dataType(),
                                tag);
     return tag;
+    }
+
+  //----------------------------------------------------------------------------
+  template<typename T>
+  T getDefaultTagVaue(moab::Tag tag) const
+    {
+    T defaultValue;
+    this->Moab->tag_get_default_value(tag,&defaultValue);
+    return defaultValue;
+    }
+
+  //----------------------------------------------------------------------------
+  template<typename T>
+  T getDefaultTagVaue(smoab::Tag tag) const
+    {
+    return this->getDefaultTagVaue<T>(getMoabTag(tag));
     }
 
   //----------------------------------------------------------------------------
@@ -141,6 +160,19 @@ public:
     return std::string(name);
     }
 
+  //----------------------------------------------------------------------------
+  //returns the geometeric dimension of an entity.
+  int dimension(const smoab::EntityHandle& entity) const
+    {
+    return this->Moab->dimension_from_handle(entity);
+    }
+
+  //----------------------------------------------------------------------------
+  //returns the geometeric dimension of an entity.
+  smoab::EntityType entityType(const smoab::EntityHandle& entity) const
+    {
+    return this->Moab->type_from_handle(entity);
+    }
 
   //----------------------------------------------------------------------------
   smoab::EntityHandle getRoot() const { return this->Moab->get_root_set(); }
@@ -151,6 +183,17 @@ public:
     smoab::Range result;
     // get all the sets of that type in the mesh
     this->Moab->get_entities_by_type(root, type, result);
+    return result;
+    }
+
+  //----------------------------------------------------------------------------
+  //given a single entity handle find all items in that mesh set that aren't
+  //them selves entitysets. If recurse is true we also recurse sub entitysets
+  smoab::Range findAllMeshEntities(smoab::EntityHandle const& entity,
+                                   bool recurse=false) const
+    {
+    smoab::Range result;
+    this->Moab->get_entities_by_handle(entity,result,recurse);
     return result;
     }
 
@@ -201,83 +244,49 @@ public:
   //----------------------------------------------------------------------------
   //Find all entities from a given root of a given dimensionality
   smoab::Range findEntitiesWithDimension(const smoab::EntityHandle root,
-                                         const int dimension) const
+                                         const int dimension,
+                                         bool recurse=false) const
     {
     typedef smoab::Range::const_iterator iterator;
 
     smoab::Range result;
-    this->Moab->get_entities_by_dimension(root,dimension,result);
+    this->Moab->get_entities_by_dimension(root,dimension,result,recurse);
 
-
-    smoab::Range children;
-    this->Moab->get_child_meshsets(root,children,0);
-    for(iterator i=children.begin(); i !=children.end();++i)
+    if(recurse)
       {
-      this->Moab->get_entities_by_dimension(*i,dimension,result);
+      smoab::Range children;
+      this->Moab->get_child_meshsets(root,children,0);
+      for(iterator i=children.begin(); i !=children.end();++i)
+        {
+        this->Moab->get_entities_by_dimension(*i,dimension,result);
+        }
       }
     return result;
     }
 
-  //----------------------------------------------------------------------------
-  //find all entities that are adjacent to a single entity
-  smoab::Range findAdjacencies(const smoab::EntityHandle& entity,
-                               int dimension) const
-    {
-    const int adjType = static_cast<int>(smoab::INTERSECT);
-    smoab::Range result;
-    const bool create_if_missing = false;
-    this->Moab->get_adjacencies(&entity,
-                                1,
-                                dimension,
-                                create_if_missing,
-                                result,
-                                adjType);
-    return result;
-    }
 
   //----------------------------------------------------------------------------
-  smoab::Range findAdjacencies(const smoab::Range& range,
-                                    int dimension,
-                                    const smoab::adjacency_type type = smoab::UNION) const
+  smoab::Range findHighestDimensionEntities(const smoab::EntityHandle& entity,
+                                            bool recurse=false) const
     {
-    //the smoab and moab adjacent intersection enums are in the same order
-    const int adjType = static_cast<int>(type);
-    smoab::Range result;
-    const bool create_if_missing = false;
-    this->Moab->get_adjacencies(range,dimension,
-                                create_if_missing,
-                                result,
-                                adjType);
+    //the goal is to load all entities that are not entity sets of this
+    //node, while also subsetting by the highest dimension
 
-    return result;
-    }
-
-  //----------------------------------------------------------------------------
-  //create adjacencies, only works when the dimension requested is lower than
-  //dimension of the range of entities
-  smoab::Range createAdjacencies(const smoab::Range& range,
-                                 int dimension,
-                                 const smoab::adjacency_type type = smoab::UNION) const
-    {
-    //the smoab and moab adjacent intersection enums are in the same order
-    const int adjType = static_cast<int>(type);
-    smoab::Range result;
-    const bool create_if_missing = true;
-    this->Moab->get_adjacencies(range,dimension,
-                                create_if_missing,
-                                result,
-                                adjType);
-
-    return result;
-    }
-
-  //----------------------------------------------------------------------------
-  //given a single entity handle find all non entity set mesh entities
-  smoab::Range findSubMeshEntities(smoab::EntityHandle const& entity) const
-    {
-    smoab::Range result;
-    this->Moab->get_entities_by_handle(entity,result);
-    return result;
+    //lets find the entities of only the highest dimension
+    int num_ents=0;
+    int dim=3;
+    while(num_ents<=0&&dim>0)
+      {
+      this->Moab->get_number_entities_by_dimension(entity,dim,num_ents,recurse);
+      --dim;
+      }
+    ++dim; //reincrement to correct last decrement
+    if(num_ents > 0)
+      {
+      //we have found entities of a given dimension
+      return this->findEntitiesWithDimension(entity,dim,recurse);
+      }
+    return smoab::Range();
     }
 
   //----------------------------------------------------------------------------
@@ -356,6 +365,75 @@ public:
     }
 
   //----------------------------------------------------------------------------
+  //find all entities that are adjacent to a single entity
+  smoab::Range findAdjacencies(const smoab::EntityHandle& entity,
+                               int dimension) const
+    {
+    const int adjType = static_cast<int>(smoab::INTERSECT);
+    smoab::Range result;
+    const bool create_if_missing = false;
+    this->Moab->get_adjacencies(&entity,
+                                1,
+                                dimension,
+                                create_if_missing,
+                                result,
+                                adjType);
+    return result;
+    }
+
+  //----------------------------------------------------------------------------
+  smoab::Range findAdjacencies(const smoab::Range& range,
+                                    int dimension,
+                                    const smoab::adjacency_type type = smoab::UNION) const
+    {
+    //the smoab and moab adjacent intersection enums are in the same order
+    const int adjType = static_cast<int>(type);
+    smoab::Range result;
+    const bool create_if_missing = false;
+    this->Moab->get_adjacencies(range,dimension,
+                                create_if_missing,
+                                result,
+                                adjType);
+
+    return result;
+    }
+
+  //----------------------------------------------------------------------------
+  //create adjacencies, only works when the dimension requested is lower than
+  //dimension of the range of entities
+  smoab::Range createAdjacencies(const smoab::Range& range,
+                                 int dimension,
+                                 const smoab::adjacency_type type = smoab::UNION) const
+    {
+    //the smoab and moab adjacent intersection enums are in the same order
+    const int adjType = static_cast<int>(type);
+    smoab::Range result;
+    const bool create_if_missing = true;
+    this->Moab->get_adjacencies(range,dimension,
+                                create_if_missing,
+                                result,
+                                adjType);
+
+    return result;
+    }
+
+  //----------------------------------------------------------------------------
+  int numChildMeshSets(const smoab::EntityHandle& root) const
+    {
+    int numChildren;
+    this->Moab->num_child_meshsets(root,&numChildren);
+    return numChildren;
+    }
+
+  //----------------------------------------------------------------------------
+  smoab::Range getChildSets(const smoab::EntityHandle& root) const
+    {
+    smoab::Range children;
+    this->Moab->get_child_meshsets(root,children,0);
+    return children;
+    }
+
+  //----------------------------------------------------------------------------
   //remove a collection of entities from the database
   void remove(smoab::Range const& toDelete) const
     {
@@ -405,9 +483,22 @@ public:
     }
   friend class smoab::DataSetConverter;
   friend class smoab::detail::LoadGeometry;
+  friend class smoab::detail::LoadPoly;
 private:
   moab::Interface* Moab;
 };
+
+//----------------------------------------------------------------------------
+void RangeToVector(const smoab::Range &range,
+                   std::vector<smoab::EntityHandle>& vector )
+{
+  vector.reserve(range.size());
+  std::copy(range.begin(),
+            range.end(),
+            std::back_inserter(vector));
+}
+
+
 
 }
 

@@ -14,6 +14,7 @@ include(${ParaView_USE_FILE})
 include_directories(${PARAVIEW_INCLUDE_DIRS})
 
 set(headers
+  CellSets.h
   DataSetConverter.h
   detail/CellTypeToType.h
   detail/ContinousCellInfo.h
@@ -21,7 +22,10 @@ set(headers
   detail/MixedCellConnectivity.h
   detail/ReadSparseTag.h
   detail/ReduceSpectralMesh.h
+  detail/ReduceSpectralMesh.h
   detail/UsageTable.h
+  ExtractShell.h
+  FaceSets.h
   SimpleMoab.h
   )
 

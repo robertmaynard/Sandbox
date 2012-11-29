@@ -2,6 +2,7 @@
 #define __smoab_DataSetConverter_h
 
 #include "SimpleMoab.h"
+#include "CellSets.h"
 #include "detail/LoadGeometry.h"
 #include "detail/ReadSparseTag.h"
 
@@ -51,26 +52,31 @@ public:
     {
     //create a helper datastructure which can determines all the unique point ids
     //and converts moab connecitvity info to vtk connectivity
-    moab::Range cells;
 
-    //append all the entities cells together into a single range
+
+    //get all the cells for each parent entity and create
+    // an entity set of those items
     int dim = this->Tag->value();
     typedef smoab::Range::const_iterator iterator;
-    smoab::Range entitiesCells;
+    smoab::CellSets entitySets;
     for(iterator i=entities.begin(); i!= entities.end(); ++i)
       {
+      smoab::Range entitiesCells;
       if(this->Tag->isComparable())
         {
         //if we are comparable only find the cells that match our tags dimension
-        entitiesCells =
-            this->Interface.findEntitiesWithDimension(*i,dim,true);
-        cells.insert(entitiesCells.begin(),entitiesCells.end());
+        entitiesCells = this->Interface.findEntitiesWithDimension(*i,dim,true);
         }
       else
         {
         entitiesCells = this->Interface.findHighestDimensionEntities(*i,true);
         }
+      smoab::CellSet set(*i,entitiesCells);
+      entitySets.push_back(set);
       }
+
+    moab::Range cells = smoab::getAllCells(entitySets);
+
 
     //convert the datastructure from a list of cells to a vtk data set
     detail::LoadGeometry loadGeom(cells,dim,this->Interface);
@@ -79,15 +85,26 @@ public:
     if(this->readMaterialIds())
       {
 
-      detail::ReadSparseTag materialTagReading(entities,
+      detail::ReadSparseTag materialTagReading(entitySets,
                                                cells,
                                                this->Interface);
 
-      vtkNew<vtkIntArray> materials;
       smoab::MaterialTag mtag;
+      vtkNew<vtkIntArray> materials;
+      materials->SetName(mtag.name());
       materialTagReading.fill(materials.GetPointer(),&mtag);
       grid->GetCellData()->AddArray(materials.GetPointer());
       }
+
+    //by default we always try to load the default tag
+    detail::ReadSparseTag sTagReading(entitySets,
+                                      cells,
+                                      this->Interface);
+
+    vtkNew<vtkIntArray> sparseTagData;
+    sparseTagData->SetName(this->Tag->name());
+    sTagReading.fill(sparseTagData.GetPointer(),this->Tag);
+    grid->GetCellData()->AddArray(sparseTagData.GetPointer());
 
     return true;
     }
@@ -103,7 +120,8 @@ public:
     {
     //create a helper datastructure which can determines all the unique point ids
     //and converts moab connecitvity info to vtk connectivity
-    moab::Range cells;
+
+    smoab::Range cells;
     int dim = this->Tag->value();
     if(this->Tag->isComparable())
       {
@@ -128,27 +146,30 @@ public:
       this->readProperties(points,grid->GetPointData());
       }
 
-    smoab::Range singleEntityRange(entity,entity);
+    smoab::CellSets cellSets;
+    smoab::CellSet set(entity,cells);
+    cellSets.push_back(set);
     if(this->readMaterialIds())
       {
       smoab::MaterialTag mtag;
-      detail::ReadSparseTag materialTagReading(singleEntityRange,
+      detail::ReadSparseTag materialTagReading(cellSets,
                                                cells,
-                                               this->Interface,
-                                               materialId);
+                                               this->Interface);
 
       vtkNew<vtkIntArray> materials;
+      materials->SetName(mtag.name());
       materialTagReading.fill(materials.GetPointer(),&mtag);
       grid->GetCellData()->AddArray(materials.GetPointer());
 
       }
 
     //by default we always try to load the default tag
-    detail::ReadSparseTag sTagReading(singleEntityRange,
-                                     cells,
-                                     this->Interface);
+    detail::ReadSparseTag sTagReading(cellSets,
+                                      cells,
+                                      this->Interface);
 
     vtkNew<vtkIntArray> sparseTagData;
+    sparseTagData->SetName(this->Tag->name());
     sTagReading.fill(sparseTagData.GetPointer(),this->Tag);
     grid->GetCellData()->AddArray(sparseTagData.GetPointer());
 

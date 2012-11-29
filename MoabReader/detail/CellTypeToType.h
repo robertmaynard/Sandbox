@@ -99,6 +99,49 @@ int vtkCellType(moab::EntityType t, int &num_connect)
   return ctype;
   }
 
+int vtkLinearCellType(moab::EntityType t, int &num_connect)
+  {
+  int ctype = -1;
+  switch (t)
+    {
+    case moab::MBEDGE:
+      ctype = VTK_LINE;
+      num_connect = 2;
+      break;
+    case moab::MBTRI:
+      ctype = VTK_TRIANGLE;
+      num_connect = 3;
+      break;
+    case moab::MBQUAD:
+      ctype = VTK_QUAD;
+      num_connect = 4;
+      break;
+    case moab::MBPOLYGON:
+      ctype = VTK_POLYGON;
+      num_connect = 4;
+      break;
+    case moab::MBTET:
+      ctype = VTK_TETRA;
+      num_connect = 4;
+      break;
+    case moab::MBPYRAMID:
+      ctype = VTK_PYRAMID;
+      num_connect = 5;
+      break;
+    case moab::MBPRISM:
+      ctype = VTK_WEDGE;
+      num_connect = 6;
+      break;
+    case moab::MBHEX:
+      ctype = VTK_HEXAHEDRON;
+      num_connect = 8;
+      break;
+    default:
+      break;
+    }
+  return ctype;
+  }
+
 } } //namespace smaob::detail
 
 #endif // CELLTYPETOTYPE_H

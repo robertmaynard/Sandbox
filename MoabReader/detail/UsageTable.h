@@ -6,7 +6,7 @@
 
 namespace smoab { namespace detail {
 
-namespace
+namespace internal
 {
 
 struct KeyType
@@ -68,7 +68,7 @@ public:
 
 private:
   std::vector<smoab::EntityHandle> MultipleUsageIds;
-  std::set< KeyType> SingleUsageIds;
+  std::set<internal::KeyType> SingleUsageIds;
 };
 
 
@@ -85,7 +85,7 @@ void UsageTable::incrementUsage(
       i != entities.end();
       ++i, ++usage)
     {
-    KeyType key(*i,*usage);
+    internal::KeyType key(*i,*usage);
     if(this->SingleUsageIds.find(key) != this->SingleUsageIds.end())
       {
       this->SingleUsageIds.erase(key);
@@ -114,7 +114,7 @@ smoab::Range UsageTable::singleUsage() const
   smoab::Range single;
   std::copy(this->SingleUsageIds.rbegin(),
             this->SingleUsageIds.rend(),
-            key_inserter(single));
+            internal::key_inserter(single));
   return single;
 }
 
