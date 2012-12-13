@@ -6,40 +6,7 @@
 #include <utility>
 #include <iostream>
 
-namespace detail
-{
-template <class T1, class ...T>
-struct first
-{
-    typedef T1 type;
-};
-
-template<class T1, class ...T>
-struct last
-{
-  typedef typename last<T...>::type type;
-
-  type operator()(T1, T... t) const
-  {
-    return last<T...>()(t...);
-  }
-
-};
-
-template<class T1>
-struct last<T1>
-{
-  typedef T1 type;
-
-  type operator()(T1 t1) const
-  {
-    return t1;
-  }
-
-};
-
-
-}
+#include "Helpers.h"
 
 template<class Derived,int Seperate_Args>
 class BaseParser
@@ -63,19 +30,38 @@ protected:
   template<typename Channel, typename... Args>
   bool defaultParse(Channel& c,Args... args) const
   {
-    //subtle note, the items in args can be individual items, the unique
-    //item is the list item which can be a varaidic tuple that needs to be
-    //unpacked
+    //subtle note, the items in args can be both individual items
+    //or tuples that need to be expanded before being passed on.
+    //for now we are going to simplify the code by stating only the last
+    //argument can be a tuple
 
-    //construct an std::tuple from args.
-    //extract the last element, and see if it a tuple itself
-    //if tuple join its elements into the args elements ( recreate args? )
 
-    //walk args and print each element by using a foreach call?
-    typedef typename detail::last<Args...> FetchLastArg;
-    typedef typename FetchLastArg::type LastArgType;
-    LastArgType lastArg = FetchLastArg()(args...);
+    // //extract the last argument as unique item.
+    // typedef typename detail::last<Args...> FetchLastArg;
+    // typedef typename FetchLastArg::type LastArgType;
+    // LastArgType lastArg = FetchLastArg()(args...);
 
+    // //extract everything but the last argument as a std::tuple
+    // typedef typename detail::all_but_last<Args...> AllButLast;
+    // typedef typename AllButLast::type AllButLastType;
+    // AllButLastType before = AllBustLast(args...);
+
+    // //join the last element which could be a tuple with the rest of the
+    // //elements. In the future this operation needs to be done on each
+    // //item in args so that we can have each arg as a tuple that we join
+    // //by expanding each one
+    // typedef typename detail::join<AllBustLastType,LastArgType> Joiner;
+    // typedef typename Joiner::type JoinerType;
+    // JoinerType joined_args = Joiner()(before,lastArg);
+
+
+    //construct a super simplistic functor that allows us to dump
+    //each item to the channel
+    detail::bitwiseLShift<Channel> functor(c);
+
+
+    typename detail::first<Args...>::type tuple = detail::first<Args...>()(args...);
+    detail::for_each(functor,tuple);
     return true;
   }
 

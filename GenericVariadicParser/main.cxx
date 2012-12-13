@@ -6,7 +6,9 @@ template<typename ...Values>
 void TryParser(Values... v)
 {
   DerivedParser derived;
+  std::cout << "calling derived parser." << std::endl;
   derived(std::cout,v...);
+  std::cout << std::endl;
 }
 
 
