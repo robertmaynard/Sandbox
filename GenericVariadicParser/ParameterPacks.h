@@ -49,24 +49,101 @@ struct last<First>
 
 };
 
-//join is basically tuple_cat but with only two parameters, looks like
-//it may be needed a I can't find the respective function in boost
+//extract the first N elements from a parameter pack.
+//You can use apply to save those types into a different class
+//I can't figure out the recursive version of this
+template<int N, class ...Args> struct subset
+{
+  template < template<typename ...> class F >
+  struct apply
+    {
+        typedef F<Args...> type;
+    };
+};
+
+//empty default implementation, we need it to to do specializations
 template <typename...> struct join;
 
-template <template <typename...> class Tuple,
+//join is basically tuple_cat but with only two parameters, looks like
+//it may be needed a I can't find the respective function in boost
+template <
+          int ...Indices1,
+          int ...Indices2,
           typename ...Args1,
-          typename ...Args2>
-struct join<Tuple<Args1...>,Tuple<Args2...> >
+          typename ...Args2
+          >
+struct join<detail::sequence<Indices1...>,
+            detail::sequence<Indices2...>,
+            std::tr1::tuple<Args1...>,
+            std::tr1::tuple<Args2...> >
 {
-  typedef Tuple<Args1..., Args2...> type;
+private:
+  //the entire problem is that a raw tuples arguments include std::tr1::_NullClass
+  //which can't be joined together. So we need to use subset to strip all those
+  //out of each parameter pack and than use convert_to_joined_tuple to
+  //combine everything back together again.
 
-  void operator()(Tuple<Args1...> first, Tuple<Args2...> second) const
+  //find the lengths of both tuples, i need a better method to do this
+  enum { lenArg1 = std::tr1::tuple_size< std::tr1::tuple<Args1...> >::value,
+         lenArg2 = std::tr1::tuple_size< std::tr1::tuple<Args2...> >::value};
+
+  typedef params::subset<lenArg1,Args1...> subset1;
+  typedef params::subset<lenArg2,Args2...> subset2;
+  typedef detail::convert_two_to_tuple<subset1::template apply,
+                                       subset2::template apply> FindJoinedType;
+
+public:
+  typedef typename FindJoinedType::type type;
+
+
+  type operator()(detail::sequence<Indices1...>,
+                  detail::sequence<Indices2...>,
+                  std::tr1::tuple<Args1...> first,
+                  std::tr1::tuple<Args2...> second) const
   {
-    enum { lenArg1 = std::tr1::tuple_size< std::tr1::tuple<Args1...> >::value,
-           lenArg2 = std::tr1::tuple_size< std::tr1::tuple<Args2...> >::value};
+    std::cout << "sizeof: " << sizeof...(Args1) << " vs " << lenArg1 << std::endl;
+    return type(std::tr1::get<Indices1>(first)...);
+                //std::tr1::get<Indices2>(second)...);
+  };
 
+};
+
+//join is basically tuple_cat but with only two parameters, looks like
+//it may be needed a I can't find the respective function in boost
+template <typename ...Args1,
+          typename ...Args2>
+struct join<std::tr1::tuple<Args1...>,std::tr1::tuple<Args2...> >
+{
+private:
+    //find the lengths of both tuples, i need a better method to do this
+    enum { lenArg1 = std::tr1::tuple_size< std::tr1::tuple<Args1...> >::value,
+         lenArg2 = std::tr1::tuple_size< std::tr1::tuple<Args2...> >::value};
+
+    //determine the types of a sequence that matches the length of each argument.
+    //To pass multiple parameter packs to a method they have to be wrapped as
+    //template arguments to a struct/class.
+    typedef typename detail::generate_sequence<lenArg1>::type Arg1SeqType;
+    typedef typename detail::generate_sequence<lenArg2>::type Arg2SeqType;
+
+    //construct easier typedefs for each tuple arg
+    typedef std::tr1::tuple<Args1...> FirstTuple;
+    typedef std::tr1::tuple<Args2...> SecondTuple;
+
+    //determine the signature for the actual join struct
+    typedef params::join<Arg1SeqType,Arg2SeqType,FirstTuple,SecondTuple> IndexedJoin;
+
+public:
+
+  typedef typename IndexedJoin::type type;
+
+  type operator()(std::tr1::tuple<Args1...> first,
+                  std::tr1::tuple<Args2...> second) const
+  {
+    //return a joined object
+    return IndexedJoin()(Arg1SeqType(),Arg2SeqType(),first,second);
   }
 };
+
 
 
 

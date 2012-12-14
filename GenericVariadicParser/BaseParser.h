@@ -64,7 +64,12 @@ protected:
 
 
     typename params::first<Args...>::type tuple = params::first<Args...>()(args...);
+    typedef typename params::join<typename params::first<Args...>::type,
+                                  typename params::first<Args...>::type> joiner;
+
+    typename params::first<Args...>::type tuple2 = joiner()(tuple,tuple);
     detail::for_each(functor,tuple);
+
     return true;
   }
 
