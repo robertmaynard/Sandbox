@@ -7,6 +7,7 @@
 #include <iostream>
 
 #include "Helpers.h"
+#include "ParameterPacks.h"
 
 template<class Derived,int Seperate_Args>
 class BaseParser
@@ -35,14 +36,16 @@ protected:
     //for now we are going to simplify the code by stating only the last
     //argument can be a tuple
 
+    //we have a use case of a single item that needs to be supported
+
 
     // //extract the last argument as unique item.
-    // typedef typename detail::last<Args...> FetchLastArg;
-    // typedef typename FetchLastArg::type LastArgType;
-    // LastArgType lastArg = FetchLastArg()(args...);
+    typedef typename params::last<Args...> FetchLastArg;
+    typedef typename FetchLastArg::type LastArgType;
+    LastArgType lastArg = FetchLastArg()(args...);
 
     // //extract everything but the last argument as a std::tuple
-    // typedef typename detail::all_but_last<Args...> AllButLast;
+    // typedef typename params::all_but_last<Args...> AllButLast;
     // typedef typename AllButLast::type AllButLastType;
     // AllButLastType before = AllBustLast(args...);
 
@@ -60,7 +63,7 @@ protected:
     detail::bitwiseLShift<Channel> functor(c);
 
 
-    typename detail::first<Args...>::type tuple = detail::first<Args...>()(args...);
+    typename params::first<Args...>::type tuple = params::first<Args...>()(args...);
     detail::for_each(functor,tuple);
     return true;
   }

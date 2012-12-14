@@ -1,50 +1,17 @@
 #ifndef __Helpers_h
 #define __Helpers_h
 
-#include <tr1/tuple>
-#include <tr1/utility>
-#include <utility>
-#include <algorithm>
-
 namespace detail
 {
 
-//extract the first element of a parameter packs type or actual item
-template <class First, class ...T>
-struct first
+//basic functor that applies << to each item that comes in to the stored value
+template<typename T>
+struct bitwiseLShift
 {
-    typedef First type;
-
-    type operator()(First f, T...) const
-    {
-      return f;
-    }
-};
-
-//extract the last element of a parameter packs type or actual item
-template<class First, class ...T>
-struct last
-{
-  typedef typename last<T...>::type type;
-
-  type operator()(First, T... t) const
-  {
-    return last<T...>::operator()(t...);
-  }
-
-};
-
-//extract the last element of a parameter packs type or actual item
-template<class First>
-struct last<First>
-{
-  typedef First type;
-
-  type operator()(First first) const
-  {
-    return first;
-  }
-
+  bitwiseLShift(T& t):Var(t){}
+  template<typename U> void operator()(U u) const { Var << u << " "; }
+private:
+  T& Var;
 };
 
 //holds a sequence of integers.
@@ -53,9 +20,9 @@ struct sequence { };
 
 //generate a sequence of incrementing values starting at zero
 template<int N, int ...S>
-struct generate_sequence : generate_sequence<N-1, N-1, S...>
+struct generate_sequence
 {
-
+  typedef typename generate_sequence<N-1, N-1, S...>::type type;
 };
 
 //generate a sequence of incrementing values starting at zero
@@ -91,40 +58,33 @@ struct forEach<First>
 
 };
 
+//applies the functor to each element in a parameter pack
 template<typename Functor, typename ...T>
-void for_each_detail(Functor f, T... items)
+void for_each(Functor f, T... items)
 {
   detail::forEach<T...>()(f,items...);
 }
 
-
+//special version of for_each that is a helper to get the length of indicies
+//as a parameter type. I can't figure out how to do this step inside for_each specialized
+//on tuple
 template<typename Functor, typename ...T, int ...Indices>
-void for_each_seq(Functor f, std::tr1::tuple<T...> tuple, detail::sequence<Indices...> s)
+void for_each(Functor f, std::tr1::tuple<T...> tuple, detail::sequence<Indices...> s)
 {
-  detail::for_each_detail(f,std::tr1::get<Indices>(tuple)...);
+  detail::for_each(f,std::tr1::get<Indices>(tuple)...);
 }
 
+//function overload that detects tuples being sent to for each
+//and expands the tuple elements
 template<typename Functor, typename ...T>
 void for_each(Functor f, std::tr1::tuple<T...>& tuple)
 {
   //to iterate each item in the tuple we have to convert back from
   //a tuple to a parameter pack
   enum { len = std::tr1::tuple_size< std::tr1::tuple<T...> >::value};
-  typedef typename generate_sequence<len>::type SequenceType;
-  detail::for_each_seq(f,tuple,SequenceType());
+  typedef typename detail::generate_sequence<len>::type SequenceType;
+  detail::for_each(f,tuple,SequenceType());
 }
-
-
-//basic functor that applies << to each item that comes in to the stored value
-template<typename T>
-struct bitwiseLShift
-{
-  bitwiseLShift(T& t):Var(t){}
-  template<typename U> void operator()(U u) const { Var << u; }
-private:
-  T& Var;
-};
-
 
 }
 
