@@ -16,61 +16,40 @@ public:
   template<typename Channel, typename... Args>
   bool operator()(Channel& c, Args... args) const
   {
+
   //the basic operation is to strip N args
   //from the start of the variadic list and pass
   //those in a unique items to Derived class, and than
   //pack the rest in a tuple class
-
-  typedef std::tr1::tuple<Args...> ArgTupleType;
-  ArgTupleType tuple(args...);
+  typedef typename params::strip<std::tr1::tuple,Seperate_Args,Args...> stripper;
+  typedef typename stripper::type TrailingTupleType;
+  TrailingTupleType tuple = stripper()(args...);
 
   //forward the arguments to decrease copies
   return static_cast<const Derived*>(this)->parse(c,tuple);
   }
 protected:
   template<typename Channel, typename... Args>
-  bool defaultParse(Channel& c,Args... args) const
+  bool defaultParse(Channel& c,std::tr1::tuple<Args...> args) const
   {
-    //subtle note, the items in args can be both individual items
-    //or tuples that need to be expanded before being passed on.
-    //for now we are going to simplify the code by stating only the last
-    //argument can be a tuple
-
-    //we have a use case of a single item that needs to be supported
-
-
-    // //extract the last argument as unique item.
-    typedef typename params::last<Args...> FetchLastArg;
-    typedef typename FetchLastArg::type LastArgType;
-    LastArgType lastArg = FetchLastArg()(args...);
-
-    // //extract everything but the last argument as a std::tuple
-    // typedef typename params::all_but_last<Args...> AllButLast;
-    // typedef typename AllButLast::type AllButLastType;
-    // AllButLastType before = AllBustLast(args...);
-
-    // //join the last element which could be a tuple with the rest of the
-    // //elements. In the future this operation needs to be done on each
-    // //item in args so that we can have each arg as a tuple that we join
-    // //by expanding each one
-    // typedef typename detail::join<AllBustLastType,LastArgType> Joiner;
-    // typedef typename Joiner::type JoinerType;
-    // JoinerType joined_args = Joiner()(before,lastArg);
-
-
     //construct a super simplistic functor that allows us to dump
     //each item to the channel
     detail::bitwiseLShift<Channel> functor(c);
-
-
-    typename params::first<Args...>::type tuple = params::first<Args...>()(args...);
-    typedef typename params::join<typename params::first<Args...>::type,
-                                  typename params::first<Args...>::type> joiner;
-
-    typename params::first<Args...>::type tuple2 = joiner()(tuple,tuple);
-    detail::for_each(functor,tuple);
-
+    detail::for_each(functor,args);
     return true;
+  }
+
+  template<typename Channel, typename... Args, typename... Arg2>
+  bool defaultParse(Channel& c,std::tr1::tuple<Args...> head_args,
+                    std::tr1::tuple<Args...> tail_args) const
+  {
+
+  //construct a super simplistic functor that allows us to dump
+  //each item to the channel
+  detail::bitwiseLShift<Channel> functor(c);
+  detail::for_each(functor,head_args);
+  detail::for_each(functor,tail_args);
+  return true;
   }
 
 

@@ -12,8 +12,10 @@ protected:
   bool parse(Channel& c, const Arg1& one, const Arg2& two,
              const OtherArgs& others) const
     {
+    std::cout << "calling derived parser." << std::endl;
     double new_arg = 3.14;
-    return this->defaultParse(c,new_arg,one,two,others);
+    std::tr1::tuple<double,Arg1,Arg2> newArgs(new_arg,one,two);
+    return this->defaultParse(c,newArgs,others);
     };
 
   template<typename Channel, typename OtherArgs>
