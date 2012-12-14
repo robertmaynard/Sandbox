@@ -14,14 +14,10 @@ protected:
     {
     std::cout << "calling derived parser." << std::endl;
     double new_arg = 3.14;
-    std::tr1::tuple<double,Arg1,Arg2> newArgs(new_arg,one,two);
-    return this->defaultParse(c,newArgs,others);
-    };
 
-  template<typename Channel, typename OtherArgs>
-  bool parse(Channel& c, const OtherArgs& others) const
-    {
-    return this->defaultParse(c,others);
+    //is this considered a failure?
+    std::tr1::tuple<double,Arg1,Arg2> newArgs(new_arg,one,two);
+    return this->defaultParse(c,newArgs,others,newArgs);
     };
 
 };

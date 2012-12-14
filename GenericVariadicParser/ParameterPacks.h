@@ -48,7 +48,8 @@ struct last<First>
   }
 
 };
-//strip N element off args off
+//strip N element off front of the arguments passed in and create a Factory type
+//with those elements
 template< template<class ...> class Factory, int N, class T, class ...OtherArgs>
 struct strip
 {
@@ -60,6 +61,8 @@ struct strip
   }
 };
 
+//strip N element off front of the arguments passed in and create a Factory type
+//with those elements
 template<template<class ...> class Factory, class T, class ...OtherArgs>
 struct strip<Factory, 0,T, OtherArgs...>
 {
@@ -71,91 +74,61 @@ struct strip<Factory, 0,T, OtherArgs...>
   }
 };
 
+//create a new object with T appended to the end.
+template< template<class ...> class Factory, class T, class ...OtherArgs>
+struct push_back
+{
+  typedef typename Factory<OtherArgs...,T>::type type;
 
-// //empty default implementation, we need it to to do specializations
-// template <typename...> struct join;
+  type operator()(T t, OtherArgs... args) const
+  {
+    return Factory<OtherArgs...,T>(args...,t);
+  }
+};
 
-// //join is basically tuple_cat but with only two parameters, looks like
-// //it may be needed a I can't find the respective function in boost
-// template <
-//           int ...Indices1,
-//           int ...Indices2,
-//           typename ...Args1,
-//           typename ...Args2
-//           >
-// struct join<detail::sequence<Indices1...>,
-//             detail::sequence<Indices2...>,
-//             std::tr1::tuple<Args1...>,
-//             std::tr1::tuple<Args2...> >
-// {
-// private:
-//   //the entire problem is that a raw tuples arguments include std::tr1::_NullClass
-//   //which can't be joined together. So we need to use subset to strip all those
-//   //out of each parameter pack and than use convert_to_joined_tuple to
-//   //combine everything back together again.
+//create a Factory item with only the first N items in it
+template< template<class ...> class Factory,
+          int TruncateSize,
+          int ItemsToDrop,
+          class T,
+          class ...OtherArgs>
+struct truncate_detail
+{
+  typedef typename truncate_detail<Factory,TruncateSize,ItemsToDrop-1,OtherArgs...,T>::type type;
 
-//   //find the lengths of both tuples, i need a better method to do this
-//   enum { lenArg1 = std::tr1::tuple_size< std::tr1::tuple<Args1...> >::value,
-//          lenArg2 = std::tr1::tuple_size< std::tr1::tuple<Args2...> >::value};
+  type operator()(T t, OtherArgs... args) const
+  {
+    return truncate_detail<Factory,TruncateSize,ItemsToDrop-1,OtherArgs...,T>()(args...,t);
+  }
+};
 
-//   typedef params::subset<lenArg1,Args1...> subset1;
-//   typedef params::subset<lenArg2,Args2...> subset2;
-//   typedef detail::convert_two_to_tuple<subset1::template apply,
-//                                        subset2::template apply> FindJoinedType;
+//create a Factory item with only the first N items in it
+template<template<class ...> class Factory, int TruncateSize, class T, class ...OtherArgs>
+struct truncate_detail<Factory, TruncateSize, 0, T, OtherArgs...>
+{
+  enum{M = sizeof...(OtherArgs) - TruncateSize};
+  typedef typename strip<Factory,M,OtherArgs...,T>::type type;
 
-// public:
-//   typedef typename FindJoinedType::type type;
+  type operator()(T t, OtherArgs... args) const
+  {
+    return strip<Factory,M,OtherArgs...,T>()(args...,t);
+  }
+};
 
+//create a Factory item with only the first N items in it
+template< template<class ...> class Factory,
+          int TruncateSize,
+          class T,
+          class ...OtherArgs>
+struct truncate
+{
+  typedef typename truncate_detail<Factory,TruncateSize,TruncateSize-1,OtherArgs...,T>::type type;
 
-//   type operator()(detail::sequence<Indices1...>,
-//                   detail::sequence<Indices2...>,
-//                   std::tr1::tuple<Args1...> first,
-//                   std::tr1::tuple<Args2...> second) const
-//   {
-//     return type(std::tr1::get<Indices1>(first)...,
-//                 std::tr1::get<Indices2>(second)...);
-//   };
-
-// };
-
-// //join is basically tuple_cat but with only two parameters, looks like
-// //it may be needed a I can't find the respective function in boost
-// template <typename ...Args1,
-//           typename ...Args2>
-// struct join<std::tr1::tuple<Args1...>,std::tr1::tuple<Args2...> >
-// {
-// private:
-//     //find the lengths of both tuples, i need a better method to do this
-//     enum { lenArg1 = std::tr1::tuple_size< std::tr1::tuple<Args1...> >::value,
-//          lenArg2 = std::tr1::tuple_size< std::tr1::tuple<Args2...> >::value};
-
-//     //determine the types of a sequence that matches the length of each argument.
-//     //To pass multiple parameter packs to a method they have to be wrapped as
-//     //template arguments to a struct/class.
-//     typedef typename detail::generate_sequence<lenArg1>::type Arg1SeqType;
-//     typedef typename detail::generate_sequence<lenArg2>::type Arg2SeqType;
-
-//     //construct easier typedefs for each tuple arg
-//     typedef std::tr1::tuple<Args1...> FirstTuple;
-//     typedef std::tr1::tuple<Args2...> SecondTuple;
-
-//     //determine the signature for the actual join struct
-//     typedef params::join<Arg1SeqType,Arg2SeqType,FirstTuple,SecondTuple> IndexedJoin;
-
-// public:
-
-//   typedef typename IndexedJoin::type type;
-
-//   type operator()(std::tr1::tuple<Args1...> first,
-//                   std::tr1::tuple<Args2...> second) const
-//   {
-//     //return a joined object
-//     return IndexedJoin()(Arg1SeqType(),Arg2SeqType(),first,second);
-//   }
-// };
-
-
-
+  type operator()(T t, OtherArgs... args) const
+  {
+    return truncate_detail<Factory,TruncateSize,TruncateSize-1,OtherArgs...,T>()(args...,t);
+  }
+};
 
 
 };

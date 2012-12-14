@@ -48,42 +48,6 @@ struct forEach
 
 };
 
-
-// template < template<template<class ...> class> class T >
-// struct convert_to_tuple
-// {
-//   //call method T with tuple as template parameter and assign that
-//   //type to type  use this with subset to create a tuple with a subsets type
-//   typedef typename T<std::tr1::tuple>::type type;
-// };
-
-// template < template<template<class ...> class> class T,
-//            template<template<class ...> class> class U>
-// struct convert_two_to_tuple
-// {
-// private:
-//   template<typename ...ArgsToHold> struct ArgHolder{};
-
-//   template<typename ...> struct make_as_tuple;
-//   template<typename ...Args1,
-//          typename ...Args2>
-//   struct make_as_tuple<ArgHolder<Args1...>,
-//                        ArgHolder<Args2...> >
-//     {
-//     typedef std::tr1::tuple<Args1...,Args2...> type;
-//     };
-
-
-//   typedef typename T<ArgHolder>::type set1Args;
-//   typedef typename U<ArgHolder>::type set2Args;
-// public:
-
-//   //do we have to use another!!! inverter?
-//   typedef typename make_as_tuple<set1Args,set2Args>::type type;
-
-// };
-
-
 //apply a functor to each element in a parameter pack
 template<class First>
 struct forEach<First>
