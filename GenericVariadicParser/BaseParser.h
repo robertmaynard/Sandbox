@@ -14,8 +14,8 @@ class BaseParser
 {
 
 public:
-  template<typename Channel, typename... Args>
-  bool operator()(Channel& c, Args... args) const
+  template<typename Functor, typename... Args>
+  bool operator()(Functor& f, Args... args) const
   {
 
   //the basic operation is to strip N args
@@ -40,69 +40,58 @@ public:
 
   //call the helper method that calls the derived class
   //have to pass tuple as first item
-  return this->call_derived_parse(c, UniqueIndiciesType(),
-                            leadingArgs,trailingArgs);
+  return this->call_derived_parse(f,
+                                  UniqueIndiciesType(),
+                                  leadingArgs,
+                                  trailingArgs);
   }
 protected:
-  template<typename Channel,
+  template<typename Functor,
            typename... Args>
-  bool defaultParse(Channel& c,std::tr1::tuple<Args...> args) const
+  bool defaultParse(Functor& f,std::tr1::tuple<Args...> args) const
   {
-    //construct a super simplistic functor that allows us to dump
-    //each item to the channel
-    detail::bitwiseLShift<Channel> functor(c);
-    detail::for_each(functor,args);
+    params::flatten(f,args);
     return true;
   }
 
-  template<typename Channel,
+  template<typename Functor,
            typename... Args,
            typename... Args2>
-  bool defaultParse(Channel& c,
+  bool defaultParse(Functor& f,
                     std::tr1::tuple<Args...> head_args,
                     std::tr1::tuple<Args2...> tail_args) const
   {
-
-  //construct a super simplistic functor that allows us to dump
-  //each item to the channel
-  detail::bitwiseLShift<Channel> functor(c);
-  detail::for_each(functor,head_args);
-  detail::for_each(functor,tail_args);
+  params::flatten(f,head_args,tail_args);
   return true;
   }
 
-  template<typename Channel,
+  template<typename Functor,
            typename... Args,
            typename... Args2,
            typename... Args3>
-  bool defaultParse(Channel& c,
+  bool defaultParse(Functor& f,
                     std::tr1::tuple<Args...> head_args,
                     std::tr1::tuple<Args2...> middle_args,
                     std::tr1::tuple<Args3...> tail_args) const
 
   {
-  //construct a super simplistic functor that allows us to dump
-  //each item to the channel
-  detail::bitwiseLShift<Channel> functor(c);
-  detail::for_each(functor,head_args);
-  detail::for_each(functor,middle_args);
-  detail::for_each(functor,tail_args);
+  params::flatten(f,head_args,middle_args,tail_args);
   return true;
   }
 private:
 
-  template<typename Channel,
+  template<typename Functor,
            int... LeadingArgIndices,
            typename... LeadingArgs,
            typename... TrailingArgs>
   bool call_derived_parse(
-                  Channel& c,
+                  Functor& f,
                   detail::sequence<LeadingArgIndices...>,
                   std::tr1::tuple<LeadingArgs...> leadingArgs,
                   std::tr1::tuple<TrailingArgs...> trailingArgs) const
   {
     return static_cast<const Derived*>(this)->parse(
-            c,
+            f,
             std::tr1::get<LeadingArgIndices>(leadingArgs)...,
             trailingArgs);
   };
