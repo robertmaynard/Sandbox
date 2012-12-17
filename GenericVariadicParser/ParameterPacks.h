@@ -135,6 +135,39 @@ struct truncate
   }
 };
 
+//get the N'th item for a parameter pack
+template<int N,  class T, class ...Args>
+struct get_item
+{
+  typedef typename get_item<N-1,Args...>::type type;
+
+  type operator()(T t, Args... args) const
+  {
+    return get_item<N-1,Args...>()(args...);
+  }
+};
+
+//get the N'th item for a parameter pack
+//termination implementation of the recursion
+template<class T, class ...Args>
+struct get_item<0,T,Args...>
+{
+  typedef T type;
+  type operator()(T t, Args... args) const
+    {
+    return t;
+    }
+};
+
+//take an arbitrary class that has a parameter pack and flatten it so
+//that we can call a method with each element of the class
+struct flatten
+{
+
+};
+
+
+
 
 };
 
