@@ -21,7 +21,6 @@ void TryDefaultParser(Functor f, Values... v)
   std::cout << std::endl;
 }
 
-
 int main()
 {
   TryDerivedParser(functor::MyFunctor(),0,1,2.01,3.14f,4,5,"6",7,'8');

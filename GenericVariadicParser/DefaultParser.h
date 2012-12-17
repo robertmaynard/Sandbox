@@ -12,7 +12,6 @@ protected:
     {
     return this->defaultParse(f,others);
     };
-
 };
 
 #endif

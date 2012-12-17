@@ -160,14 +160,117 @@ struct get_item<0,T,Args...>
     }
 };
 
+
+namespace detail
+{
+
+template< int N, class Functor, template<int,class...> class CallBack, int CallBackN>
+struct expand_tuple_for_flatten
+{
+
+  template<class ...Args, class ...OtherArgs>
+  void operator()(Functor& functor,
+                  const std::tr1::tuple<Args...>& tuple,
+                  OtherArgs... theRest) const
+  {
+    expand_tuple_for_flatten<N-1,Functor,CallBack,CallBackN>()(functor,
+                                   tuple,
+                                   theRest...,
+                                   std::tr1::get<N-1>(tuple));
+  }
+
+};
+
+template<class Functor, template<int,class...> class CallBack, int CallBackN>
+struct expand_tuple_for_flatten<1,Functor,CallBack,CallBackN>
+{
+
+  template<class ...Args, class ...OtherArgs>
+  void operator()(Functor& functor,
+                  const std::tr1::tuple<Args...>& tuple,
+                  OtherArgs... theRest) const
+  {
+    //don't pass tuple too zero since it has been tacked onto the OtherArgs
+    expand_tuple_for_flatten<0,Functor,CallBack,CallBackN>()(
+                                   functor,
+                                   theRest...,
+                                   std::tr1::get<0>(tuple));
+  }
+
+};
+
+template<class Functor, template<int,class...> class CallBack, int CallBackN>
+struct expand_tuple_for_flatten<0,Functor,CallBack,CallBackN>
+{
+
+  template<class ...Args, class ...OtherArgs>
+  void operator()(Functor& functor,
+                  OtherArgs... theRest) const
+  {
+    //on step zero we have nothing to extract from the tuple, instead we
+    //go back to flattening the rest of the parameter pack
+    CallBack<CallBackN,Functor,OtherArgs...>()(functor,theRest...);
+  }
+
+};
+
+template< template<int,class,class,class...> class CallBack, int CallBackN, class Functor,
+          class ...Args, class ...OtherArgs>
+void flatten_single_arg(Functor& f, std::tr1::tuple<Args...> tuple,
+                        OtherArgs... theRest)
+{
+  enum{LEN= std::tr1::tuple_size< std::tr1::tuple<Args...> >::value };
+  expand_tuple_for_flatten<LEN,Functor,CallBack,CallBackN>()(f,tuple,theRest...);
+}
+
+template< template<int,class,class,class...> class CallBack, int CallBackN, class Functor,
+          class Arg, class ...OtherArgs>
+void flatten_single_arg(Functor f, Arg arg, OtherArgs... theRest)
+{
+  std::cout << arg << std::endl;
+  CallBack<CallBackN,Functor,OtherArgs...,Arg>()(f,theRest...,arg);
+}
+
+template< int N,
+          class Functor,
+          class First,
+          class ...OtherArgs>
+struct flatten
+{
+
+  void operator()(Functor& f, First first, OtherArgs... args)
+  {
+    detail::flatten_single_arg<detail::flatten,N-1>(f,first,args...);
+
+  }
+};
+
+template< class Functor,
+          class First,
+          class ...OtherArgs>
+struct flatten<1, Functor, First, OtherArgs...>
+{
+  void operator()(Functor& f, First first, OtherArgs... args)
+  {
+    f(args...,first);
+  }
+
+};
+
+}
+
 //take an arbitrary class that has a parameter pack and flatten it so
 //that we can call a method with each element of the class
 template< class Functor,
-          class ...Args>
+          class ... Args>
 void flatten(Functor& f, Args... args)
 {
-  f(0);
-};
+  std::tr1::tuple<int,int> asdf(5,6);
+  detail::flatten<5,Functor,int,std::tr1::tuple<int,int>,int,char,std::string>()(f,3,asdf,7,'c',"string");
+
+  // enum{N=sizeof...(Args)};
+  //detail::flatten<N,Functor,Args...>()(f,args...);
+}
 
 
 

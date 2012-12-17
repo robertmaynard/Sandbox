@@ -16,6 +16,12 @@ private:
   T& Var;
 };
 
+template<class F>
+bitwiseLShift<F> make_bitwiseLShift(F & f)
+{
+  return bitwiseLShift<F>(f);
+}
+
 //holds a sequence of integers.
 template<int ...>
 struct sequence { };
@@ -61,7 +67,7 @@ struct forEach<First>
 };
 
 //applies the functor to each element in a parameter pack
-template<typename Functor, typename ...T>
+template<class  Functor, class ...T>
 void for_each(Functor f, T... items)
 {
   detail::forEach<T...>()(f,items...);
@@ -70,7 +76,7 @@ void for_each(Functor f, T... items)
 //special version of for_each that is a helper to get the length of indicies
 //as a parameter type. I can't figure out how to do this step inside for_each specialized
 //on tuple
-template<typename Functor, typename ...T, int ...Indices>
+template<class Functor, class ...T, int ...Indices>
 void for_each(Functor f, std::tr1::tuple<T...> tuple, detail::sequence<Indices...>)
 {
   detail::for_each(f,std::tr1::get<Indices>(tuple)...);
@@ -78,7 +84,7 @@ void for_each(Functor f, std::tr1::tuple<T...> tuple, detail::sequence<Indices..
 
 //function overload that detects tuples being sent to for each
 //and expands the tuple elements
-template<typename Functor, typename ...T>
+template<class Functor, class ...T>
 void for_each(Functor f, std::tr1::tuple<T...>& tuple)
 {
   //to iterate each item in the tuple we have to convert back from
