@@ -87,25 +87,27 @@ struct make_new
   }
 };
 
-//create a Factory item with only the first N items in it
+namespace detail
+{
+  //create a Factory item with only the first N items in it
 template< template<class ...> class Factory,
           int TruncateSize,
           int ItemsToDrop,
           class T,
           class ...OtherArgs>
-struct truncate_detail
+struct truncate
 {
-  typedef typename truncate_detail<Factory,TruncateSize,ItemsToDrop-1,OtherArgs...,T>::type type;
+  typedef typename truncate<Factory,TruncateSize,ItemsToDrop-1,OtherArgs...,T>::type type;
 
   type operator()(T t, OtherArgs... args) const
   {
-    return truncate_detail<Factory,TruncateSize,ItemsToDrop-1,OtherArgs...,T>()(args...,t);
+    return truncate<Factory,TruncateSize,ItemsToDrop-1,OtherArgs...,T>()(args...,t);
   }
 };
 
 //create a Factory item with only the first N items in it
 template<template<class ...> class Factory, int TruncateSize, class T, class ...OtherArgs>
-struct truncate_detail<Factory, TruncateSize, 0, T, OtherArgs...>
+struct truncate<Factory, TruncateSize, 0, T, OtherArgs...>
 {
   enum{M = sizeof...(OtherArgs) - TruncateSize};
   typedef typename strip<Factory,M,OtherArgs...,T>::type type;
@@ -116,6 +118,8 @@ struct truncate_detail<Factory, TruncateSize, 0, T, OtherArgs...>
   }
 };
 
+}
+
 //create a Factory item with only the first N items in it
 template< template<class ...> class Factory,
           int TruncateSize,
@@ -123,11 +127,11 @@ template< template<class ...> class Factory,
           class ...OtherArgs>
 struct truncate
 {
-  typedef typename truncate_detail<Factory,TruncateSize,TruncateSize-1,OtherArgs...,T>::type type;
+  typedef typename detail::truncate<Factory,TruncateSize,TruncateSize-1,OtherArgs...,T>::type type;
 
   type operator()(T t, OtherArgs... args) const
   {
-    return truncate_detail<Factory,TruncateSize,TruncateSize-1,OtherArgs...,T>()(args...,t);
+    return detail::truncate<Factory,TruncateSize,TruncateSize-1,OtherArgs...,T>()(args...,t);
   }
 };
 
