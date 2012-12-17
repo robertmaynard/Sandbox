@@ -10,7 +10,7 @@
 #include "ParameterPacks.h"
 
 template<class Derived,int Seperate_Args>
-class BaseParser
+class ParserBase
 {
 
 public:
@@ -22,16 +22,16 @@ public:
   //from the start of the variadic list and pass
   //those in a unique items to Derived class, and than
   //pack the rest in a tuple class
-  typedef typename params::strip<std::tr1::tuple,Seperate_Args,Args...> stripper;
-  typedef typename stripper::type TrailingTupleType;
+  typedef typename params::ltrim<std::tr1::tuple,Seperate_Args,Args...> ltrimmer;
+  typedef typename ltrimmer::type TrailingTupleType;
 
   //tuple is the trailing parameters
-  TrailingTupleType trailingArgs = stripper()(args...);
+  TrailingTupleType trailingArgs = ltrimmer()(args...);
 
-  typedef typename params::truncate<std::tr1::tuple,Seperate_Args,Args...> truncator;
-  typedef typename truncator::type LeadingTupleType;
+  typedef typename params::rtrim<std::tr1::tuple,Seperate_Args,Args...> rtrimmer;
+  typedef typename rtrimmer::type LeadingTupleType;
 
-  LeadingTupleType leadingArgs = truncator()(args...);
+  LeadingTupleType leadingArgs = rtrimmer()(args...);
 
   //create a structure that holds the indicies of arguments that we want
   //to pass in as unique items
@@ -95,7 +95,58 @@ private:
             std::tr1::get<LeadingArgIndices>(leadingArgs)...,
             trailingArgs);
   };
+};
 
+
+template<class Derived>
+class ParserBase<Derived,0>
+{
+public:
+  template<typename Functor, typename... Args>
+  bool operator()(Functor& f, Args... args) const
+  {
+
+  typedef typename params::make_new<std::tr1::tuple,Args...> tupleMaker;
+  typedef typename tupleMaker::type TupleType;
+
+  //tuple is the trailing parameters. I hope we don't have more than 10 items...
+  TupleType tuple = tupleMaker()(args...);
+
+  return static_cast<const Derived*>(this)->parse(f,tuple);
+  }
+protected:
+  template<typename Functor,
+           typename... Args>
+  bool defaultParse(Functor& f,std::tr1::tuple<Args...> args) const
+  {
+    params::flatten(f,args);
+    return true;
+  }
+
+  template<typename Functor,
+           typename... Args,
+           typename... Args2>
+  bool defaultParse(Functor& f,
+                    std::tr1::tuple<Args...> head_args,
+                    std::tr1::tuple<Args2...> tail_args) const
+  {
+  params::flatten(f,head_args,tail_args);
+  return true;
+  }
+
+  template<typename Functor,
+           typename... Args,
+           typename... Args2,
+           typename... Args3>
+  bool defaultParse(Functor& f,
+                    std::tr1::tuple<Args...> head_args,
+                    std::tr1::tuple<Args2...> middle_args,
+                    std::tr1::tuple<Args3...> tail_args) const
+
+  {
+  params::flatten(f,head_args,middle_args,tail_args);
+  return true;
+  }
 };
 
 #endif

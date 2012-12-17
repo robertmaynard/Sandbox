@@ -54,7 +54,7 @@ struct last<First>
 template< template<class ...> class Factory, class ...OtherArgs>
 struct make_new
 {
-  typedef typename Factory<OtherArgs...>::type type;
+  typedef Factory<OtherArgs...> type;
 
   type operator()(OtherArgs... args) const
   {
@@ -98,11 +98,11 @@ template< template<class ...> class Factory,
           class ...OtherArgs>
 struct rtrim
 {
-  typedef typename truncate<Factory,TruncateSize,ItemsToDrop-1,OtherArgs...,T>::type type;
+  typedef typename rtrim<Factory,TruncateSize,ItemsToDrop-1,OtherArgs...,T>::type type;
 
   type operator()(T t, OtherArgs... args) const
   {
-    return truncate<Factory,TruncateSize,ItemsToDrop-1,OtherArgs...,T>()(args...,t);
+    return rtrim<Factory,TruncateSize,ItemsToDrop-1,OtherArgs...,T>()(args...,t);
   }
 };
 
