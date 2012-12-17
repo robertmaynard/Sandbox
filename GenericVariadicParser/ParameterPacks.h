@@ -74,15 +74,16 @@ struct strip<Factory, 0,T, OtherArgs...>
   }
 };
 
-//create a new object with T appended to the end.
-template< template<class ...> class Factory, class T, class ...OtherArgs>
-struct push_back
+//create a new object with Args. Can be used to append or push_front
+//new arguments to a already generated tuple.
+template< template<class ...> class Factory, class ...OtherArgs>
+struct make_new
 {
-  typedef typename Factory<OtherArgs...,T>::type type;
+  typedef typename Factory<OtherArgs...>::type type;
 
-  type operator()(T t, OtherArgs... args) const
+  type operator()(OtherArgs... args) const
   {
-    return Factory<OtherArgs...,T>(args...,t);
+    return Factory<OtherArgs...>(args...);
   }
 };
 
