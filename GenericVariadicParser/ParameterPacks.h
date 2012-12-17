@@ -48,31 +48,6 @@ struct last<First>
   }
 
 };
-//strip N element off front of the arguments passed in and create a Factory type
-//with those elements
-template< template<class ...> class Factory, int N, class T, class ...OtherArgs>
-struct strip
-{
-  typedef typename strip<Factory,N-1,OtherArgs...>::type type;
-
-  type operator()(T t, OtherArgs... args) const
-  {
-    return strip<Factory,N-1,OtherArgs...>()(args...);
-  }
-};
-
-//strip N element off front of the arguments passed in and create a Factory type
-//with those elements
-template<template<class ...> class Factory, class T, class ...OtherArgs>
-struct strip<Factory, 0,T, OtherArgs...>
-{
-  typedef Factory<T, OtherArgs...> type;
-
-  type operator()(T t, OtherArgs... args) const
-  {
-    return type(t,args...);
-  }
-};
 
 //create a new object with Args. Can be used to append or push_front
 //new arguments to a already generated tuple.
@@ -87,6 +62,32 @@ struct make_new
   }
 };
 
+//trim N element off front of the arguments passed in create Factory object
+//with the remaining items
+template< template<class ...> class Factory, int N, class T, class ...OtherArgs>
+struct ltrim
+{
+  typedef typename ltrim<Factory,N-1,OtherArgs...>::type type;
+
+  type operator()(T t, OtherArgs... args) const
+  {
+    return ltrim<Factory,N-1,OtherArgs...>()(args...);
+  }
+};
+
+//trim N element off front of the arguments passed in create Factory object
+//with the remaining items
+template<template<class ...> class Factory, class T, class ...OtherArgs>
+struct ltrim<Factory, 0,T, OtherArgs...>
+{
+  typedef Factory<T, OtherArgs...> type;
+
+  type operator()(T t, OtherArgs... args) const
+  {
+    return type(t,args...);
+  }
+};
+
 namespace detail
 {
   //create a Factory item with only the first N items in it
@@ -95,7 +96,7 @@ template< template<class ...> class Factory,
           int ItemsToDrop,
           class T,
           class ...OtherArgs>
-struct truncate
+struct rtrim
 {
   typedef typename truncate<Factory,TruncateSize,ItemsToDrop-1,OtherArgs...,T>::type type;
 
@@ -107,31 +108,31 @@ struct truncate
 
 //create a Factory item with only the first N items in it
 template<template<class ...> class Factory, int TruncateSize, class T, class ...OtherArgs>
-struct truncate<Factory, TruncateSize, 0, T, OtherArgs...>
+struct rtrim<Factory, TruncateSize, 0, T, OtherArgs...>
 {
   enum{M = sizeof...(OtherArgs) - TruncateSize};
-  typedef typename strip<Factory,M,OtherArgs...,T>::type type;
+  typedef typename ltrim<Factory,M,OtherArgs...,T>::type type;
 
   type operator()(T t, OtherArgs... args) const
   {
-    return strip<Factory,M,OtherArgs...,T>()(args...,t);
+    return ltrim<Factory,M,OtherArgs...,T>()(args...,t);
   }
 };
 
 }
 
-//create a Factory item with only the first N items in it
+//create a Factory item with only the first N items in it, aka rtrim
 template< template<class ...> class Factory,
           int TruncateSize,
           class T,
           class ...OtherArgs>
-struct truncate
+struct rtrim
 {
-  typedef typename detail::truncate<Factory,TruncateSize,TruncateSize-1,OtherArgs...,T>::type type;
+  typedef typename detail::rtrim<Factory,TruncateSize,TruncateSize-1,OtherArgs...,T>::type type;
 
   type operator()(T t, OtherArgs... args) const
   {
-    return detail::truncate<Factory,TruncateSize,TruncateSize-1,OtherArgs...,T>()(args...,t);
+    return detail::rtrim<Factory,TruncateSize,TruncateSize-1,OtherArgs...,T>()(args...,t);
   }
 };
 
@@ -161,9 +162,11 @@ struct get_item<0,T,Args...>
 
 //take an arbitrary class that has a parameter pack and flatten it so
 //that we can call a method with each element of the class
-struct flatten
+template< class Functor,
+          class ...Args>
+void flatten(Functor& f, Args... args)
 {
-
+  f(0);
 };
 
 
