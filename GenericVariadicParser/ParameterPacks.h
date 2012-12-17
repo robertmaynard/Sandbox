@@ -173,10 +173,11 @@ struct expand_tuple_for_flatten
                   const std::tr1::tuple<Args...>& tuple,
                   OtherArgs... theRest) const
   {
+    enum{len = std::tr1::tuple_size< std::tr1::tuple<Args...> >::value };
     expand_tuple_for_flatten<N-1,Functor,CallBack,CallBackN>()(functor,
                                    tuple,
                                    theRest...,
-                                   std::tr1::get<N-1>(tuple));
+                                   std::tr1::get<len - N>(tuple));
   }
 
 };
@@ -191,10 +192,11 @@ struct expand_tuple_for_flatten<1,Functor,CallBack,CallBackN>
                   OtherArgs... theRest) const
   {
     //don't pass tuple too zero since it has been tacked onto the OtherArgs
+    enum{len = std::tr1::tuple_size< std::tr1::tuple<Args...> >::value };
     expand_tuple_for_flatten<0,Functor,CallBack,CallBackN>()(
                                    functor,
                                    theRest...,
-                                   std::tr1::get<0>(tuple));
+                                   std::tr1::get<len - 1>(tuple));
   }
 
 };
@@ -219,8 +221,8 @@ template< template<int,class,class,class...> class CallBack, int CallBackN, clas
 void flatten_single_arg(Functor& f, std::tr1::tuple<Args...> tuple,
                         OtherArgs... theRest)
 {
-  enum{LEN= std::tr1::tuple_size< std::tr1::tuple<Args...> >::value };
-  expand_tuple_for_flatten<LEN,Functor,CallBack,CallBackN>()(f,tuple,theRest...);
+  enum{len = std::tr1::tuple_size< std::tr1::tuple<Args...> >::value };
+  expand_tuple_for_flatten<len,Functor,CallBack,CallBackN>()(f,tuple,theRest...);
 }
 
 template< template<int,class,class,class...> class CallBack, int CallBackN, class Functor,
@@ -265,8 +267,10 @@ template< class Functor,
           class ... Args>
 void flatten(Functor& f, Args... args)
 {
-  std::tr1::tuple<int,int> asdf(5,6);
-  detail::flatten<5,Functor,int,std::tr1::tuple<int,int>,int,char,std::string>()(f,3,asdf,7,'c',"string");
+  std::tr1::tuple<std::string,int> asdf("2",3);
+  detail::flatten<5,Functor,int,
+                    std::tr1::tuple<std::string,int>,float,
+                    char,std::string>()(f,1,asdf,4.0f,'5',"6");
 
   // enum{N=sizeof...(Args)};
   //detail::flatten<N,Functor,Args...>()(f,args...);
