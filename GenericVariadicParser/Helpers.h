@@ -22,6 +22,24 @@ bitwiseLShift<F> make_bitwiseLShift(F & f)
   return bitwiseLShift<F>(f);
 }
 
+//basic functor that applies << to each item that comes in to the stored value
+template<typename T>
+struct emptyFunctor
+{
+  emptyFunctor(T& t):Var(t){}
+  template<typename U> void operator()(U u) const { int x = static_cast<int>(u); }
+  void operator()(const char* c) const { int x = *c; }
+  void operator()(std::string& s) const { int x = s.at(1); }
+private:
+  T& Var;
+};
+
+template<class F>
+emptyFunctor<F> make_emptyFunctor(F & f)
+{
+  return emptyFunctor<F>(f);
+}
+
 //holds a sequence of integers.
 template<int ...>
 struct sequence { };

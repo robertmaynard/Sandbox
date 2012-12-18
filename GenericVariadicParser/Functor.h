@@ -13,8 +13,7 @@ public:
   template<class... Args>
   void operator()(Args... args) const
     {
-    std::cout << "calling MyFunctor variadic version: ";
-    detail::forEach<Args...>()(detail::make_bitwiseLShift(std::cout),args...);
+    detail::forEach<Args...>()(detail::make_emptyFunctor(std::cout),args...);
     }
 };
 
@@ -25,9 +24,7 @@ public:
   template<class... Args>
   void operator()(Args... args) const
     {
-    std::cout << "calling new functor variadic version: ";
-
-    detail::forEach<Args...>()(detail::make_bitwiseLShift(std::cout),args...);
+    detail::forEach<Args...>()(detail::make_emptyFunctor(std::cout),args...);
     }
 };
 
