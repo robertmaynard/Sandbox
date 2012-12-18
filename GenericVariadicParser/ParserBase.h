@@ -47,36 +47,12 @@ public:
 protected:
   template<typename Functor,
            typename... Args>
-  bool defaultParse(Functor& f,std::tr1::tuple<Args...> args) const
+  bool defaultParse(Functor& f,Args... args) const
   {
-    params::flatten(f,args);
+    params::flatten(f,args...);
     return true;
   }
 
-  template<typename Functor,
-           typename... Args,
-           typename... Args2>
-  bool defaultParse(Functor& f,
-                    std::tr1::tuple<Args...> head_args,
-                    std::tr1::tuple<Args2...> tail_args) const
-  {
-  params::flatten(f,head_args,tail_args);
-  return true;
-  }
-
-  template<typename Functor,
-           typename... Args,
-           typename... Args2,
-           typename... Args3>
-  bool defaultParse(Functor& f,
-                    std::tr1::tuple<Args...> head_args,
-                    std::tr1::tuple<Args2...> middle_args,
-                    std::tr1::tuple<Args3...> tail_args) const
-
-  {
-  params::flatten(f,head_args,middle_args,tail_args);
-  return true;
-  }
 private:
 
   template<typename Functor,
@@ -116,36 +92,12 @@ public:
 protected:
   template<typename Functor,
            typename... Args>
-  bool defaultParse(Functor& f,std::tr1::tuple<Args...> args) const
+  bool defaultParse(Functor& f,Args... args) const
   {
-    params::flatten(f,args);
+    params::flatten(f,args...);
     return true;
   }
 
-  template<typename Functor,
-           typename... Args,
-           typename... Args2>
-  bool defaultParse(Functor& f,
-                    std::tr1::tuple<Args...> head_args,
-                    std::tr1::tuple<Args2...> tail_args) const
-  {
-  params::flatten(f,head_args,tail_args);
-  return true;
-  }
-
-  template<typename Functor,
-           typename... Args,
-           typename... Args2,
-           typename... Args3>
-  bool defaultParse(Functor& f,
-                    std::tr1::tuple<Args...> head_args,
-                    std::tr1::tuple<Args2...> middle_args,
-                    std::tr1::tuple<Args3...> tail_args) const
-
-  {
-  params::flatten(f,head_args,middle_args,tail_args);
-  return true;
-  }
 };
 
 #endif

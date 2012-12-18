@@ -16,11 +16,6 @@ public:
     std::cout << "calling MyFunctor variadic version: ";
     detail::forEach<Args...>()(detail::make_bitwiseLShift(std::cout),args...);
     }
-
-  void operator()(int a) const
-    {
-    std::cout << "calling MyFunctor int version";
-    }
 };
 
 class NewFunctorType
@@ -33,10 +28,6 @@ public:
     std::cout << "calling new functor variadic version: ";
 
     detail::forEach<Args...>()(detail::make_bitwiseLShift(std::cout),args...);
-    }
-  void operator()(int a) const
-    {
-    std::cout << "calling new functor int version";
     }
 };
 

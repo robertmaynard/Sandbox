@@ -13,8 +13,7 @@ protected:
              const OtherArgs& others) const
     {
     functor::NewFunctorType nf;
-    std::tr1::tuple<Arg1,Arg2> newArgs(one,two);
-    return this->defaultParse(nf,newArgs,others,newArgs);
+    return this->defaultParse(nf,two,one,others,two,one);
     };
 
 };

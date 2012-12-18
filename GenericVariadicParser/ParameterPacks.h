@@ -229,7 +229,6 @@ template< template<int,class,class,class...> class CallBack, int CallBackN, clas
           class Arg, class ...OtherArgs>
 void flatten_single_arg(Functor f, Arg arg, OtherArgs... theRest)
 {
-  std::cout << arg << std::endl;
   CallBack<CallBackN,Functor,OtherArgs...,Arg>()(f,theRest...,arg);
 }
 
@@ -250,13 +249,12 @@ struct flatten
 template< class Functor,
           class First,
           class ...OtherArgs>
-struct flatten<1, Functor, First, OtherArgs...>
+struct flatten<0, Functor, First, OtherArgs...>
 {
   void operator()(Functor& f, First first, OtherArgs... args)
   {
-    f(args...,first);
+    f(first,args...);
   }
-
 };
 
 }
@@ -267,13 +265,9 @@ template< class Functor,
           class ... Args>
 void flatten(Functor& f, Args... args)
 {
-  std::tr1::tuple<std::string,int> asdf("2",3);
-  detail::flatten<5,Functor,int,
-                    std::tr1::tuple<std::string,int>,float,
-                    char,std::string>()(f,1,asdf,4.0f,'5',"6");
 
-  // enum{N=sizeof...(Args)};
-  //detail::flatten<N,Functor,Args...>()(f,args...);
+  enum{N=sizeof...(Args)};
+  detail::flatten<N,Functor,Args...>()(f,args...);
 }
 
 
