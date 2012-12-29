@@ -1,9 +1,12 @@
 Todo:
 
-2. add in code to handle pre processor magic
-3. add in try / compile for c++11 support to determine, what magic we should use
 4. correct pass by reference to be used whenever possible
+5. Investigate usage of boost::fusion transformations instead
+   of hand rolled code to reduce complexitiy and sources of errors.
+   Will need to see if it can trim and flatten
 
 Finished:
 
 1. Switch over to boost::tuple
+2. add in code to handle pre processor magic
+3. add in try / compile for c++11 support to determine, what magic we should use
