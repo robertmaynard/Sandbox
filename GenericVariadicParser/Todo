@@ -1,6 +1,9 @@
-Todo
+Todo:
 
-1. Switch over to boost::tuple
 2. add in code to handle pre processor magic
 3. add in try / compile for c++11 support to determine, what magic we should use
 4. correct pass by reference to be used whenever possible
+
+Finished:
+
+1. Switch over to boost::tuple

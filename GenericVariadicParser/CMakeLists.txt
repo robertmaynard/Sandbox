@@ -4,7 +4,7 @@ project(GenericVariadicParser)
 #enable c++11 support
 list( APPEND CMAKE_CXX_FLAGS "-std=c++0x")
 
-find_package(Boost REQUIRED COMPONENTS timer system)
+find_package(Boost REQUIRED COMPONENTS timer system tuple)
 include_directories(${Boost_INCLUDE_DIRS})
 include_directories(${GenericVariadicParser_SOURCE_DIR})
 

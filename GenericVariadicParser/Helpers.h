@@ -2,6 +2,7 @@
 #define __Helpers_h
 
 #include <iostream>
+#include "boost/tuple/tuple.hpp"
 
 namespace detail
 {
@@ -95,19 +96,19 @@ void for_each(Functor f, T... items)
 //as a parameter type. I can't figure out how to do this step inside for_each specialized
 //on tuple
 template<class Functor, class ...T, int ...Indices>
-void for_each(Functor f, std::tr1::tuple<T...> tuple, detail::sequence<Indices...>)
+void for_each(Functor f, boost::tuple<T...> tuple, detail::sequence<Indices...>)
 {
-  detail::for_each(f,std::tr1::get<Indices>(tuple)...);
+  detail::for_each(f,boost::get<Indices>(tuple)...);
 }
 
 //function overload that detects tuples being sent to for each
 //and expands the tuple elements
 template<class Functor, class ...T>
-void for_each(Functor f, std::tr1::tuple<T...>& tuple)
+void for_each(Functor f, boost::tuple<T...>& tuple)
 {
   //to iterate each item in the tuple we have to convert back from
   //a tuple to a parameter pack
-  enum { len = std::tr1::tuple_size< std::tr1::tuple<T...> >::value};
+  enum { len = boost::tuple_size< boost::tuple<T...> >::value};
   typedef typename detail::generate_sequence<len>::type SequenceType;
   detail::for_each(f,tuple,SequenceType());
 }

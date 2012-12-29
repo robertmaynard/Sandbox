@@ -1,9 +1,7 @@
 #ifndef __ParameterPacks_h
 #define __ParameterPacks_h
 
-#include <tr1/tuple>
-#include <tr1/utility>
-#include <utility>
+#include "boost/tuple/tuple.hpp"
 #include <algorithm>
 
 #include "Helpers.h"
@@ -171,14 +169,14 @@ struct expand_tuple_for_flatten
   //full signature into this call as it hasn't been determined intill we
   //flatten this tuple
   template<class ...Args, class ...OtherArgs>
-  void operator()(Functor& functor, const std::tr1::tuple<Args...>& tuple,
+  void operator()(Functor& functor, const boost::tuple<Args...>& tuple,
                   OtherArgs... theRest) const
   {
     //expand the tuple by extracting elements from the front
     //and pushing them to the back of the OtherArgs.
-    enum{len = std::tr1::tuple_size< std::tr1::tuple<Args...> >::value };
+    enum{len = boost::tuple_size< boost::tuple<Args...> >::value };
     expand_tuple_for_flatten<N-1,Functor,CallBack,CallBackN>()(functor, tuple,
-                                   theRest..., std::tr1::get<len - N>(tuple));
+                                   theRest..., boost::get<len - N>(tuple));
   }
 
 };
@@ -191,25 +189,25 @@ struct expand_tuple_for_flatten<1,Functor,CallBack,CallBackN>
   //signature with the tuple flattened.
   template<class ...Args, class ...OtherArgs>
   void operator()(Functor& functor,
-                  const std::tr1::tuple<Args...>& tuple,
+                  const boost::tuple<Args...>& tuple,
                   OtherArgs... theRest) const
   {
-    enum{len = std::tr1::tuple_size< std::tr1::tuple<Args...> >::value };
-    typedef typename std::tr1::tuple_element<
-              len - 1, std::tr1::tuple<Args...> >::type LastElementType;
+    enum{len = boost::tuple_size< boost::tuple<Args...> >::value };
+    typedef typename boost::tuple_element<
+              len - 1, boost::tuple<Args...> >::type LastElementType;
 
     typedef CallBack<CallBackN,Functor,OtherArgs...,LastElementType> CallBackType;
-    CallBackType()(functor,theRest...,std::tr1::get<len - 1>(tuple));
+    CallBackType()(functor,theRest...,boost::get<len - 1>(tuple));
   }
 };
 
 template< template<int,class,class,class...> class CallBack, int CallBackN, class Functor,
           class ...Args, class ...OtherArgs>
-void flatten_single_arg(Functor& f, std::tr1::tuple<Args...> tuple,
+void flatten_single_arg(Functor& f, boost::tuple<Args...> tuple,
                         OtherArgs... theRest)
 { //we are a tuple we need to flatten this argument into its values.
   //todo add tuple trait specializations
-  enum{len = std::tr1::tuple_size< std::tr1::tuple<Args...> >::value };
+  enum{len = boost::tuple_size< boost::tuple<Args...> >::value };
   expand_tuple_for_flatten<len,Functor,CallBack,CallBackN>()(f,tuple,theRest...);
 }
 
