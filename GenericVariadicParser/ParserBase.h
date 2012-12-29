@@ -1,7 +1,7 @@
 #ifndef __BaseParser_h
 #define __BaseParser_h
 
-#include "boost/tuple/tuple.hpp"
+#include "utility_tuple.hpp"
 #include <iostream>
 
 #include "ParameterPacks.h"
@@ -19,13 +19,13 @@ public:
   //from the start of the variadic list and pass
   //those in a unique items to Derived class, and than
   //pack the rest in a tuple class
-  typedef typename params::ltrim<boost::tuple,Seperate_Args,Args...> ltrimmer;
+  typedef typename params::ltrim<utility::tuple,Seperate_Args,Args...> ltrimmer;
   typedef typename ltrimmer::type TrailingTupleType;
 
   //tuple is the trailing parameters
   TrailingTupleType trailingArgs = ltrimmer()(args...);
 
-  typedef typename params::rtrim<boost::tuple,Seperate_Args,Args...> rtrimmer;
+  typedef typename params::rtrim<utility::tuple,Seperate_Args,Args...> rtrimmer;
   typedef typename rtrimmer::type LeadingTupleType;
 
   LeadingTupleType leadingArgs = rtrimmer()(args...);
@@ -60,12 +60,12 @@ private:
   bool call_derived_parse(
                   Functor& f,
                   detail::sequence<LeadingArgIndices...>,
-                  boost::tuple<LeadingArgs...> leadingArgs,
-                  boost::tuple<TrailingArgs...> trailingArgs) const
+                  utility::tuple<LeadingArgs...> leadingArgs,
+                  utility::tuple<TrailingArgs...> trailingArgs) const
   {
     return static_cast<const Derived*>(this)->parse(
             f,
-            boost::get<LeadingArgIndices>(leadingArgs)...,
+            utility::get<LeadingArgIndices>(leadingArgs)...,
             trailingArgs);
   };
 };
@@ -79,7 +79,7 @@ public:
   bool operator()(Functor& f, Args... args) const
   {
 
-  typedef typename params::make_new<boost::tuple,Args...> tupleMaker;
+  typedef typename params::make_new<utility::tuple,Args...> tupleMaker;
   typedef typename tupleMaker::type TupleType;
 
   //tuple is the trailing parameters. I hope we don't have more than 10 items...
