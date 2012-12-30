@@ -4,6 +4,11 @@
 namespace
 {
 
+struct test_functor {
+  template<class T>
+  void operator()(T& t) const { t = T(); }
+}; 
+
 //holds a sequence of integers.
 template<int ...>
 struct sequence { };
@@ -22,6 +27,12 @@ struct generate_sequence<0, S...>
   typedef sequence<S...> type;
 };
 
+//pre GCC 4.7 has a bug with template expansion into
+//non-variadic class template (aka base case).
+//see gcc bug 35722, for the workaround I am using.
+template< template <class ...> class T, class... Args>
+struct Join { typedef T<Args...> type; };
+
 
 //apply a functor to each element in a parameter pack
 template<class First, class ...T>
@@ -30,7 +41,12 @@ struct forEach
   template<typename Functor>
   void operator()(Functor f, First first, T... t) const
   {
-    forEach<T...>()(f,t...);
+    //pre GCC 4.7 has a bug with template expansion into 
+    //non-variadic class template (aka base case).
+    //see gcc bug 35722, for the workaround I am using.
+    typedef typename ::Join< ::forEach,T...>::type ForEachType;
+    f(first);
+    ForEachType()(f,t...);
   }
 };
 
@@ -41,6 +57,7 @@ struct forEach<First>
   template<typename Functor>
   void operator()(Functor f, First first) const
   {
+    f(first);
   }
 };
 
@@ -48,7 +65,12 @@ struct forEach<First>
 template<class  Functor, class ...T>
 void for_each(Functor f, T... items)
 {
-  ::forEach<T...>()(f,items...);
+  //pre GCC 4.7 has a bug with template expansion into
+  //non-variadic class template (aka base case).
+  //see gcc bug 35722, for the workaround I am using.
+  typedef typename ::Join<forEach,T...>::type ForEachType;
+  ForEachType fe;
+  fe(f,items...);
 }
 
 //special version of for_each that is a helper to get the length of indicies
@@ -77,7 +99,7 @@ template<typename ...Values>
 void InvokeTuple(Values... v)
 {
   std::tr1::tuple<Values...> tuple(v...);
-  ::for_each(tuple);
+  ::for_each(::test_functor(),tuple);
 }
 
 }
