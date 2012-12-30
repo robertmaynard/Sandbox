@@ -4,6 +4,11 @@
 namespace
 {
 
+struct test_functor {
+  template<class T>
+  void operator()(T& t) const { t = T(); }
+};
+
 //holds a sequence of integers.
 template<int ...>
 struct sequence { };
@@ -77,7 +82,7 @@ template<typename ...Values>
 void InvokeTuple(Values... v)
 {
   std::tuple<Values...> tuple(v...);
-  ::for_each(tuple);
+  ::for_each(::test_functor(),tuple);
 }
 
 }
