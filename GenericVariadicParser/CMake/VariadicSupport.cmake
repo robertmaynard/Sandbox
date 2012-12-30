@@ -27,6 +27,7 @@ function(setupVariadicSupport tuple_new_namespace)
   set(c++Boost_compiler 3)
 
   set(Variadic_Requires_Boost FALSE PARENT_SCOPE)
+  set(VARIADIC_SUPPORT_FOUND FALSE)
 
   #check if we have c++11 support
   if(NOT ${VARIADIC_SUPPORT_FOUND})
@@ -34,6 +35,7 @@ function(setupVariadicSupport tuple_new_namespace)
       ${PROJECT_BINARY_DIR}/CMakeTmp
       ${PROJECT_SOURCE_DIR}/CMake/variadic_11.cxx
       COMPILE_DEFINITIONS "-std=c++11"
+      OUTPUT_VARIABLE output
       )
     if(${VARIADIC_SUPPORT_FOUND})
       set(compiler_type ${c++11_compiler})
@@ -47,6 +49,7 @@ function(setupVariadicSupport tuple_new_namespace)
     ${PROJECT_BINARY_DIR}/CMakeTmp
     ${PROJECT_SOURCE_DIR}/CMake/variadic_0x.cxx
     COMPILE_DEFINITIONS "-std=c++0x"
+    OUTPUT_VARIABLE output
     )
     if(${VARIADIC_SUPPORT_FOUND})
       set(compiler_type ${c++0x_compiler})
@@ -60,10 +63,10 @@ function(setupVariadicSupport tuple_new_namespace)
     set(Variadic_Requires_Boost TRUE PARENT_SCOPE)
   endif()
 
-configure_file(
-  ${PROJECT_SOURCE_DIR}/CMake/tuple.hpp.in
-  ${PROJECT_BINARY_DIR}/@tuple_new_namespace@_tuple.hpp
-  @ONLY)
+  configure_file(
+    ${PROJECT_SOURCE_DIR}/CMake/tuple.hpp.in
+    ${PROJECT_BINARY_DIR}/@tuple_new_namespace@_tuple.hpp
+    @ONLY)
 
 endfunction(setupVariadicSupport)
 
