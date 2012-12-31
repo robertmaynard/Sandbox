@@ -1,9 +1,13 @@
 Todo:
 
 4. correct pass by reference to be used whenever possible
-5. Investigate usage of boost::fusion transformations instead
-   of hand rolled code to reduce complexitiy and sources of errors.
-   Will need to see if it can trim and flatten
+5. Investigate usage of boost::fusion. Fusion does support
+   nvcc so we can properly use the library. The questions are:
+   a. Fusion support flatten?
+   b. Fusion support trim?
+   c. I have concern that I will still need to wrap fusion calls into helper methods
+6. Use a better compiler detector like boost does
+
 
 Finished:
 
