@@ -8,7 +8,7 @@ include(CMake/VariadicSupport.cmake)
 #setup a tuple class, and helpers to mimic variadic templates using Boost
 #preprocessor magic if required.
 setupVariadicSupport(utility)
-
+list(APPEND CMAKE_CXX_FLAGS ${Variadic_CXX_FLAGS})
 
 find_package(Boost REQUIRED COMPONENTS timer system)
 include_directories(${Boost_INCLUDE_DIRS})

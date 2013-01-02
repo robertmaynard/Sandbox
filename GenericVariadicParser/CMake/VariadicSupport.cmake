@@ -13,6 +13,9 @@
 # namespace that user provided a tuple
 # class and all related helpers
 #
+# We save into Variadic_CXX_FLAGS the flags required
+# to be added to CMAKE_CXX_FLAGS that will allow proper compilation
+# of variadic support
 #
 # When falling back to boost whill define
 # Variadic_Requires_Boost to TRUE so that
@@ -39,7 +42,7 @@ function(setupVariadicSupport tuple_new_namespace)
       )
     if(${VARIADIC_SUPPORT_FOUND})
       set(compiler_type ${c++11_compiler})
-      list(APPEND CMAKE_CXX_FLAGS "-std=c++11")
+      set(Variadic_CXX_FLAGS "-std=c++11" PARENT_SCOPE)
     endif()
   endif()
 
@@ -53,7 +56,7 @@ function(setupVariadicSupport tuple_new_namespace)
     )
     if(${VARIADIC_SUPPORT_FOUND})
       set(compiler_type ${c++0x_compiler})
-      list(APPEND CMAKE_CXX_FLAGS "-std=c++0x")
+      set(Variadic_CXX_FLAGS "-std=c++0x" PARENT_SCOPE)
     endif()
   endif()
 
@@ -61,6 +64,7 @@ function(setupVariadicSupport tuple_new_namespace)
   if(NOT ${VARIADIC_SUPPORT_FOUND})
     set(compiler_type ${c++Boost_compiler})
     set(Variadic_Requires_Boost TRUE PARENT_SCOPE)
+    set(Variadic_CXX_FLAGS "-std=c++0x")
   endif()
 
   configure_file(
@@ -68,5 +72,6 @@ function(setupVariadicSupport tuple_new_namespace)
     ${PROJECT_BINARY_DIR}/@tuple_new_namespace@_tuple.hpp
     @ONLY)
 
+  include_directories(${PROJECT_BINARY_DIR})
 endfunction(setupVariadicSupport)
 
