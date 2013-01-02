@@ -13,7 +13,7 @@ public:
   template<class... Args>
   void operator()(Args... args) const
     {
-    detail::forEach<Args...>()(detail::make_emptyFunctor(std::cout),args...);
+    detail::forEach<Args...>()(detail::make_bitwiseLShift(std::cout),args...);
     }
 };
 
@@ -24,7 +24,7 @@ public:
   template<class... Args>
   void operator()(Args... args) const
     {
-    detail::forEach<Args...>()(detail::make_emptyFunctor(std::cout),args...);
+    detail::forEach<Args...>()(detail::make_bitwiseLShift(std::cout),args...);
     }
 };
 

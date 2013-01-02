@@ -1,261 +1,176 @@
 #ifndef __ParameterPacks_h
 #define __ParameterPacks_h
 
-#include "utility_tuple.hpp"
 #include <algorithm>
 
-#include "Helpers.h"
+#include <boost/fusion/container/vector.hpp>
+#include <boost/fusion/sequence/intrinsic/at_c.hpp>
+#include <boost/fusion/sequence/intrinsic/size.hpp>
+#include <boost/fusion/support/is_sequence.hpp>
+#include <boost/fusion/support/is_view.hpp>
+#include <boost/fusion/view/nview.hpp>
+#include <boost/mpl/if.hpp>
+#include <boost/mpl/vector_c.hpp>
+
+namespace params  {
+namespace detail {
+  //generate a mpl vector of incrementing values from Start to End
+  //which is inclusive at the start, exclusive at end.
+  //start must be less than end
+  template<int Start, int End, int ...S>
+  struct make_mpl_vector { typedef typename make_mpl_vector<Start,End-1, End-1, S...>::type type; };
+
+  //generate a mpl vector of incrementing values from Start to End
+  //which is inclusive at the start, exclusive at end.F
+  //start must be less than end
+  template<int Start, int ...S>
+  struct make_mpl_vector<Start,Start, S...> { typedef boost::mpl::vector_c<int,S...> type; };
+
+  //determine at compile time the length of a fusion sequence.
+  template<class Sequence>
+  struct num_elements { enum{value=boost::fusion::result_of::size<Sequence>::type::value}; };
+}
+}
 
 namespace params
 {
+  using boost::fusion::vector;
+  using boost::fusion::at_c;
+  using boost::fusion::traits::is_sequence;
 
-//extract the first element of a parameter packs type or actual item
-template <class First, class ...T>
-struct first
-{
-    typedef First type;
+  //holds a sequence of integers.
+  template<int ...>
+  struct static_indices { };
 
-    type operator()(First f, T...) const
+  //generate a struct with template args of incrementing values from Start to End
+  //which is inclusive at the start, exclusive at end.
+  //start must be less than end
+  template<int Start, int End, int ...S>
+  struct make_indices { typedef typename make_indices<Start,End-1, End-1, S...>::type type; };
+
+  //generate a struct with tempalte args of incrementing values from Start to End
+  //which is inclusive at the start, exclusive at end.
+  //start must be less than end
+  template<int Start, int ...S>
+  struct make_indices<Start,Start, S...> { typedef static_indices<S...> type; };
+
+  template<class Sequence, int Leading_Number_To_Remove>
+  struct trim
+  {
+  private:
+    //use mpl and fusion to construct to nview objects
+    //that will show only a subset of the items
+    typedef typename params::detail::make_mpl_vector<
+                    0,Leading_Number_To_Remove>::type LeadingVectorIndices;
+
+    typedef typename params::detail::make_mpl_vector<
+                    Leading_Number_To_Remove,
+                    params::detail::num_elements<Sequence>::value >::type TrailingVectorIndices;
+
+  public:
+    typedef boost::fusion::nview<Sequence,LeadingVectorIndices> LeadingView;
+
+    typedef boost::fusion::nview<Sequence,TrailingVectorIndices> TrailingView;
+
+    LeadingView FrontArgs(Sequence& s) const
     {
-      return f;
+    return LeadingView(s);
     }
-};
 
-//extract the last element of a parameter packs type or actual item
-template<class First, class ...T>
-struct last
-{
-  typedef typename last<T...>::type type;
-
-  type operator()(First, T... t) const
-  {
-    return last<T...>::operator()(t...);
-  }
-
-};
-
-//extract the last element of a parameter packs type or actual item
-template<class First>
-struct last<First>
-{
-  typedef First type;
-
-  type operator()(First first) const
-  {
-    return first;
-  }
-
-};
-
-//create a new object with Args. Can be used to append or push_front
-//new arguments to a already generated tuple.
-template< template<class ...> class Factory, class ...OtherArgs>
-struct make_new
-{
-  typedef Factory<OtherArgs...> type;
-
-  type operator()(OtherArgs... args) const
-  {
-    return Factory<OtherArgs...>(args...);
-  }
-};
-
-//trim N element off front of the arguments passed in create Factory object
-//with the remaining items
-template< template<class ...> class Factory, int N, class T, class ...OtherArgs>
-struct ltrim
-{
-  typedef typename ltrim<Factory,N-1,OtherArgs...>::type type;
-
-  type operator()(T t, OtherArgs... args) const
-  {
-    return ltrim<Factory,N-1,OtherArgs...>()(args...);
-  }
-};
-
-//trim N element off front of the arguments passed in create Factory object
-//with the remaining items
-template<template<class ...> class Factory, class T, class ...OtherArgs>
-struct ltrim<Factory, 0,T, OtherArgs...>
-{
-  typedef Factory<T, OtherArgs...> type;
-
-  type operator()(T t, OtherArgs... args) const
-  {
-    return type(t,args...);
-  }
-};
-
-namespace detail
-{
-  //create a Factory item with only the first N items in it
-template< template<class ...> class Factory,
-          int TruncateSize,
-          int ItemsToDrop,
-          class T,
-          class ...OtherArgs>
-struct rtrim
-{
-  typedef typename rtrim<Factory,TruncateSize,ItemsToDrop-1,OtherArgs...,T>::type type;
-
-  type operator()(T t, OtherArgs... args) const
-  {
-    return rtrim<Factory,TruncateSize,ItemsToDrop-1,OtherArgs...,T>()(args...,t);
-  }
-};
-
-//create a Factory item with only the first N items in it
-template<template<class ...> class Factory, int TruncateSize, class T, class ...OtherArgs>
-struct rtrim<Factory, TruncateSize, 0, T, OtherArgs...>
-{
-  enum{M = sizeof...(OtherArgs) - TruncateSize};
-  typedef typename ltrim<Factory,M,OtherArgs...,T>::type type;
-
-  type operator()(T t, OtherArgs... args) const
-  {
-    return ltrim<Factory,M,OtherArgs...,T>()(args...,t);
-  }
-};
-
-}
-
-//create a Factory item with only the first N items in it, aka rtrim
-template< template<class ...> class Factory,
-          int TruncateSize,
-          class T,
-          class ...OtherArgs>
-struct rtrim
-{
-  typedef typename detail::rtrim<Factory,TruncateSize,TruncateSize-1,OtherArgs...,T>::type type;
-
-  type operator()(T t, OtherArgs... args) const
-  {
-    return detail::rtrim<Factory,TruncateSize,TruncateSize-1,OtherArgs...,T>()(args...,t);
-  }
-};
-
-//get the N'th item for a parameter pack
-template<int N,  class T, class ...Args>
-struct get_item
-{
-  typedef typename get_item<N-1,Args...>::type type;
-
-  type operator()(T t, Args... args) const
-  {
-    return get_item<N-1,Args...>()(args...);
-  }
-};
-
-//get the N'th item for a parameter pack
-//termination implementation of the recursion
-template<class T, class ...Args>
-struct get_item<0,T,Args...>
-{
-  typedef T type;
-  type operator()(T t, Args... args) const
+    TrailingView BackArgs(Sequence& s) const
     {
-    return t;
+    return TrailingView(s);
     }
-};
+  };
 
-
-namespace detail
-{
-template< int N, class Functor, template<int,class...> class CallBack, int CallBackN>
-struct expand_tuple_for_flatten
-{
-  //we propagate down CallBack and CallBackN so that we can call flatten
-  //with the correct number of args left to flatten. We can't pass Callbacks
-  //full signature into this call as it hasn't been determined intill we
-  //flatten this tuple
-  template<class ...Args, class ...OtherArgs>
-  void operator()(Functor& functor, const utility::tuple<Args...>& tuple,
-                  OtherArgs... theRest) const
+  namespace detail
   {
-    //expand the tuple by extracting elements from the front
-    //and pushing them to the back of the OtherArgs.
-    enum{len = utility::tuple_size< utility::tuple<Args...> >::value };
-    expand_tuple_for_flatten<N-1,Functor,CallBack,CallBackN>()(functor, tuple,
-                                   theRest..., utility::get<len - N>(tuple));
-  }
+    template< int Size, int Element, class Functor, template<int,class...> class CallBack, int CallBackN>
+    struct flatten_sequence
+    {
+      //we propagate down CallBack and CallBackN so that we can call flatten
+      //with the correct number of args left to flatten. We can't pass Callbacks
+      //full signature into this call as it hasn't been determined intill we
+      //flatten this tuple
+      template< class Sequence, class ...OtherArgs>
+      void operator()(Functor& functor, Sequence seq, OtherArgs... theRest) const
+      {
+        //expand the tuple by extracting elements from the front
+        //and pushing them to the back of the OtherArgs.
+        flatten_sequence<Size-1,Element+1,Functor,CallBack,CallBackN>()(
+                       functor, seq, theRest..., ::params::at_c<Element>(seq));
+      }
 
-};
+    };
 
-template<class Functor, template<int,class...> class CallBack, int CallBackN>
-struct expand_tuple_for_flatten<1,Functor,CallBack,CallBackN>
-{
-  //specialization for the last argument in the tuple. we push back
-  //the last element in the tuple and invoke the callback with the new
-  //signature with the tuple flattened.
-  template<class ...Args, class ...OtherArgs>
-  void operator()(Functor& functor,
-                  const utility::tuple<Args...>& tuple,
-                  OtherArgs... theRest) const
+    template<int Element, class Functor, template<int,class...> class CallBack, int CallBackN>
+    struct flatten_sequence<1,Element,Functor,CallBack,CallBackN>
+    {
+      //specialization for the last argument in the tuple. we push back
+      //the last element in the tuple and invoke the callback with the new
+      //signature with the tuple flattened.
+      template<class Sequence, class ...OtherArgs>
+      void operator()(Functor& functor, Sequence seq, OtherArgs... theRest) const
+      {
+        typedef typename boost::fusion::result_of::at_c<Sequence,Element>::type LastElementType;
+        typedef CallBack<CallBackN,Functor,OtherArgs...,LastElementType> CallBackType;
+        CallBackType()(functor,theRest...,::params::at_c<Element>(seq));
+      }
+    };
+
+    template< template<int,class,class,class...> class CallBack,
+              int CallBackN,
+              class Functor,
+              class Arg,
+              class ...OtherArgs>
+    typename boost::enable_if<::params::is_sequence<Arg>, Arg>::type
+    flatten_single_arg(Functor& f, Arg seq, OtherArgs... theRest)
+    { //we are a sequence/view so we need to flatten this argument into its values.
+      enum{len = params::detail::num_elements<Arg>::value };
+      flatten_sequence<len,0,Functor,CallBack,CallBackN>()(f,seq,theRest...);
+      return seq;
+    }
+
+    template< template<int,class,class,class...> class CallBack,
+              int CallBackN,
+              class Functor,
+              class Arg,
+              class ...OtherArgs>
+    typename boost::disable_if<::params::is_sequence<Arg>, Arg>::type
+    flatten_single_arg(Functor f, Arg arg, OtherArgs... theRest)
+    { //this is a single argument no reason to flatten it.
+      CallBack<CallBackN,Functor,OtherArgs...,Arg>()(f,theRest...,arg);
+      return arg;
+    }
+
+    template< int N, class Functor, class First, class ...OtherArgs>
+    struct flatten
+    {
+      void operator()(Functor& f, First first, OtherArgs... args) const
+      {
+      detail::flatten_single_arg<detail::flatten,N-1>(f,first,args...);
+      }
+    };
+
+    template< class Functor, class First, class ...OtherArgs>
+    struct flatten<0, Functor, First, OtherArgs...>
+    {
+      void operator()(Functor& f, First first, OtherArgs... args) const
+      { //remember that we have rotated enough so pass args to functor in current order
+        f(first,args...);
+      }
+    };
+  } //namespace detail
+
+  //take an arbitrary class that has a parameter pack and flatten it so
+  //that we can call a method with each element of the class
+  template< class Functor,
+            class ... Args>
+  void flatten(Functor& f, Args... args)
   {
-    enum{len = utility::tuple_size< utility::tuple<Args...> >::value };
-    typedef typename utility::tuple_element<
-              len - 1, utility::tuple<Args...> >::type LastElementType;
-
-    typedef CallBack<CallBackN,Functor,OtherArgs...,LastElementType> CallBackType;
-    CallBackType()(functor,theRest...,utility::get<len - 1>(tuple));
+    enum{N=sizeof...(Args)};
+    ::params::detail::flatten<N,Functor,Args...>()(f,args...);
   }
-};
-
-template< template<int,class,class,class...> class CallBack, int CallBackN, class Functor,
-          class ...Args, class ...OtherArgs>
-void flatten_single_arg(Functor& f, utility::tuple<Args...> tuple,
-                        OtherArgs... theRest)
-{ //we are a tuple we need to flatten this argument into its values.
-  //todo add tuple trait specializations
-  enum{len = utility::tuple_size< utility::tuple<Args...> >::value };
-  expand_tuple_for_flatten<len,Functor,CallBack,CallBackN>()(f,tuple,theRest...);
 }
-
-template< template<int,class,class,class...> class CallBack, int CallBackN, class Functor,
-          class Arg, class ...OtherArgs>
-void flatten_single_arg(Functor f, Arg arg, OtherArgs... theRest)
-{ //since the argument doesn't match the tuple trait we directly call the callback
-  CallBack<CallBackN,Functor,OtherArgs...,Arg>()(f,theRest...,arg);
-}
-
-template< int N,
-          class Functor,
-          class First,
-          class ...OtherArgs>
-struct flatten
-{
-  void operator()(Functor& f, First first, OtherArgs... args)
-  {
-    detail::flatten_single_arg<detail::flatten,N-1>(f,first,args...);
-
-  }
-};
-
-template< class Functor,
-          class First,
-          class ...OtherArgs>
-struct flatten<0, Functor, First, OtherArgs...>
-{
-  void operator()(Functor& f, First first, OtherArgs... args)
-  { //remember that we have rotated enough so pass args to functor in current order
-    f(first,args...);
-  }
-};
-} //namespace detail
-
-//take an arbitrary class that has a parameter pack and flatten it so
-//that we can call a method with each element of the class
-template< class Functor,
-          class ... Args>
-void flatten(Functor& f, Args... args)
-{
-  enum{N=sizeof...(Args)};
-  detail::flatten<N,Functor,Args...>()(f,args...);
-}
-
-
-
-
-};
 
 #endif
