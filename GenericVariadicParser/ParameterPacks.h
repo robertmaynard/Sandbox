@@ -4,17 +4,22 @@
 #include <algorithm>
 
 #include <boost/fusion/container/vector.hpp>
+#include <boost/fusion/iterator/deref.hpp>
+#include <boost/fusion/iterator/next.hpp>
 #include <boost/fusion/sequence/intrinsic/at_c.hpp>
+#include <boost/fusion/sequence/intrinsic/begin.hpp>
+#include <boost/fusion/sequence/intrinsic/end.hpp>
 #include <boost/fusion/sequence/intrinsic/size.hpp>
 #include <boost/fusion/support/is_sequence.hpp>
 #include <boost/fusion/support/is_view.hpp>
-#include <boost/fusion/view/nview.hpp>
-#include <boost/fusion/view/single_view.hpp>
 #include <boost/fusion/view/joint_view.hpp>
-#include <boost/mpl/if.hpp>
+#include <boost/fusion/view/nview.hpp>
+#include <boost/fusion/functional/invocation/invoke_procedure.hpp>
+#include <boost/fusion/view/single_view.hpp>
+#include <boost/mpl/or.hpp>
 #include <boost/mpl/vector_c.hpp>
 
-#include <boost/ref.hpp>
+#include <boost/type_traits/remove_reference.hpp>
 
 namespace params  {
 namespace detail {
@@ -33,14 +38,37 @@ namespace detail {
   //determine at compile time the length of a fusion sequence.
   template<class Sequence>
   struct num_elements { enum{value=boost::fusion::result_of::size<Sequence>::type::value}; };
+
+  //wrap a functor in a class the fullfills the callable object requirements of boost fusion
+  template<class Functor>
+  struct functor_wrapper{ };
+
+  template<class I>
+  struct is_fusion_sequence
+  {
+  private:
+    //deref I as it is an iterator
+    typedef typename boost::fusion::result_of::deref<I>::type derefType;
+
+    //the iterator might be to a sequence or view reference, which
+    //doesn't compile, so we have to remove the reference
+    typedef typename boost::remove_reference<derefType>::type deducedType;
+
+    //check if it is a sequence or view
+    typedef typename boost::fusion::traits::is_sequence<deducedType>::type isSequenceType;
+    typedef typename boost::fusion::traits::is_view<deducedType>::type isViewType;
+    typedef typename boost::mpl::or_< isSequenceType, isViewType >::type IsIterator;
+  public:
+    typedef IsIterator type;
+  };
 }
-}
+} //namespace params::detail
+
 
 namespace params
 {
   using boost::fusion::vector;
   using boost::fusion::at_c;
-  using boost::fusion::traits::is_sequence;
 
   //holds a sequence of integers.
   template<int ...>
@@ -89,82 +117,69 @@ namespace params
 
   namespace detail
   {
-    template< int Size, int Element, class Functor, template<int,class...> class CallBack, int CallBackN>
-    struct flatten_sequence
+    template< int Size, int Element, class Functor>
+    struct flatten_impl
     {
-      //we propagate down CallBack and CallBackN so that we can call flatten
-      //with the correct number of args left to flatten. We can't pass Callbacks
-      //full signature into this call as it hasn't been determined intill we
-      //flatten this tuple
-      template< class Sequence, class ...OtherArgs>
-      void operator()(Functor& functor, Sequence seq, OtherArgs... theRest) const
+      template<class Item, class Sequence>
+      void operator()(Functor& f, Item item, Sequence s,
+                      typename boost::enable_if<
+                      typename params::detail::is_fusion_sequence<Item>::type >::type* = 0) const
       {
-        //expand the tuple by extracting elements from the front
-        //and pushing them to the back of the OtherArgs.
-        flatten_sequence<Size-1,Element+1,Functor,CallBack,CallBackN>()(
-                       functor, seq, theRest..., ::params::at_c<Element>(seq));
+        //item is a sequence so we can use joint_view
+        typedef typename boost::fusion::result_of::deref<Item>::type ItemDeRef;
+        typedef boost::fusion::joint_view<Sequence,ItemDeRef> NewSequenceType;
+        NewSequenceType newSeq(s,boost::fusion::deref(item));
+        flatten_impl<Size,Element+1,Functor>()(f,boost::fusion::next(item),newSeq);
       }
 
-    };
-
-    template<int Element, class Functor, template<int,class...> class CallBack, int CallBackN>
-    struct flatten_sequence<1,Element,Functor,CallBack,CallBackN>
-    {
-      //specialization for the last argument in the tuple. we push back
-      //the last element in the tuple and invoke the callback with the new
-      //signature with the tuple flattened.
-      template<class Sequence, class ...OtherArgs>
-      void operator()(Functor& functor, Sequence seq, OtherArgs... theRest) const
+      template<class Item, class Sequence>
+      void operator()(Functor& f, Item item, Sequence s,
+                      typename boost::disable_if<
+                      typename params::detail::is_fusion_sequence<Item>::type >::type* = 0) const
       {
-        typedef typename boost::fusion::result_of::at_c<Sequence,Element>::type LastElementType;
-        typedef CallBack<CallBackN,Functor,OtherArgs...,LastElementType> CallBackType;
-        CallBackType()(functor,theRest..., ::params::at_c<Element>(seq));
+        //item isn't a sequence so we have to create a single view than
+        //use joint view
+        typedef boost::fusion::single_view<Item> ItemView;
+        typedef boost::fusion::joint_view<Sequence,ItemView> NewSequenceType;
+        ItemView iv(item);
+        NewSequenceType newSeq(s,iv);
+        flatten_impl<Size,Element+1,Functor>()(f,boost::fusion::next(item),newSeq);
       }
     };
 
-    template< template<int,class,class,class...> class CallBack,
-              int CallBackN,
-              class Functor,
-              class Arg,
-              class ...OtherArgs>
-    typename boost::enable_if<::params::is_sequence<Arg>, Arg>::type
-    flatten_single_arg(Functor& f, Arg seq, OtherArgs... theRest)
-    { //we are a sequence/view so we need to flatten this argument into its values.
-      enum{len = params::detail::num_elements<Arg>::value };
-      flatten_sequence<len,0,Functor,CallBack,CallBackN>()(f,seq,theRest...);
-      return seq;
+    //termination case of the flatten recursive calls
+    template< int Size, class Functor>
+    struct flatten_impl<Size, Size, Functor>
+    {
+      template<class Item, class Sequence>
+      void operator()(Functor& f, Item, Sequence s) const
+      {
+        //item is an iterator pointing to end, so everything is in sequence
+        boost::fusion::invoke_procedure(f,s);
+      }
+    };
+
+    //function that starts the flatten recursion when the first item is a sequence
+    template< int Size, class Functor, class Item>
+    void flatten(Functor& f, Item item,
+                 typename boost::enable_if<
+                 typename params::detail::is_fusion_sequence<Item>::type >::type* = 0)
+    {
+      params::detail::flatten_impl<Size,1,Functor>()(f,boost::fusion::next(item),
+                                                       boost::fusion::deref(item));
     }
 
-    template< template<int,class,class,class...> class CallBack,
-              int CallBackN,
-              class Functor,
-              class Arg,
-              class ...OtherArgs>
-    typename boost::disable_if<::params::is_sequence<Arg>, Arg>::type
-    flatten_single_arg(Functor f, Arg arg, OtherArgs... theRest)
-    { //this is a single argument no reason to flatten it.
-      CallBack<CallBackN,Functor,OtherArgs...,Arg>()(f,theRest...,arg);
-      return arg;
+    //function that starts the flatten recursion when the first item isn't a sequence
+    template< int Size, class Functor, class Item>
+    void flatten(Functor& f, Item item,
+                 typename boost::disable_if<
+                 typename params::detail::is_fusion_sequence<Item>::type >::type* = 0)
+    {
+      typedef boost::fusion::single_view<Item> ItemView;
+      ItemView iv(item);
+      params::detail::flatten_impl<Size,1,Functor>()(f,boost::fusion::next(item),iv);
     }
-
-    template< int N, class Functor, class First, class ...OtherArgs>
-    struct flatten
-    {
-      void operator()(Functor& f, First first, OtherArgs... args) const
-      {
-      detail::flatten_single_arg<detail::flatten,N-1>(f,first,args...);
-      }
-    };
-
-    template< class Functor, class First, class ...OtherArgs>
-    struct flatten<0, Functor, First, OtherArgs...>
-    {
-      void operator()(Functor& f, First first, OtherArgs... args) const
-      { //remember that we have rotated enough so pass args to functor in current order
-        f(boost::unwrap_ref(first),boost::unwrap_ref(args)...);
-      }
-    };
-  } //namespace detail
+  }
 
   //take an arbitrary class that has a parameter pack and flatten it so
   //that we can call a method with each element of the class
@@ -172,8 +187,12 @@ namespace params
             class ... Args>
   void flatten(Functor& f, Args... args)
   {
-    enum{N=sizeof...(Args)};
-    ::params::detail::flatten<N,Functor,Args...>()(f, args...);
+    typedef ::params::vector<Args...> Sequence;
+    Sequence all_args(args...);
+
+    ::params::detail::flatten<
+      ::params::detail::num_elements<Sequence>::value,
+      Functor>(f,boost::fusion::begin(all_args));
   }
 }
 

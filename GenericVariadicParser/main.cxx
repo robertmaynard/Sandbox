@@ -2,6 +2,7 @@
 #include "DefaultParser.h"
 
 #include "Functor.h"
+#include <boost/ref.hpp>
 #include <boost/timer/timer.hpp>
 
 template<typename Functor, typename ...Values>
