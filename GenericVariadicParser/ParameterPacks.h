@@ -9,8 +9,12 @@
 #include <boost/fusion/support/is_sequence.hpp>
 #include <boost/fusion/support/is_view.hpp>
 #include <boost/fusion/view/nview.hpp>
+#include <boost/fusion/view/single_view.hpp>
+#include <boost/fusion/view/joint_view.hpp>
 #include <boost/mpl/if.hpp>
 #include <boost/mpl/vector_c.hpp>
+
+#include <boost/ref.hpp>
 
 namespace params  {
 namespace detail {
@@ -114,7 +118,7 @@ namespace params
       {
         typedef typename boost::fusion::result_of::at_c<Sequence,Element>::type LastElementType;
         typedef CallBack<CallBackN,Functor,OtherArgs...,LastElementType> CallBackType;
-        CallBackType()(functor,theRest...,::params::at_c<Element>(seq));
+        CallBackType()(functor,theRest..., ::params::at_c<Element>(seq));
       }
     };
 
@@ -157,7 +161,7 @@ namespace params
     {
       void operator()(Functor& f, First first, OtherArgs... args) const
       { //remember that we have rotated enough so pass args to functor in current order
-        f(first,args...);
+        f(boost::unwrap_ref(first),boost::unwrap_ref(args)...);
       }
     };
   } //namespace detail
@@ -169,7 +173,7 @@ namespace params
   void flatten(Functor& f, Args... args)
   {
     enum{N=sizeof...(Args)};
-    ::params::detail::flatten<N,Functor,Args...>()(f,args...);
+    ::params::detail::flatten<N,Functor,Args...>()(f, args...);
   }
 }
 

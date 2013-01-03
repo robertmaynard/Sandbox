@@ -23,6 +23,7 @@ public:
   typedef typename trimmer::LeadingView LeadingArgsView;
   typedef typename trimmer::TrailingView TrailingArgsView;
   trimmer t;
+
   LeadingArgsView leadingArgs = t.FrontArgs(all_args);
   TrailingArgsView trailingArgs = t.BackArgs(all_args);
 
@@ -35,7 +36,7 @@ public:
 protected:
   template<class Functor,
            class... Args>
-  bool defaultParse(Functor& f,Args... args) const
+  bool defaultParse(Functor& f,const Args&... args) const
   {
     params::flatten(f,args...);
     return true;
@@ -56,7 +57,8 @@ private:
   //expand the leading args into each item and pass those plus trailing to
   //the derived parser
   return static_cast<const Derived*>(this)->parse(f,
-                    params::at_c<Indices>(leading)...,trailing);
+                    boost::unwrap_ref(params::at_c<Indices>(leading))...,
+                    trailing);
   };
 };
 
@@ -77,7 +79,7 @@ public:
 protected:
   template<class Functor,
            class... Args>
-  bool defaultParse(Functor& f,Args... args) const
+  bool defaultParse(Functor& f, const Args&... args) const
   {
     params::flatten(f,args...);
     return true;
