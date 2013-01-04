@@ -3,7 +3,14 @@
 
 #include <algorithm>
 
+#define BOOST_FUSION_INVOKE_PROCEDURE_MAX_ARITY 20
+#define FUSION_MAX_VECTOR_SIZE 20
+
+
+#include <boost/fusion/algorithm/transformation/insert_range.hpp>
+#include <boost/fusion/algorithm/transformation/push_back.hpp>
 #include <boost/fusion/container/vector.hpp>
+#include <boost/fusion/functional/invocation/invoke_procedure.hpp>
 #include <boost/fusion/iterator/deref.hpp>
 #include <boost/fusion/iterator/next.hpp>
 #include <boost/fusion/sequence/intrinsic/at_c.hpp>
@@ -14,15 +21,28 @@
 #include <boost/fusion/support/is_view.hpp>
 #include <boost/fusion/view/joint_view.hpp>
 #include <boost/fusion/view/nview.hpp>
-#include <boost/fusion/functional/invocation/invoke_procedure.hpp>
 #include <boost/fusion/view/single_view.hpp>
 #include <boost/mpl/or.hpp>
 #include <boost/mpl/vector_c.hpp>
-
 #include <boost/type_traits/remove_reference.hpp>
+
+//work around a bug in boost::fusion::is_view in that it
+//doesn't properly implement the non_fusion_tag as meaning something isn't
+//a view
+namespace boost { namespace fusion { namespace extension {
+  template <>
+  struct is_view_impl<non_fusion_tag>
+  {
+      template <typename Sequence>
+      struct apply : mpl::false_ {};
+  };
+}}}
 
 namespace params  {
 namespace detail {
+
+  namespace fusion = ::boost::fusion;
+
   //generate a mpl vector of incrementing values from Start to End
   //which is inclusive at the start, exclusive at end.
   //start must be less than end
@@ -37,7 +57,7 @@ namespace detail {
 
   //determine at compile time the length of a fusion sequence.
   template<class Sequence>
-  struct num_elements { enum{value=boost::fusion::result_of::size<Sequence>::type::value}; };
+  struct num_elements { enum{value=fusion::result_of::size<Sequence>::type::value}; };
 
   //wrap a functor in a class the fullfills the callable object requirements of boost fusion
   template<class Functor>
@@ -46,17 +66,16 @@ namespace detail {
   template<class I>
   struct is_fusion_sequence
   {
-  private:
     //deref I as it is an iterator
-    typedef typename boost::fusion::result_of::deref<I>::type derefType;
+    typedef typename fusion::result_of::deref<I>::type derefType;
 
     //the iterator might be to a sequence or view reference, which
     //doesn't compile, so we have to remove the reference
     typedef typename boost::remove_reference<derefType>::type deducedType;
 
     //check if it is a sequence or view
-    typedef typename boost::fusion::traits::is_sequence<deducedType>::type isSequenceType;
-    typedef typename boost::fusion::traits::is_view<deducedType>::type isViewType;
+    typedef typename fusion::traits::is_sequence<deducedType>::type isSequenceType;
+    typedef typename fusion::traits::is_view<deducedType>::type isViewType;
     typedef typename boost::mpl::or_< isSequenceType, isViewType >::type IsIterator;
   public:
     typedef IsIterator type;
@@ -67,8 +86,9 @@ namespace detail {
 
 namespace params
 {
-  using boost::fusion::vector;
-  using boost::fusion::at_c;
+  namespace fusion= ::boost::fusion;
+  using fusion::vector;
+  using fusion::at_c;
 
   //holds a sequence of integers.
   template<int ...>
@@ -100,9 +120,9 @@ namespace params
                     params::detail::num_elements<Sequence>::value >::type TrailingVectorIndices;
 
   public:
-    typedef boost::fusion::nview<Sequence,LeadingVectorIndices> LeadingView;
+    typedef fusion::nview<Sequence,LeadingVectorIndices> LeadingView;
 
-    typedef boost::fusion::nview<Sequence,TrailingVectorIndices> TrailingView;
+    typedef fusion::nview<Sequence,TrailingVectorIndices> TrailingView;
 
     LeadingView FrontArgs(Sequence& s) const
     {
@@ -125,11 +145,11 @@ namespace params
                       typename boost::enable_if<
                       typename params::detail::is_fusion_sequence<Item>::type >::type* = 0) const
       {
-        //item is a sequence so we can use joint_view
-        typedef typename boost::fusion::result_of::deref<Item>::type ItemDeRef;
-        typedef boost::fusion::joint_view<Sequence,ItemDeRef> NewSequenceType;
-        NewSequenceType newSeq(s,boost::fusion::deref(item));
-        flatten_impl<Size,Element+1,Functor>()(f,boost::fusion::next(item),newSeq);
+        //insert every element in the sequence contained in item to the end
+        //of the Sequence s.
+        flatten_impl<Size,Element+1,Functor>()(f,
+                   fusion::next(item),
+                   fusion::insert_range(s,fusion::end(s),fusion::deref(item)));
       }
 
       template<class Item, class Sequence>
@@ -137,13 +157,10 @@ namespace params
                       typename boost::disable_if<
                       typename params::detail::is_fusion_sequence<Item>::type >::type* = 0) const
       {
-        //item isn't a sequence so we have to create a single view than
-        //use joint view
-        typedef boost::fusion::single_view<Item> ItemView;
-        typedef boost::fusion::joint_view<Sequence,ItemView> NewSequenceType;
-        ItemView iv(item);
-        NewSequenceType newSeq(s,iv);
-        flatten_impl<Size,Element+1,Functor>()(f,boost::fusion::next(item),newSeq);
+        //push the derefence of the item onto the end of sequence s
+        flatten_impl<Size,Element+1,Functor>()(f,
+                                     fusion::next(item),
+                                     fusion::push_back(s,fusion::deref(item)));
       }
     };
 
@@ -155,7 +172,7 @@ namespace params
       void operator()(Functor& f, Item, Sequence s) const
       {
         //item is an iterator pointing to end, so everything is in sequence
-        boost::fusion::invoke_procedure(f,s);
+      fusion::invoke_procedure(f,s);
       }
     };
 
@@ -165,8 +182,8 @@ namespace params
                  typename boost::enable_if<
                  typename params::detail::is_fusion_sequence<Item>::type >::type* = 0)
     {
-      params::detail::flatten_impl<Size,1,Functor>()(f,boost::fusion::next(item),
-                                                       boost::fusion::deref(item));
+      params::detail::flatten_impl<Size,1,Functor>()(f,fusion::next(item),
+                                                       fusion::deref(item));
     }
 
     //function that starts the flatten recursion when the first item isn't a sequence
@@ -175,9 +192,10 @@ namespace params
                  typename boost::disable_if<
                  typename params::detail::is_fusion_sequence<Item>::type >::type* = 0)
     {
-      typedef boost::fusion::single_view<Item> ItemView;
-      ItemView iv(item);
-      params::detail::flatten_impl<Size,1,Functor>()(f,boost::fusion::next(item),iv);
+      typedef typename fusion::result_of::deref<Item>::type ItemDeRef;
+      typedef fusion::single_view<ItemDeRef> ItemView;
+      ItemView iv(fusion::deref(item));
+      params::detail::flatten_impl<Size,1,Functor>()(f,fusion::next(item),iv);
     }
   }
 
@@ -192,7 +210,7 @@ namespace params
 
     ::params::detail::flatten<
       ::params::detail::num_elements<Sequence>::value,
-      Functor>(f,boost::fusion::begin(all_args));
+      Functor>(f,fusion::begin(all_args));
   }
 }
 

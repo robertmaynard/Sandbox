@@ -1,6 +1,7 @@
 #ifndef __BaseParser_h
 #define __BaseParser_h
 
+#include <boost/ref.hpp>
 #include "ParameterPacks.h"
 
 template<class Derived,int Seperate_Args>
@@ -16,8 +17,8 @@ public:
   //those in a unique items to Derived class, and than
   //pack the rest in a fusion container
 
-  typedef const params::vector<Args...> ArgVectorType;
-  ArgVectorType all_args(args...);
+  typedef params::vector<boost::reference_wrapper<Args>...> ArgVectorType;
+  ArgVectorType all_args(boost::ref(args)...);
 
   typedef typename params::trim<ArgVectorType,Seperate_Args> trimmer;
   typedef typename trimmer::LeadingView LeadingArgsView;
@@ -36,7 +37,7 @@ public:
 protected:
   template<class Functor,
            class... Args>
-  bool defaultParse(Functor& f,const Args&... args) const
+  bool defaultParse(Functor& f,Args... args) const
   {
     params::flatten(f,args...);
     return true;
@@ -71,15 +72,14 @@ public:
   bool operator()(Functor& f, Args... args) const
   {
 
-  typedef params::vector<Args...> ArgVectorType;
-  ArgVectorType all_args(args...);
-
+  typedef params::vector<boost::reference_wrapper<Args>...> ArgVectorType;
+  ArgVectorType all_args(boost::ref(args)...);
   return static_cast<const Derived*>(this)->parse(f,all_args);
   }
 protected:
   template<class Functor,
            class... Args>
-  bool defaultParse(Functor& f, const Args&... args) const
+  bool defaultParse(Functor& f, Args... args) const
   {
     params::flatten(f,args...);
     return true;
