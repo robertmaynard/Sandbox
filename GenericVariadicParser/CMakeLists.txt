@@ -10,7 +10,7 @@ include(CMake/VariadicSupport.cmake)
 setupVariadicSupport(utility)
 list(APPEND CMAKE_CXX_FLAGS ${Variadic_CXX_FLAGS})
 
-find_package(Boost REQUIRED COMPONENTS timer system)
+find_package(Boost 1.49.0 REQUIRED COMPONENTS timer system)
 include_directories(${Boost_INCLUDE_DIRS})
 include_directories(${GenericVariadicParser_SOURCE_DIR})
 
