@@ -12,12 +12,13 @@ public:
   template<class Functor, class... Args>
   bool operator()(Functor& f, Args... args) const
   {
-    //the basic operation is to strip N args
+  //the basic operation is to strip N args
   //from the start of the variadic list and pass
   //those in a unique items to Derived class, and than
   //pack the rest in a fusion container
 
-  typedef params::vector<boost::reference_wrapper<Args>...> ArgVectorType;
+  typedef typename ::params::Join< ::params::vector,
+            boost::reference_wrapper<Args>...>::type ArgVectorType;
   ArgVectorType all_args(boost::ref(args)...);
 
   typedef typename params::trim<ArgVectorType,Seperate_Args> trimmer;
@@ -57,9 +58,10 @@ private:
   {
   //expand the leading args into each item and pass those plus trailing to
   //the derived parser
-  return static_cast<const Derived*>(this)->parse(f,
-                    boost::unwrap_ref(params::at_c<Indices>(leading))...,
-                    trailing);
+   return static_cast<const Derived*>(this)->parse(f,
+                     boost::unwrap_ref( params::at_c<Indices>(leading))...,
+                     trailing);
+  return true;
   };
 };
 
@@ -72,7 +74,8 @@ public:
   bool operator()(Functor& f, Args... args) const
   {
 
-  typedef params::vector<boost::reference_wrapper<Args>...> ArgVectorType;
+  typedef typename ::params::Join< ::params::vector,
+            boost::reference_wrapper<Args>...>::type ArgVectorType;
   ArgVectorType all_args(boost::ref(args)...);
   return static_cast<const Derived*>(this)->parse(f,all_args);
   }

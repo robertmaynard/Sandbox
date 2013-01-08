@@ -5,6 +5,11 @@
 
 namespace detail
 {
+//pre GCC 4.7 has a bug with template expansion into
+//non-variadic class template (aka base case).
+//see gcc bug 35722, for the workaround I am using.
+template< template <class...> class T, class... Args>
+struct Join { typedef T<Args...> type; };
 
 //basic functor that applies << to each item that comes in to the stored value
 template<typename T>
@@ -47,8 +52,9 @@ struct forEach
   template<typename Functor>
   void operator()(Functor f, First first, T... t) const
   {
+    typedef typename detail::Join<detail::forEach,T...>::type ForEachType;
     f(first);
-    forEach<T...>()(f,t...);
+    ForEachType()(f,t...);
   }
 
 };
@@ -69,7 +75,8 @@ struct forEach<First>
 template<class  Functor, class ...T>
 void for_each(Functor f, T... items)
 {
-  detail::forEach<T...>()(f,items...);
+  typedef typename detail::Join<detail::forEach,T...>::type ForEachType;
+  ForEachType()(f,items...);
 }
 
 }

@@ -13,7 +13,8 @@ public:
   template<class... Args>
   void operator()(Args... args) const
     {
-    detail::forEach<Args...>()(detail::make_bitwiseLShift(std::cout),args...);
+    typedef typename detail::Join<detail::forEach,Args...>::type ForEachType;
+    ForEachType()(detail::make_bitwiseLShift(std::cout),args...);
     }
 };
 
@@ -24,7 +25,8 @@ public:
   template<class... Args>
   void operator()(Args... args) const
     {
-    detail::forEach<Args...>()(detail::make_bitwiseLShift(std::cout),args...);
+    typedef typename detail::Join<detail::forEach,Args...>::type ForEachType;
+    ForEachType()(detail::make_bitwiseLShift(std::cout),args...);
     }
 };
 
