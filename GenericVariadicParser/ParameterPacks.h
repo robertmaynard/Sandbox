@@ -23,6 +23,7 @@
 #include <boost/fusion/view/nview.hpp>
 #include <boost/fusion/view/single_view.hpp>
 #include <boost/mpl/or.hpp>
+#include <boost/mpl/push_front.hpp>
 #include <boost/mpl/vector_c.hpp>
 #include <boost/type_traits/remove_reference.hpp>
 
@@ -43,17 +44,31 @@ namespace detail {
 
   namespace fusion = ::boost::fusion;
 
+  //pre GCC 4.7 has a bug with template expansion into
+  //non-variadic class template (aka base case).
+  //see gcc bug 35722, for the workaround I am using.
+  template< template <class, long ...> class T, long... Args>
+  struct L_Join { typedef T<int,Args...> type; };
+
+
   //generate a mpl vector of incrementing values from Start to End
   //which is inclusive at the start, exclusive at end.
   //start must be less than end
-  template<int Start, int End, int ...S>
-  struct make_mpl_vector { typedef typename make_mpl_vector<Start,End-1, End-1, S...>::type type; };
+  template<class Sequence, int Start, int End, int ...Indices>
+  struct make_nview
+    {
+    typedef typename make_nview<Sequence,Start,End-1,End-1,Indices...>::type type;
+    };
 
   //generate a mpl vector of incrementing values from Start to End
   //which is inclusive at the start, exclusive at end.F
   //start must be less than end
-  template<int Start, int ...S>
-  struct make_mpl_vector<Start,Start, S...> { typedef boost::mpl::vector_c<int,S...> type; };
+  template<class Sequence, int Start, int ...Indices>
+  struct make_nview<Sequence,Start,Start,Indices...>
+    {
+    typedef typename L_Join<boost::mpl::vector_c,Indices...>::type itemIndices;
+    typedef ::boost::fusion::nview<Sequence,itemIndices> type;
+    };
 
   //determine at compile time the length of a fusion sequence.
   template<class Sequence>
@@ -89,6 +104,14 @@ namespace params
   namespace fusion= ::boost::fusion;
   using fusion::vector;
   using fusion::at_c;
+  using fusion::at;
+
+  //pre GCC 4.7 has a bug with template expansion into
+  //non-variadic class template (aka base case).
+  //see gcc bug 35722, for the workaround I am using.
+  template< template <class...> class T, class... Args>
+  struct Join { typedef T<Args...> type; };
+
 
   //holds a sequence of integers.
   template<int ...>
@@ -110,19 +133,10 @@ namespace params
   struct trim
   {
   private:
-    //use mpl and fusion to construct to nview objects
-    //that will show only a subset of the items
-    typedef typename params::detail::make_mpl_vector<
-                    0,Leading_Number_To_Remove>::type LeadingVectorIndices;
-
-    typedef typename params::detail::make_mpl_vector<
-                    Leading_Number_To_Remove,
-                    params::detail::num_elements<Sequence>::value >::type TrailingVectorIndices;
-
+    enum {size=params::detail::num_elements<Sequence>::value};
   public:
-    typedef fusion::nview<Sequence,LeadingVectorIndices> LeadingView;
-
-    typedef fusion::nview<Sequence,TrailingVectorIndices> TrailingView;
+    typedef typename params::detail::make_nview<Sequence,0,Leading_Number_To_Remove>::type LeadingView;
+    typedef typename params::detail::make_nview<Sequence,Leading_Number_To_Remove,size>::type TrailingView;
 
     LeadingView FrontArgs(Sequence& s) const
     {
@@ -205,7 +219,7 @@ namespace params
             class ... Args>
   void flatten(Functor& f, Args... args)
   {
-    typedef ::params::vector<Args...> Sequence;
+    typedef typename ::params::Join< ::params::vector,Args... >::type Sequence;
     Sequence all_args(args...);
 
     ::params::detail::flatten<
