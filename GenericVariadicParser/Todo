@@ -1,0 +1,14 @@
+Todo:
+
+6. Use a better compiler detector like boost does
+
+Finished:
+
+1. Switch over to boost::tuple
+2. add in code to handle pre processor magic
+3. add in try / compile for c++11 support to determine, what magic we should use
+4. correct pass by reference to be used whenever possible
+4a. front args need to be pass by reference.
+4b. packed args need to be pass by const reference.
+5. Switched over to fusion for majority of work.
+7. find a better algorithm for flatten, can we use views?

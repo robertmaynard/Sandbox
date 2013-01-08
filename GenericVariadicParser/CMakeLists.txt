@@ -1,10 +1,16 @@
 cmake_minimum_required (VERSION 2.8)
 project(GenericVariadicParser)
 
-#enable c++11 support
-list( APPEND CMAKE_CXX_FLAGS "-std=c++0x")
+include(CMake/VariadicSupport.cmake)
 
-find_package(Boost REQUIRED COMPONENTS timer system)
+#runs the try compiles to determine what the current compiler handles
+#also sepcifies the compiler options, and configures the headers to
+#setup a tuple class, and helpers to mimic variadic templates using Boost
+#preprocessor magic if required.
+setupVariadicSupport(utility)
+list(APPEND CMAKE_CXX_FLAGS ${Variadic_CXX_FLAGS})
+
+find_package(Boost 1.49.0 REQUIRED COMPONENTS timer system)
 include_directories(${Boost_INCLUDE_DIRS})
 include_directories(${GenericVariadicParser_SOURCE_DIR})
 

@@ -1,0 +1,42 @@
+#ifndef @tuple_new_namespace@_TUPLE_HPP
+#define @tuple_new_namespace@_TUPLE_HPP
+
+#if @compiler_type@ == @c++11_compiler@
+#include <tuple>
+#include <utility>
+#elif @compiler_type@ == @c++0x_compiler@
+#include <tr1/tuple>
+#include <tr1/utility>
+#elif @compiler_type@ == @c++Boost_compiler@
+#include <boost/fusion/tuple.h>
+#include <boost/fusion/include/std_pair.hpp>
+#endif
+
+
+namespace @tuple_new_namespace@
+{
+#if @compiler_type@ == @c++11_compiler@
+
+  using ::std::tuple;
+  using ::std::get;
+  using ::std::tuple_size;
+  using ::std::tuple_element;
+
+#elif @compiler_type@ == @c++0x_compiler@
+
+  using ::std::tr1::tuple;
+  using ::std::tr1::get;
+  using ::std::tr1::tuple_size;
+  using ::std::tr1::tuple_element;
+
+#elif @compiler_type@ == @c++Boost_compiler@
+
+  using ::boost::fusion::tuple;
+  using ::boost::fusion::get;
+  using ::boost::fusion::tuple_size;
+  using ::boost::fusion::tuple_element;
+
+#endif
+}
+
+#endif

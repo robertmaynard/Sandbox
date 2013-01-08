@@ -1,52 +1,43 @@
 #ifndef __BaseParser_h
 #define __BaseParser_h
 
-#include <tr1/tuple>
-#include <tr1/utility>
-#include <utility>
-#include <iostream>
-
-#include "ParameterPacks.h"
+#include <boost/ref.hpp>
+#include "params.h"
 
 template<class Derived,int Seperate_Args>
 class ParserBase
 {
 
 public:
-  template<typename Functor, typename... Args>
+  template<class Functor, class... Args>
   bool operator()(Functor& f, Args... args) const
   {
-
   //the basic operation is to strip N args
   //from the start of the variadic list and pass
   //those in a unique items to Derived class, and than
-  //pack the rest in a tuple class
-  typedef typename params::ltrim<std::tr1::tuple,Seperate_Args,Args...> ltrimmer;
-  typedef typename ltrimmer::type TrailingTupleType;
+  //pack the rest in a fusion container
 
-  //tuple is the trailing parameters
-  TrailingTupleType trailingArgs = ltrimmer()(args...);
+  typedef typename ::params::Join< ::params::vector,
+            boost::reference_wrapper<Args>...>::type ArgVectorType;
+  ArgVectorType all_args(boost::ref(args)...);
 
-  typedef typename params::rtrim<std::tr1::tuple,Seperate_Args,Args...> rtrimmer;
-  typedef typename rtrimmer::type LeadingTupleType;
+  typedef typename params::trim<ArgVectorType,Seperate_Args> trimmer;
+  typedef typename trimmer::LeadingView LeadingArgsView;
+  typedef typename trimmer::TrailingView TrailingArgsView;
+  trimmer t;
 
-  LeadingTupleType leadingArgs = rtrimmer()(args...);
-
-  //create a structure that holds the indicies of arguments that we want
-  //to pass in as unique items
-  typedef typename detail::generate_sequence<Seperate_Args>::type
-          UniqueIndiciesType;
+  LeadingArgsView leadingArgs = t.FrontArgs(all_args);
+  TrailingArgsView trailingArgs = t.BackArgs(all_args);
 
   //call the helper method that calls the derived class
   //have to pass tuple as first item
-  return this->call_derived_parse(f,
-                                  UniqueIndiciesType(),
-                                  leadingArgs,
-                                  trailingArgs);
+  typedef typename ::params::make_indices<0,Seperate_Args>::type leadingSeqType;
+
+  return this->call_derived_parse(f,leadingSeqType(),leadingArgs,trailingArgs);
   }
 protected:
-  template<typename Functor,
-           typename... Args>
+  template<class Functor,
+           class... Args>
   bool defaultParse(Functor& f,Args... args) const
   {
     params::flatten(f,args...);
@@ -55,20 +46,22 @@ protected:
 
 private:
 
-  template<typename Functor,
-           int... LeadingArgIndices,
-           typename... LeadingArgs,
-           typename... TrailingArgs>
+  template<class Functor,
+           int... Indices,
+           class LeadingArgs,
+           class TrailingArgs>
   bool call_derived_parse(
                   Functor& f,
-                  detail::sequence<LeadingArgIndices...>,
-                  std::tr1::tuple<LeadingArgs...> leadingArgs,
-                  std::tr1::tuple<TrailingArgs...> trailingArgs) const
+                  params::static_indices<Indices...>,
+                  LeadingArgs leading,
+                  TrailingArgs trailing) const
   {
-    return static_cast<const Derived*>(this)->parse(
-            f,
-            std::tr1::get<LeadingArgIndices>(leadingArgs)...,
-            trailingArgs);
+  //expand the leading args into each item and pass those plus trailing to
+  //the derived parser
+   return static_cast<const Derived*>(this)->parse(f,
+                     boost::unwrap_ref( params::at_c<Indices>(leading))...,
+                     trailing);
+  return true;
   };
 };
 
@@ -77,22 +70,19 @@ template<class Derived>
 class ParserBase<Derived,0>
 {
 public:
-  template<typename Functor, typename... Args>
+  template<class Functor, class... Args>
   bool operator()(Functor& f, Args... args) const
   {
 
-  typedef typename params::make_new<std::tr1::tuple,Args...> tupleMaker;
-  typedef typename tupleMaker::type TupleType;
-
-  //tuple is the trailing parameters. I hope we don't have more than 10 items...
-  TupleType tuple = tupleMaker()(args...);
-
-  return static_cast<const Derived*>(this)->parse(f,tuple);
+  typedef typename ::params::Join< ::params::vector,
+            boost::reference_wrapper<Args>...>::type ArgVectorType;
+  ArgVectorType all_args(boost::ref(args)...);
+  return static_cast<const Derived*>(this)->parse(f,all_args);
   }
 protected:
-  template<typename Functor,
-           typename... Args>
-  bool defaultParse(Functor& f,Args... args) const
+  template<class Functor,
+           class... Args>
+  bool defaultParse(Functor& f, Args... args) const
   {
     params::flatten(f,args...);
     return true;
