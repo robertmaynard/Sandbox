@@ -1,3 +1,4 @@
+
 #ifndef __params_common_h
 #define __params_common_h
 
@@ -9,16 +10,8 @@
 
 namespace params
 {
-
-  namespace fusion = ::boost::fusion;
-  using fusion::vector;
-  using fusion::at_c;
-
-  //pre GCC 4.7 has a bug with template expansion into
-  //non-variadic class template (aka base case).
-  //see gcc bug 35722, for the workaround I am using.
-  template< template <class...> class T, class... Args>
-  struct Join { typedef T<Args...> type; };
+  using boost::fusion::at_c;
+  using boost::fusion::vector;
 
   namespace detail
   {
@@ -26,10 +19,34 @@ namespace params
   template<class Sequence>
   struct num_elements
     {
-    enum{value=boost::fusion::result_of::size<Sequence>::type::value};
+    enum{value=::boost::fusion::result_of::size<Sequence>::type::value};
     };
   }
 
+///////////////////////////////////////////////////////////////////////////////
+// Variadic Implementation
+///////////////////////////////////////////////////////////////////////////////
+#if defined(VARIADIC_SUPPORT)
+  //helper wrapper around join when it is needed on older compilers
+  template<class... Args>
+  struct vector_type
+  {
+#if defined(VARIADIC_JOIN_REQUIRED)
+    typedef typename params::detail::join< ::params::vector,Args...>::type type;
+#else
+    typedef ::params::vector<Args...> type;
+#endif //VARIADIC_JOIN_REQUIRED
+  };
+#else //VARIADIC_SUPPORT
+///////////////////////////////////////////////////////////////////////////////
+// Include Preprocessor Implementation
+///////////////////////////////////////////////////////////////////////////////
+  template< __pp_default_class_Args__ >
+  struct vector_type
+  {
+  typedef ::params::vector< __pp_enum_Args__ > type;
+  };
+#endif
 }
 
-#endif
+#endif //__params_common_h
