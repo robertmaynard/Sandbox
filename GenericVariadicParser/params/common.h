@@ -1,4 +1,3 @@
-
 #ifndef __params_common_h
 #define __params_common_h
 
@@ -37,10 +36,10 @@ namespace params
     typedef ::params::vector<Args...> type;
 #endif //VARIADIC_JOIN_REQUIRED
   };
-#else //VARIADIC_SUPPORT
 ///////////////////////////////////////////////////////////////////////////////
 // Include Preprocessor Implementation
 ///////////////////////////////////////////////////////////////////////////////
+#else //VARIADIC_SUPPORT
   template< __pp_default_class_Args__ >
   struct vector_type
   {

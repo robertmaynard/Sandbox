@@ -5,12 +5,11 @@
 
 class DefaultParser : public ParserBase<DefaultParser,0>
 {
-  friend class ParserBase<DefaultParser,0>;
-protected:
+public:
   template<typename Functor, typename OtherArgs>
   bool parse(Functor& f, const OtherArgs& others) const
     {
-    return this->defaultParse(f,others);
+    return params::flatten(f,one,two,others);
     };
 };
 
