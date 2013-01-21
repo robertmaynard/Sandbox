@@ -61,34 +61,39 @@ namespace detail {
 } //namespace params
 
 #else //VARIADIC_SUPPORT
-# define _lview_index__(n) ##n
-# define _rview_index__(n) BOOST_PP_SUB(Length,n)
-# define BOOST_PP_ITERATION_PARAMS_1 (3, (2, FUSION_MAX_VECTOR_SIZE,"params/views.h"))
 
 namespace params
 {
   namespace detail {
-    template<class Sequence, int N> struct make_lview{};
-    template<class Sequence, int Length, int N> struct make_rview{};
+    template<class Sequence, int Offset, int N> struct make_view{};
   } //namespace params::detail
-
-  //iterate to include the implementation of lview and rview
-  #include BOOST_PP_ITERATE()
 
   template<class Sequence, int Size>
   struct make_lview
   {
-    typedef typename ::params::detail::make_lview<Sequence,Size>::type type;
+    typedef typename ::params::detail::make_view<Sequence,0,Size>::type type;
   };
 
   template<class Sequence, int Size>
   struct make_rview
   {
-     enum{ len = ::params::detail::num_elements<Sequence>::value };
-    typedef typename ::params::detail::make_rview<Sequence,len, Size>::type type;
+  private:
+    enum{ len = ::params::detail::num_elements<Sequence>::value,
+          pos = len - Size };
+  public:
+    //supposed to be size since we will do pos+N where n is 0 to Size
+    typedef typename ::params::detail::make_view<Sequence, pos, Size>::type type;
   };
 
 } //namespace params
+
+//iterate to include the implementation of lview and rview
+//lview is a decrement of N as N is 1 based
+# define _view_index__(n) Offset + BOOST_PP_DEC(n)
+# define BOOST_PP_ITERATION_PARAMS_1 (3, (2, FUSION_MAX_VECTOR_SIZE,"params/views.h"))
+#include BOOST_PP_ITERATE()
+# undef _view_index__
+
 
 #endif //VARIADIC_SUPPORT
 #endif //__params_detail_views_h
@@ -101,23 +106,14 @@ namespace params
 {
 namespace detail
 {
-  template<class Sequence>
-  struct make_lview<Sequence, _dax_pp_sizeof___T >
+  template<class Sequence, int Offset>
+  struct make_view<Sequence, Offset, _dax_pp_sizeof___T >
   {
     typedef boost::mpl::vector_c<int,
-                                  _dax_pp_enum___( _lview_index__) > itemIndices;
-    typdef ::boost::fusion::nview<Sequence,itemIndices> type;
-    }
+                                  _dax_pp_enum___( _view_index__ ) > itemIndices;
+    typedef ::boost::fusion::nview<Sequence,itemIndices> type;
   };
 
-  template<class Sequence, int Length>
-  struct make_rview<Sequence, Length, _dax_pp_sizeof___T >
-  {
-    typedef boost::mpl::vector_c<int,
-                                  _dax_pp_enum___( _rview_index__) > itemIndices;
-    typdef ::boost::fusion::nview<Sequence,itemIndices> type;
-    }
-  };
 
 }}  //namespace params::detail
 
