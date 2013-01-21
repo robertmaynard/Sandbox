@@ -10,6 +10,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 #if defined(VARIADIC_SUPPORT)
 
+#include <boost/preprocessor/arithmetic/dec.hpp>
 namespace params
 {
   //holds a sequence of integers.
@@ -52,10 +53,18 @@ namespace params
 }
 
 #else //VARIADIC_SUPPORT
-# define UNWRAP_ARG(n) boost::unwrap_ref( params::at_c<n>(leading))
+# define _unwrap_ref__(n)  boost::unwrap_ref(params::at_c< BOOST_PP_DEC(n) >( leading ))
 # define BOOST_PP_ITERATION_PARAMS_1 (3, (2, FUSION_MAX_VECTOR_SIZE,"params/indices.h"))
-# include BOOST_PP_ITERATE()
-# undef UNWRAP_ARG
+
+namespace params
+{
+template<class Derived, int N> struct variadic_parse{};
+}
+
+#include BOOST_PP_ITERATE()
+
+
+# undef _unwrap_ref__
 #endif //VARIADIC_SUPPORT
 
 #endif //__params_indices_h
@@ -64,19 +73,18 @@ namespace params
 //  Preprocessor vertical repetition code
 ///////////////////////////////////////////////////////////////////////////////
 #else // defined(BOOST_PP_IS_ITERATING)
-
 namespace params
 {
-  template<class Derived, int N>
-  struct variadic_parse
+  template<class Derived>
+  struct variadic_parse<Derived, _dax_pp_sizeof___T >
   {
-   template<class Base, class Functor, class LeadingArgs, class TrailingArgs
-   bool operator()(Base* b, Functor& f, LeadingArgs leading, TrailingArgs trailing)
-   {
-   return static_cast<const Derived*>(b)->parse(f,
-                     _dax_pp_repeat___(UNWRAP_ARG)
-                     trailing);
-   }
+    template<class Base, class Functor, class LeadingArgs, class TrailingArgs>
+    bool operator()(Base* b, Functor& f, LeadingArgs leading, TrailingArgs trailing)
+    {
+    return static_cast<const Derived*>(b)->parse(f,
+                                            _dax_pp_enum___( _unwrap_ref__ ),
+                                            trailing);
+    }
   };
 }
 
