@@ -9,7 +9,7 @@ public:
   template<typename Functor, typename OtherArgs>
   bool parse(Functor& f, const OtherArgs& others) const
     {
-    return params::flatten(f,others);
+    return params::invoke(f,others);
     };
 };
 

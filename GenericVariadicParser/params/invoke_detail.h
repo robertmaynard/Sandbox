@@ -1,5 +1,5 @@
-#ifndef __params_detail_flatten_h
-#define __params_detail_flatten_h
+#ifndef __params_detail_invoke_h
+#define __params_detail_invoke_h
 
 #include <boost/fusion/algorithm/transformation/insert_range.hpp>
 #include <boost/fusion/algorithm/transformation/push_back.hpp>
@@ -48,7 +48,7 @@ namespace params {
 
 
   template< int Size, int Element, class Functor>
-  struct flatten_impl
+  struct invoke_impl
   {
     template<class Item, class Sequence>
     void operator()(Functor& f, Item item, Sequence s,
@@ -57,7 +57,7 @@ namespace params {
     {
       //insert every element in the sequence contained in item to the end
       //of the Sequence s.
-      flatten_impl<Size,Element+1,Functor>()(f,
+      invoke_impl<Size,Element+1,Functor>()(f,
                  fusion::next(item),
                  fusion::insert_range(s,fusion::end(s),fusion::deref(item)));
     }
@@ -68,15 +68,15 @@ namespace params {
                     typename params::detail::is_fusion_sequence<Item>::type >::type* = 0) const
     {
       //push the derefence of the item onto the end of sequence s
-      flatten_impl<Size,Element+1,Functor>()(f,
+      invoke_impl<Size,Element+1,Functor>()(f,
                                    fusion::next(item),
                                    fusion::push_back(s,fusion::deref(item)));
     }
   };
 
-  //termination case of the flatten recursive calls
+  //termination case of the invoke recursive calls
   template< int Size, class Functor>
-  struct flatten_impl<Size, Size, Functor>
+  struct invoke_impl<Size, Size, Functor>
   {
     template<class Item, class Sequence>
     void operator()(Functor& f, Item, Sequence s) const
@@ -88,26 +88,26 @@ namespace params {
 
   //function that starts the flatten recursion when the first item is a sequence
   template< int Size, class Functor, class Item>
-  void flatten(Functor& f, Item item,
+  void invoke(Functor& f, Item item,
                typename boost::enable_if<
                typename params::detail::is_fusion_sequence<Item>::type >::type* = 0)
   {
-    params::detail::flatten_impl<Size,1,Functor>()(f,fusion::next(item),
+    params::detail::invoke_impl<Size,1,Functor>()(f,fusion::next(item),
                                                      fusion::deref(item));
   }
 
   //function that starts the flatten recursion when the first item isn't a sequence
   template< int Size, class Functor, class Item>
-  void flatten(Functor& f, Item item,
+  void invoke(Functor& f, Item item,
                typename boost::disable_if<
                typename params::detail::is_fusion_sequence<Item>::type >::type* = 0)
   {
     typedef typename fusion::result_of::deref<Item>::type ItemDeRef;
     typedef fusion::single_view<ItemDeRef> ItemView;
     ItemView iv(fusion::deref(item));
-    params::detail::flatten_impl<Size,1,Functor>()(f,fusion::next(item),iv);
+    params::detail::invoke_impl<Size,1,Functor>()(f,fusion::next(item),iv);
   }
 
 } } //params::detail
 
-#endif
+#endif //__params_detail_invoke_h

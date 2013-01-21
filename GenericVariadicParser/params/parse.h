@@ -9,7 +9,7 @@
 
 
 //COMMON HAS TO BE FIRST
-#include "flatten.h"
+#include "invoke.h"
 #include "indices.h"
 #include "trim.h"
 
