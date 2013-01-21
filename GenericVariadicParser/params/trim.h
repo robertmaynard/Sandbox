@@ -12,10 +12,12 @@ namespace params
   struct trim
   {
   private:
-    enum {size=params::detail::num_elements<Sequence>::value};
+    enum {r_size =
+      params::detail::num_elements<Sequence>::value - Leading_Number_To_Remove};
   public:
-    typedef typename params::detail::make_nview<Sequence,0,Leading_Number_To_Remove>::type LeadingView;
-    typedef typename params::detail::make_nview<Sequence,Leading_Number_To_Remove,size>::type TrailingView;
+    typedef typename params::make_lview<Sequence,Leading_Number_To_Remove>::type LeadingView;
+
+    typedef typename params::make_rview<Sequence,r_size>::type TrailingView;
 
     LeadingView FrontArgs(Sequence& s) const
     {
