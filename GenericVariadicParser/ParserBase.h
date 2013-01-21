@@ -43,12 +43,12 @@ private:
                   Functor& f,
                   LeadingArgs leading,
                   TrailingArgs trailing) const
-{
+  {
   //call the helper method that calls the derived class
   //have to pass tuple as first item
   typedef typename ::params::make_indices<0,Seperate_Args>::type leadingSeqType;
   return params::variadic_parse<Derived>(this,f,leadingSeqType(),leading,trailing);
-  };
+  }
 };
 
 
@@ -69,7 +69,7 @@ public:
 
 #else //VARIADIC_SUPPORT
 # define _vector_ref_type__(n)  boost::reference_wrapper<Args##n>
-# define _vector_make_ref__(n)  boost::ref(args##n))
+# define _vector_make_ref__(n)  boost::ref(args##n)
 # define BOOST_PP_ITERATION_PARAMS_1 (3, (2, FUSION_MAX_VECTOR_SIZE,"ParserBase.h"))
 # include BOOST_PP_ITERATE()
 # undef __pp_ref_params_Args__
@@ -89,7 +89,7 @@ class ParserBase
 {
 
 public:
-  template<class Functor, __pp_class_Args__>
+  template<class Functor, __pp_class_Args__ >
   bool operator()(Functor& f, __pp_params_Args__(args) ) const
   {
   //the basic operation is to strip N args
@@ -122,7 +122,7 @@ private:
 
   //this is currently what I am stuck figuring out using pre-processor
   return params::variadic_parse<Derived,Seperate_Args>()(this,f,leading,trailing);
-  };
+  }
 };
 
 
