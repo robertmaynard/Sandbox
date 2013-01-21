@@ -9,6 +9,8 @@ public:
   template<typename Functor, typename OtherArgs>
   bool parse(Functor& f, const OtherArgs& others) const
     {
+    const int one=1;
+    float two = {2.0f};
     return params::flatten(f,one,two,others);
     };
 };

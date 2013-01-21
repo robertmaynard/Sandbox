@@ -17,7 +17,7 @@ namespace params
   //that we can call a method with each element of the class
   template< class Functor,
             class ... Args>
-  void flatten(Functor& f, Args... args)
+  bool flatten(Functor& f, Args... args)
   {
     typedef typename ::params::vector_type< Args... >::type Sequence;
     Sequence all_args(args...);
@@ -25,6 +25,8 @@ namespace params
     ::params::detail::flatten<
       ::params::detail::num_elements<Sequence>::value,
       Functor>(f,boost::fusion::begin(all_args));
+
+    return true;
   }
 
 }
@@ -47,7 +49,7 @@ namespace params
   //take an arbitrary class that has a parameter pack and flatten it so
   //that we can call a method with each element of the class
   template< class Functor, __pp_class_Args__>
-  void flatten(Functor& f, __pp_params_Args__(args) )
+  bool flatten(Functor& f, __pp_params_Args__(args) )
   {
     typedef typename ::params::vector_type< __pp_Args__ >::type Sequence;
     Sequence all_args(__pp_values_Args__(args));
@@ -55,6 +57,8 @@ namespace params
     ::params::detail::flatten<
       ::params::detail::num_elements<Sequence>::value,
       Functor>(f,boost::fusion::begin(all_args));
+
+    return true;
   }
 
 }
