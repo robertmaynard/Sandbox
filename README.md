@@ -12,10 +12,14 @@ which is a more c++ like interface to the majority of moab functions.
 ## ExtendTypedef ##
 Meta template utilities to modify and extend a typedef that represents
 a function call. For example it can take something like:
-    void Sig(_1,_2,_3)
+```
+void Sig(_1,_2,_3)
+```
 
 and convert it to
-    void Sig(_1,_2,_4,_3)
+```
+void Sig(_1,_2,_4,_3)
+```
 
 This is all research code to be used in DAX, and this should be only
 used as a draft example of the final implementation.
@@ -50,10 +54,12 @@ derived parser can state it wants only the first two. It than has
 the ability to add parameters or remove the ones it explicitly asked for.
 
 Example:
-    void operator(Functor f, T param1, O param2, RestOfParameters rp)
-    {
-    params::invoke(f,param1,myInsertedParam,param2,rp);
-    }
+```
+void operator(Functor f, T param1, O param2, RestOfParameters rp)
+{
+params::invoke(f,param1,myInsertedParam,param2,rp);
+}
+```
 
 
 ## MoabReader ##
