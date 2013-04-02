@@ -61,11 +61,14 @@ params::invoke(f,param1,myInsertedParam,param2,rp);
 }
 ```
 
-
 ## MoabReader ##
 
 A pretty feature complete VTK reader of MOAB files, can output a moab
 file a single unstructured grid, poly data or multi block.
+
+## NinjaCustomCommand ##
+
+A test case that shows a bug with ninja and CMake custom command.
 
 ## PortConcept ##
 
