@@ -1,0 +1,1 @@
+A test case that shows a bug with ninja and CMake custom command.
