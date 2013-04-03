@@ -14,8 +14,7 @@ add_custom_command(
  )
 
 
-#set_source_files_properties(a.c PROPERTIES OBJECT_OUTPUTS a.txt)
-#set_source_files_properties(b.txt PROPERTIES OBJECT_DEPENDS a.txt)
-
 add_custom_target(B ALL DEPENDS b.txt)
 add_dependencies(B A)
+
+

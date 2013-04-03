@@ -1,0 +1,13 @@
+
+extend global generator to be given a dependency and determine
+if that dependency requires a phony target or not.
+Phony targets are only created for full paths that are inside the build directory
+Global generator is only there to determine if a phony target has already been
+generated. The calling function will have to write out the phony target it self
+if not already written
+
+Extend WriteCustomCommandBuild to call the previous function for each dependency
+and write out the phony target for any that aren;t in the set
+
+Add a test case to cmake to explicitly test this.
+
