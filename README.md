@@ -1,6 +1,14 @@
 Develop your Castle making skills in the Sandbox.
 
 
+## Check CXX Symbols Exist ##
+A look at what we would have to change to have CMake find templated
+function signatures.
+
+## Cuda Ptxas ##
+Trying to replicate a cuda compile bug I encountered when building dax, with
+Cuda 5.5
+
 ## Conceptual Executive ##
 An attempt at a delayed worklet invocation pipeline for dax.
 
