@@ -7,15 +7,23 @@
 #
 #  TBB_FOUND - system has TBB
 #  TBB_INCLUDE_DIRS - the TBB include directories
-#  TBB_LIBRARIES - link these to use TBB
+#  TBB_LIBRARIES - TBB libraries to be lined, doesn't include malloc or
+#                  malloc proxy
+#
+#  TBB_VERSION_MAJOR - Major Product Version Number
+#  TBB_VERSION_MINOR - Minor Product Version Number
+#  TBB_INTERFACE_VERSION - Engineering Focused Version Number
+#  TBB_COMPATIBLE_INTERFACE_VERSION - The oldest major interface version
+#                                     still supported. This uses the engineering
+#                                     focused interface version numbers.
 #
 #  TBB_MALLOC_FOUND - system has TBB malloc library
-#  TBB_MALLOC_INCLUDE_DIRS
-#  TBB_MALLOC_LIBRARIES
+#  TBB_MALLOC_INCLUDE_DIRS - the TBB malloc include directories
+#  TBB_MALLOC_LIBRARIES - The TBB malloc libraries to be lined
 #
 #  TBB_MALLOC_PROXY_FOUND - system has TBB malloc proxy library
-#  TBB_MALLOC_PROXY_INCLUDE_DIRS
-#  TBB_MALLOC_PROXY_LIBRARIES
+#  TBB_MALLOC_PROXY_INCLUDE_DIRS = the TBB malloc proxy include directories
+#  TBB_MALLOC_PROXY_LIBRARIES - The TBB malloc proxy libraries to be lined
 #
 #
 # This module reads hints about search locations from variables:
@@ -54,6 +62,50 @@
 #  FindTBB helper functions and macros
 #
 
+#===============================================
+# Create search paths based on prefix path
+#===============================================
+macro(create_search_paths PREFIX)
+  foreach(dir ${${PREFIX}_PREFIX_PATH})
+    set(${PREFIX}_INC_SEARCH_PATH ${${PREFIX}_INC_SEARCH_PATH}
+      ${dir}/include ${dir}/Include ${dir}/include/${PREFIX})
+    set(${PREFIX}_LIB_SEARCH_PATH ${${PREFIX}_LIB_SEARCH_PATH}
+      ${dir}/lib ${dir}/Lib ${dir}/lib/${PREFIX} ${dir}/Libs)
+  endforeach(dir)
+endmacro(create_search_paths)
+
+#===============================================
+# Do the final processing for the package find.
+#===============================================
+macro(findpkg_finish PREFIX)
+  # skip if already processed during this run
+  if (NOT ${PREFIX}_FOUND)
+    if (${PREFIX}_INCLUDE_DIR AND ${PREFIX}_LIBRARY)
+      set(${PREFIX}_FOUND TRUE)
+      set (${PREFIX}_INCLUDE_DIRS ${${PREFIX}_INCLUDE_DIR})
+      set (${PREFIX}_LIBRARIES ${${PREFIX}_LIBRARY})
+    else ()
+      if (${PREFIX}_FIND_REQUIRED AND NOT ${PREFIX}_FIND_QUIETLY)
+        message(FATAL_ERROR "Required library ${PREFIX} not found.")
+      endif ()
+    endif ()
+
+   #mark the following variables as internal variables
+   mark_as_advanced(${PREFIX}_INCLUDE_DIR
+                    ${PREFIX}_LIBRARY
+                    ${PREFIX}_LIBRARY_DEBUG
+                    ${PREFIX}_LIBRARY_RELEASE)
+  endif ()
+endmacro(findpkg_finish)
+
+#===============================================
+# Generate debug names from given RELEASEease names
+#===============================================
+macro(get_debug_names PREFIX)
+  foreach(i ${${PREFIX}})
+    set(${PREFIX}_DEBUG ${${PREFIX}_DEBUG} ${i}d ${i}D ${i}_d ${i}_D ${i}_debug ${i})
+  endforeach(i)
+endmacro(get_debug_names)
 
 #===============================================
 # See if we have env vars to help us find tbb
@@ -67,90 +119,18 @@ macro(getenv_path VAR)
 endmacro(getenv_path)
 
 #===============================================
-# clear vars if the user changes them
-#===============================================
-macro(clear_if_changed TESTVAR)
-  # test against internal check variable
-  # HACK: Apparently, adding a variable to the cache cleans up the list
-  # a bit. We need to also remove any empty strings from the list, but
-  # at the same time ensure that we are actually dealing with a list.
-  list(APPEND ${TESTVAR} "")
-  list(REMOVE_ITEM ${TESTVAR} "")
-  if (NOT "${${TESTVAR}}" STREQUAL "${${TESTVAR}_INT_CHECK}")
-    message(STATUS "${TESTVAR} changed.")
-    foreach(var ${ARGN})
-      set(${var} "NOTFOUND" CACHE STRING "x" FORCE)
-    endforeach(var)
-  endif ()
-  set(${TESTVAR}_INT_CHECK ${${TESTVAR}} CACHE INTERNAL "x" FORCE)
-endmacro(clear_if_changed)
-
-#===============================================
-# Generate debug names from given release names
-#===============================================
-macro(get_debug_names PREFIX)
-  foreach(i ${${PREFIX}})
-    set(${PREFIX}_DBG ${${PREFIX}_DBG} ${i}d ${i}D ${i}_d ${i}_D ${i}_debug ${i})
-  endforeach(i)
-endmacro(get_debug_names)
-
-
-#===============================================
-# Couple a set of release AND debug libraries
+# Couple a set of RELEASEease AND debug libraries
 #===============================================
 macro(make_library_set PREFIX)
-  if (${PREFIX}_REL AND ${PREFIX}_DBG)
-    set(${PREFIX} optimized ${${PREFIX}_REL} debug ${${PREFIX}_DBG})
-  elseif (${PREFIX}_REL)
-    set(${PREFIX} ${${PREFIX}_REL})
-  elseif (${PREFIX}_DBG)
-    set(${PREFIX} ${${PREFIX}_DBG})
+  if (${PREFIX}_RELEASE AND ${PREFIX}_DEBUG)
+    set(${PREFIX} optimized ${${PREFIX}_RELEASE} debug ${${PREFIX}_DEBUG})
+  elseif (${PREFIX}_RELEASE)
+    set(${PREFIX} ${${PREFIX}_RELEASE})
+  elseif (${PREFIX}_DEBUG)
+    set(${PREFIX} ${${PREFIX}_DEBUG})
   endif ()
 endmacro(make_library_set)
 
-#===============================================
-# Do the final processing for the package find.
-#===============================================
-macro(create_search_paths PREFIX)
-  foreach(dir ${${PREFIX}_PREFIX_PATH})
-    set(${PREFIX}_INC_SEARCH_PATH ${${PREFIX}_INC_SEARCH_PATH}
-      ${dir}/include ${dir}/Include ${dir}/include/${PREFIX} ${dir}/Headers)
-    set(${PREFIX}_LIB_SEARCH_PATH ${${PREFIX}_LIB_SEARCH_PATH}
-      ${dir}/lib ${dir}/Lib ${dir}/lib/${PREFIX} ${dir}/Libs)
-    set(${PREFIX}_BIN_SEARCH_PATH ${${PREFIX}_BIN_SEARCH_PATH}
-      ${dir}/bin)
-  endforeach(dir)
-  if(ANDROID)
-    set(${PREFIX}_LIB_SEARCH_PATH ${${PREFIX}_LIB_SEARCH_PATH} ${OGRE_DEPENDENCIES_DIR}/lib/${ANDROID_ABI})
-  endif()
-  set(${PREFIX}_FRAMEWORK_SEARCH_PATH ${${PREFIX}_PREFIX_PATH})
-endmacro(create_search_paths)
-
-#===============================================
-# Do the final processing for the package find.
-#===============================================
-macro(findpkg_finish PREFIX)
-  # skip if already processed during this run
-  if (NOT ${PREFIX}_FOUND)
-    if (${PREFIX}_INCLUDE_DIR AND ${PREFIX}_LIBRARY)
-      set(${PREFIX}_FOUND TRUE)
-      set(${PREFIX}_INCLUDE_DIRS ${${PREFIX}_INCLUDE_DIR})
-      set(${PREFIX}_LIBRARIES ${${PREFIX}_LIBRARY})
-      if (NOT ${PREFIX}_FIND_QUIETLY)
-        message(STATUS "Found ${PREFIX}: ${${PREFIX}_LIBRARIES}")
-      endif ()
-    else ()
-      if (NOT ${PREFIX}_FIND_QUIETLY)
-        message(STATUS "Could not locate ${PREFIX}")
-      endif ()
-      if (${PREFIX}_FIND_REQUIRED)
-        message(FATAL_ERROR "Required library ${PREFIX} not found! Install the library (including dev packages) and try again. If the library is already installed, set the missing variables manually in cmake.")
-      endif ()
-    endif ()
-
-    mark_as_advanced(${PREFIX}_INCLUDE_DIR ${PREFIX}_LIBRARY ${PREFIX}_LIBRARY_REL ${PREFIX}_LIBRARY_DBG ${PREFIX}_LIBRARY_FWK)
-  endif ()
-endmacro(findpkg_finish)
 
 #=============================================================================
 #  Now to actually find TBB
@@ -158,20 +138,14 @@ endmacro(findpkg_finish)
 
 # Get path, convert backslashes as ${ENV_${var}}
 getenv_path(TBB_ROOT)
-
-# get the arch, only used by windows
-set(TBB_ARCH_PLATFORM $ENV{TBB_ARCH_PLATFORM})
-
 # construct search paths
 set(TBB_PREFIX_PATH ${TBB_ROOT} ${ENV_TBB_ROOT})
+create_search_paths(TBB)
 
-# redo search if prefix path changed
-clear_if_changed(
-  TBB_PREFIX_PATH
-  TBB_LIBRARY_REL
-  TBB_LIBRARY_DBG
-  TBB_INCLUDE_DIR
-  )
+# get the arch, only used by windows
+if($ENV{TBB_ARCH_PLATFORM})
+    set(TBB_ARCH_PLATFORM $ENV{TBB_ARCH_PLATFORM})
+endif()
 
 # For Windows, let's assume that the user might be using the precompiled
 # TBB packages from the main website. These use a rather awkward directory
@@ -224,60 +198,86 @@ get_debug_names(TBB_LIBRARY_NAMES)
 
 find_path(TBB_INCLUDE_DIR
           NAMES tbb/tbb.h
-          HINTS ${TBB_PREFIX_PATH}
-         )
+          PATHS ${TBB_INC_SEARCH_PATH})
 
-find_library(TBB_LIBRARY_REL
+find_library(TBB_LIBRARY_RELEASE
              NAMES ${TBB_LIBRARY_NAMES}
-             HINTS ${TBB_PREFIX_PATH}
-             )
-
-find_library(TBB_LIBRARY_DBG
-             NAMES ${TBB_LIBRARY_NAMES_DBG}
-             HINTS ${TBB_PREFIX_PATH})
-
+             PATHS ${TBB_LIB_SEARCH_PATH})
+find_library(TBB_LIBRARY_DEBUG
+             NAMES ${TBB_LIBRARY_NAMES_DEBUG}
+             PATHS ${TBB_LIB_SEARCH_PATH})
 make_library_set(TBB_LIBRARY)
+
 findpkg_finish(TBB)
 
+#if we haven't found TBB no point on going any further
 if (NOT TBB_FOUND)
   return()
 endif ()
 
-
+#=============================================================================
 # Look for TBB's malloc package
 set(TBB_MALLOC_LIBRARY_NAMES tbbmalloc)
 get_debug_names(TBB_MALLOC_LIBRARY_NAMES)
 
 find_path(TBB_MALLOC_INCLUDE_DIR
           NAMES tbb/tbb.h
-          PATHS ${TBB_PREFIX_PATH})
+          PATHS ${TBB_INC_SEARCH_PATH})
 
-find_library(TBB_MALLOC_LIBRARY_REL
+find_library(TBB_MALLOC_LIBRARY_RELEASE
              NAMES ${TBB_MALLOC_LIBRARY_NAMES}
-             PATHS ${TBB_PREFIX_PATH})
-
-find_library(TBB_MALLOC_LIBRARY_DBG
-             NAMES ${TBB_MALLOC_LIBRARY_NAMES_DBG}
-             PATHS ${TBB_PREFIX_PATH})
-
+             PATHS ${TBB_LIB_SEARCH_PATH})
+find_library(TBB_MALLOC_LIBRARY_DEBUG
+             NAMES ${TBB_MALLOC_LIBRARY_NAMES_DEBUG}
+             PATHS ${TBB_LIB_SEARCH_PATH})
 make_library_set(TBB_MALLOC_LIBRARY)
+
 findpkg_finish(TBB_MALLOC)
 
+#=============================================================================
 # Look for TBB's malloc proxy package
 set(TBB_MALLOC_PROXY_LIBRARY_NAMES tbbmalloc_proxy)
 get_debug_names(TBB_MALLOC_PROXY_LIBRARY_NAMES)
 
 find_path(TBB_MALLOC_PROXY_INCLUDE_DIR
           NAMES tbb/tbbmalloc_proxy.h
-          PATHS ${TBB_PREFIX_PATH})
+          PATHS ${TBB_INC_SEARCH_PATH})
 
-find_library(TBB_MALLOC_PROXY_LIBRARY_REL
+find_library(TBB_MALLOC_PROXY_LIBRARY_RELEASE
              NAMES ${TBB_MALLOC_PROXY_LIBRARY_NAMES}
-             PATHS ${TBB_PREFIX_PATH})
-
-find_library(TBB_MALLOC_PROXY_LIBRARY_DBG
-             NAMES ${TBB_MALLOC_PROXY_LIBRARY_NAMES_DBG}
-             PATHS ${TBB_PREFIX_PATH})
-
+             PATHS ${TBB_LIB_SEARCH_PATH})
+find_library(TBB_MALLOC_PROXY_LIBRARY_DEBUG
+             NAMES ${TBB_MALLOC_PROXY_LIBRARY_NAMES_DEBUG}
+             PATHS ${TBB_LIB_SEARCH_PATH})
 make_library_set(TBB_MALLOC_PROXY_LIBRARY)
+
 findpkg_finish(TBB_MALLOC_PROXY)
+
+
+#=============================================================================
+#parse all the version numbers from tbb
+if(NOT TBB_VERSION)
+
+ #only read the start of the file
+ file(READ
+      "${TBB_INCLUDE_DIR}/tbb/tbb_stddef.h"
+      TBB_VERSION_CONTENTS
+      LIMIT 2048)
+
+  string(REGEX REPLACE
+    ".*#define TBB_VERSION_MAJOR ([0-9]+).*" "\\1"
+    TBB_VERSION_MAJOR "${TBB_VERSION_CONTENTS}")
+
+  string(REGEX REPLACE
+    ".*#define TBB_VERSION_MINOR ([0-9]+).*" "\\1"
+    TBB_VERSION_MINOR "${TBB_VERSION_CONTENTS}")
+
+  string(REGEX REPLACE
+        ".*#define TBB_INTERFACE_VERSION ([0-9]+).*" "\\1"
+        TBB_INTERFACE_VERSION "${TBB_VERSION_CONTENTS}")
+
+  string(REGEX REPLACE
+        ".*#define TBB_COMPATIBLE_INTERFACE_VERSION ([0-9]+).*" "\\1"
+        TBB_COMPATIBLE_INTERFACE_VERSION "${TBB_VERSION_CONTENTS}")
+
+endif()
