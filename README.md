@@ -79,6 +79,11 @@ Example of converting vtkIdLists or vtkIdType* to a string key that can be used
 for unique comparison. This string that is generated will be based on the sorted
 order of the ids
 
+## Low Level Dax ##
+
+An example of writing vis algorithms using everything but the Dax Scheduler
+infrastructure.
+
 ## MoabReader ##
 
 A pretty feature complete VTK reader of MOAB files, can output a moab
