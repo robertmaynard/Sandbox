@@ -21,19 +21,25 @@ PROVIDE
 MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
 =========================================================================*/
 
-#include "ShibokenExample.h"
+#include "ShibokenItem.h"
+namespace a {
+namespace b {
 
-ShibokenExample::ShibokenExample()
+ShibokenItem::ShibokenItem()
 {
-  std::set<int> example;
-  for(int i=0; i < 10; ++i)
+  for(int i=0; i < 50; ++i)
     {
-    example.insert(0);
+    a::IntSet example;
+    for(int j=0; j < 10; ++j)
+      { example.insert(j); }
+    this->m_data[i]=example;
     }
-  this->m_crashShiboken[0]=example;
 }
 
-const std::set<int>& ShibokenExample::get_values(int i) const
+const a::IntSet& ShibokenItem::get_values(int i) const
 {
-  return (this->m_crashShiboken.find(i))->second;
+  return (this->m_data.find(i))->second;
+}
+
+}
 }

@@ -86,7 +86,58 @@
         </conversion-rule>
     </container-type>
 
-  <object-type name="ShibokenExample" />
+
+  <container-type name="std::set" type="set">
+    <include file-name="set" location="global"/>
+
+    <conversion-rule>
+
+      <native-to-target>
+      PyObject* %out = PySet_New(0);
+      %INTYPE::const_iterator it;
+      for (it = %in.begin(); it != %in.end(); ++it) {
+        %INTYPE_0 value = *it;
+        PyObject* pyValue = %CONVERTTOPYTHON[%INTYPE_0](value);
+        PySet_Add(%out, pyValue);
+      }
+      return %out;
+      </native-to-target>
+
+      <target-to-native>
+
+        <add-conversion type="PySet">
+        Shiboken::AutoDecRef iter(PyObject_GetIter(%in));
+        if (iter.object()) {
+          PyObject* item;
+          while ((item = PyIter_Next(iter))) {
+            %OUTTYPE_0 cppItem = %CONVERTTOCPP[%OUTTYPE_0](item);
+            %out.insert(cppItem);
+            Py_DECREF(item);
+          }
+        }
+        </add-conversion>
+
+        <add-conversion type="PySequence">
+        Shiboken::AutoDecRef seq(PySequence_Fast(%in, 0));
+        Py_ssize_t vectorSize = PySequence_Fast_GET_SIZE(seq.object());
+        for (Py_ssize_t idx = 0; idx &lt; vectorSize; ++idx) {
+          PyObject* pyItem = PySequence_Fast_GET_ITEM(seq.object(), idx);
+          %OUTTYPE_0 cppItem = %CONVERTTOCPP[%OUTTYPE_0](pyItem);
+          %out.insert(cppItem);
+        }
+        </add-conversion>
+
+      </target-to-native>
+
+    </conversion-rule>
+  </container-type>
+
+<namespace-type name="a">
+  <namespace-type name="b">
+    <object-type name="ShibokenManager" />
+    <object-type name="ShibokenItem" />
+  </namespace-type>
+</namespace-type>
 
 </typesystem>
 

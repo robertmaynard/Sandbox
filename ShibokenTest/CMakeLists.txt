@@ -1,21 +1,23 @@
 cmake_minimum_required(VERSION 2.8)
-project(ShibokenExample)
-
-set(srcs ShibokenExample.h ShibokenExample.cxx)
+project(ShibokenItem)
 find_package(Shiboken REQUIRED)
 
-add_library(ShibokenExampleLibs SHARED ${srcs})
+set(srcs
+    ShibokenItem.cxx
+    ShibokenManager.cxx)
 
+add_library(ShibokenItemLibs SHARED ${srcs})
 
 set(type_system_file "${CMAKE_CURRENT_SOURCE_DIR}/typesystem.xml")
 set(global_header_file "${CMAKE_CURRENT_SOURCE_DIR}/global.h")
 set(binding_file "${CMAKE_CURRENT_BINARY_DIR}/binding.txt")
 
-set(generated_sources "${CMAKE_CURRENT_BINARY_DIR}/Example/shibokenexample_wrapper.cpp")
+set(generated_sources "${CMAKE_CURRENT_BINARY_DIR}/Example/a_b_ShibokenItem_wrapper.cpp")
+set(generated_sources "${CMAKE_CURRENT_BINARY_DIR}/Example/a_b_ShibokenManager_wrapper.cpp")
 
 
-set(typesystem_includes ${ShibokenExample_SOURCE_DIR}
-                        ${ShibokenExample_BINARY_DIR})
+set(typesystem_includes ${ShibokenItem_SOURCE_DIR}
+                        ${ShibokenItem_BINARY_DIR})
 
 #shiboken wants a colon separated list not a semicolon.
 string(REPLACE ";" ":" typesystem_formatted_includes "${typesystem_includes}")
@@ -28,10 +30,10 @@ configure_file("${CMAKE_CURRENT_SOURCE_DIR}/binding.txt.in"
 #now we can actuall call shiboken
 add_custom_command(OUTPUT ${generated_sources}
 COMMAND ${SHIBOKEN_BINARY} --project-file=${binding_file}
-DEPENDS ShibokenExampleLibs ${type_system_file}
+DEPENDS ShibokenItemLibs ${type_system_file}
         ${global_header_file}
 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-COMMENT "Running generator for 'ShibokenExampleLibs' python bindings"
+COMMENT "Running generator for 'ShibokenItemLibs' python bindings"
 )
 
 include_directories( ${CMAKE_CURRENT_BINARY_DIR}
@@ -39,11 +41,11 @@ include_directories( ${CMAKE_CURRENT_BINARY_DIR}
                      ${SHIBOKEN_INCLUDE_DIR}
                      ${typesystem_includes} )
 
-set(wrapped_name ShibokenExampleLibsPython)
+set(wrapped_name ShibokenItemLibsPython)
 add_library(${wrapped_name} MODULE ${generated_sources})
 set_property(TARGET ${wrapped_name} PROPERTY PREFIX "")
 target_link_libraries(${wrapped_name}
-                      ShibokenExampleLibs
+                      ShibokenItemLibs
                       ${SHIBOKEN_LIBRARY}
                       ${SHIBOKEN_PYTHON_LIBRARIES})
 

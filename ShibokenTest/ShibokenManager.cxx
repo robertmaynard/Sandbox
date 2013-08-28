@@ -21,22 +21,16 @@ PROVIDE
 MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
 =========================================================================*/
 
-#ifndef ShibokenExample_h
-#define ShibokenExample_h
+#include "ShibokenItem.h"
+#include "ShibokenManager.h"
 
-#include <map>
-#include <set>
+namespace a{
+namespace b{
 
-class ShibokenExample
+ShibokenManager::ShibokenManager()
 {
-  public:
-    ShibokenExample();
+  this->m_item = a::SharedItem(new a::b::ShibokenItem() );
+}
 
-    const std::set<int>& get_values(int i) const;
-
-  protected:
-    std::map< int , std::set<int> > m_crashShiboken;
-};
-
-
-#endif
+}
+}
