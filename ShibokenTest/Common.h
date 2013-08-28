@@ -11,6 +11,5 @@ namespace a
     class ShibokenItem;
     }
 
-  typedef std::set<int> IntSet;
   typedef std::tr1::shared_ptr< a::b::ShibokenItem > SharedItem;
 }

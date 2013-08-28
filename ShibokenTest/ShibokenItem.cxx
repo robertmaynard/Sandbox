@@ -29,14 +29,14 @@ ShibokenItem::ShibokenItem()
 {
   for(int i=0; i < 50; ++i)
     {
-    a::IntSet example;
+    std::set<int> example;
     for(int j=0; j < 10; ++j)
       { example.insert(j); }
     this->m_data[i]=example;
     }
 }
 
-const a::IntSet& ShibokenItem::get_values(int i) const
+const std::set<int>& ShibokenItem::get_values(int i) const
 {
   return (this->m_data.find(i))->second;
 }

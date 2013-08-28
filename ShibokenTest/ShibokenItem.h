@@ -33,10 +33,10 @@ class ShibokenItem
   public:
     ShibokenItem();
 
-    const a::IntSet& get_values(int i) const;
+    const std::set<int> & get_values(int i) const;
 
-  protected:
-    std::map< int , a::IntSet > m_data;
+  private:
+    std::map< int , std::set<int> > m_data;
 };
 
 
