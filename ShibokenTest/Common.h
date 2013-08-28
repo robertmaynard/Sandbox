@@ -11,5 +11,7 @@ namespace a
     class ShibokenItem;
     }
 
-  typedef std::tr1::shared_ptr< a::b::ShibokenItem > SharedItem;
+  using std::tr1::shared_ptr;
+
+  typedef a::shared_ptr< a::b::ShibokenItem > SharedItem;
 }

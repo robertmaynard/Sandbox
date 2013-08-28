@@ -34,13 +34,13 @@ class ShibokenManager
     ShibokenManager();
     virtual ~ShibokenManager(){};
 
-    std::tr1::shared_ptr< a::b::ShibokenItem >  get_item() const
+    a::SharedItem  get_item() const
       { return this->m_item; }
 
-    virtual std::tr1::shared_ptr< a::b::ShibokenItem >  find_item(const std::string& item_name) const =0;
+    virtual a::SharedItem  find_item(const std::string& item_name) const =0;
 
   protected:
-    std::tr1::shared_ptr< a::b::ShibokenItem >  m_item;
+    a::SharedItem  m_item;
 };
 
 

@@ -128,12 +128,12 @@
   </container-type> -->
 
 
-  <type-template name="std::tr1::shared_ptr">
+  <type-template name="a::shared_ptr">
     <include file-name="memory" location="global"/>
     <arg redirect="%CPPSELF-&gt;get()-&gt;"/>
   </type-template>
 
-  <value-type template="std::tr1::shared_ptr" args="a::b::ShibokenItem"/>
+  <value-type template="a::shared_ptr" args="a::b::ShibokenItem"/>
 
   <namespace-type name="a">
     <namespace-type name="b">
