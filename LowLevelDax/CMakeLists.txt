@@ -7,8 +7,11 @@ DaxConfigureSerial(REQUIRED)
 DaxConfigureTBB()
 DaxConfigureCuda()
 
-add_executable(ExampleThreshold threshold.cxx)
+add_executable(Threshold threshold.cxx)
+add_executable(RenderThreshold render_threshold.cxx)
 
 #setup the default device adapter to be tbb
-set_target_properties(ExampleThreshold PROPERTIES COMPILE_DEFINITIONS
+set_target_properties(Threshold PROPERTIES COMPILE_DEFINITIONS
+                      "DAX_DEVICE_ADAPTER=DAX_DEVICE_ADAPTER_TBB")
+set_target_properties(RenderThreshold PROPERTIES COMPILE_DEFINITIONS
                       "DAX_DEVICE_ADAPTER=DAX_DEVICE_ADAPTER_TBB")
