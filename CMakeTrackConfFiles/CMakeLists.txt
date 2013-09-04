@@ -1,5 +1,5 @@
 #tracking of configured files was only introduced in CMake 2.8.12
-cmake_minimum_required(VERSION 2.8.12)
+cmake_minimum_required(VERSION 2.8.11)
 
 project(CMakeTrackConfFiles CXX)
 
@@ -15,6 +15,9 @@ set_property(SOURCE main.cxx PROPERTY GENERATED)
 #configure and than delete a file that we don't want to track
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/to_delete.h.in
                ${CMAKE_CURRENT_BINARY_DIR}/to_delete.h
+               COPYONLY)
+configure_file(${CMAKE_CURRENT_BINARY_DIR}/to_delete.h
+               ${CMAKE_CURRENT_BINARY_DIR}/resulting_file.h
                COPYONLY)
 file(REMOVE ${CMAKE_CURRENT_BINARY_DIR}/to_delete.h)
 
