@@ -236,7 +236,7 @@ struct TestOnAllGridTypes
   }
 };
 
-int main()
+int main(int, char**)
 {
   //load up a uniform grid and point based array and threshold
   //this is a basic example of using the Threshold
