@@ -1,3 +1,5 @@
+//Description:
+//Show how we can threshold any arbitrary dataset inside of dax.
 
 #include <dax/cont/DeviceAdapter.h>
 #include <dax/cont/ArrayHandle.h>
@@ -7,11 +9,17 @@
 #include <dax/CellTag.h>
 #include <dax/CellTraits.h>
 
+//headers needed for testing
+#include <dax/cont/testing/TestingGridGenerator.h>
+
 //exec headers we need
 #include <dax/exec/internal/WorkletBase.h> //required for error handling
 #include <dax/exec/CellVertices.h>
 
+#include <algorithm>
 #include <iostream>
+#include <numeric>
+#include <vector>
 
 //The functor used to determine if a single cell passes the threshold reqs
 template<class GridType, class T>
@@ -191,7 +199,9 @@ void ThresholdExample(GridType grid, std::vector<T> &array,
   OutGridType outGrid;
   outGrid.SetPointCoordinates(grid.GetPointCoordinates());
 
-  // //now time to do the actual cell sub-setting
+  //now time to do the actual cell sub-setting
+  //since we are doing a cell sub-set we don't need to find the subset
+  //of the property that we thresholded on
   cell_subset<GridType,OutGridType> cs(grid,outGrid,cellUpperBounds);
   DeviceAdapter::Schedule(cs,cellUpperBounds.GetNumberOfValues());
 
@@ -201,17 +211,50 @@ void ThresholdExample(GridType grid, std::vector<T> &array,
 
 };
 
+//helper class so we can test on all grid types
+struct TestOnAllGridTypes
+{
+  template<typename GridType>
+  DAX_CONT_EXPORT
+  void operator()(const GridType&) const
+  {
+    //grid size is 4*4*4 cells
+    dax::cont::testing::TestGrid<GridType> grid(4);
+
+    std::vector<float> data_store(5*5*5);
+
+    //fill the vector with random numbers
+    std::srand(42); //I like this seed :-)
+    std::generate(data_store.begin(),data_store.end(),std::rand);
+
+    const float sum = std::accumulate(data_store.begin(),data_store.end(),0.0f);
+    const float average = sum / static_cast<float>(data_store.size());
+    const float max = *(std::max_element(data_store.begin(),data_store.end()));
+
+    //use the average as the min boundary so we get only a subset
+    ThresholdExample(grid.GetRealGrid(),data_store,average,max);
+  }
+};
+
 int main()
 {
-
   //load up a uniform grid and point based array and threshold
-
+  //this is a basic example of using the Threshold
   dax::cont::UniformGrid<> grid;
   grid.SetExtent( dax::Id3(0,0,0), dax::Id3(4,4,4) );
 
+  //use an array which every value will pass
   std::vector<float> data_store(5*5*5,25);
   float min=0, max=100;
 
   ThresholdExample(grid,data_store,min,max);
+
+
+  //next we are going to use the dax testing infastructure to pump this
+  //example through every grid structure and cell type.
+  //so that we show we can threshold voxels, triangles, wedges, verts, etc
+
+  dax::cont::testing::GridTesting::TryAllGridTypes(TestOnAllGridTypes());
+
 
 }
