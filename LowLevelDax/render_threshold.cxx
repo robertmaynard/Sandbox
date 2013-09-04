@@ -1,3 +1,4 @@
+
 //Description:
 //Threshold a voxel dataset where we only extract the exterior faces and
 //pass those faces to openGL for rendering
@@ -24,8 +25,14 @@
 #include <numeric>
 #include <vector>
 
+namespace
+{
+typedef dax::Tuple<dax::Vector3,24> QuadCoordType;
+typedef dax::Tuple<dax::Vector3,6> QuadNormalType;
+typedef dax::Tuple<unsigned char,24> QuadColorType;
+
 //The functor used to determine if a single cell passes the threshold reqs
-template<class T>
+template<typename T>
 struct threshold_voxel : public dax::exec::internal::WorkletBase
 {
   //we inherit from WorkletBase so that we can throw errors in the exec
@@ -36,7 +43,7 @@ struct threshold_voxel : public dax::exec::internal::WorkletBase
 
   //hold a portal so that we can get values in the exec env
   typedef typename dax::cont::ArrayHandle< T >::PortalConstExecution PortalType;
-  PortalType ValuePortal;
+  PortalType Values;
 
   //holds the array of of what cells pass or fail the threshold reqs
   typedef dax::cont::ArrayHandle< int >::PortalExecution OutPortalType;
@@ -47,10 +54,11 @@ struct threshold_voxel : public dax::exec::internal::WorkletBase
 
   DAX_CONT_EXPORT
   threshold_voxel(const dax::cont::UniformGrid< >& grid,
-                 dax::cont::ArrayHandle<T> values, T min, T max,
+                 const dax::cont::ArrayHandle<T>& values,
+                 T min, T max,
                  dax::cont::ArrayHandle<int> passes):
   Topology(grid.PrepareForInput()), //upload grid topology to exec env
-  ValuePortal(values.PrepareForInput()), //upload values to exec env
+  Values(values.PrepareForInput()), //upload values to exec env
   MinValue(min),
   MaxValue(max),
   PassesThreshold(passes.PrepareForOutput( grid.GetNumberOfCells() ))
@@ -71,7 +79,7 @@ struct threshold_voxel : public dax::exec::internal::WorkletBase
     int valid = 1;
     for(int i=0; i < dax::CellTraits<CellTag>::NUM_VERTICES; ++i)
       {
-      const T value = this->ValuePortal.Get( verts[i] );
+      const T value = this->Values.Get( verts[i] );
       valid &= value >= this->MinValue && value <= this->MaxValue;
       }
     this->PassesThreshold.Set(cell_index,valid);
@@ -99,8 +107,8 @@ struct number_of_valid_neighhbors: public dax::exec::internal::WorkletBase
 
   DAX_CONT_EXPORT
   number_of_valid_neighhbors(const dax::cont::UniformGrid< >& grid,
-                 dax::cont::ArrayHandle<int> valid_cell_ids,
-                 dax::cont::ArrayHandle<int> cell_counts,
+                 const dax::cont::ArrayHandle<int>& valid_cell_ids,
+                 const dax::cont::ArrayHandle<int>& cell_counts,
                  dax::cont::ArrayHandle<bool> should_render):
   ValidCellIds(valid_cell_ids.PrepareForInput()),
   CellCountPortal(cell_counts.PrepareForInput()),
@@ -140,12 +148,78 @@ struct number_of_valid_neighhbors: public dax::exec::internal::WorkletBase
     }
 };
 
-
-struct make_faces
+template<typename T>
+struct make_faces : public dax::exec::internal::WorkletBase
 {
+  typedef dax::CellTagVoxel CellTag;
+
+  //hold a portal so that we can get values in the exec env
+  typedef typename dax::cont::ArrayHandle< T >::PortalConstExecution ValuesPortalType;
+  typedef typename dax::cont::ArrayHandle< int >::PortalConstExecution IntPortalType;
+
+  typedef dax::cont::ArrayHandle< QuadCoordType >::PortalExecution OutCoordPortalType;
+  typedef dax::cont::ArrayHandle< QuadNormalType >::PortalExecution OutNormPortalType;
+  typedef dax::cont::ArrayHandle< QuadColorType >::PortalExecution OutColorPortalType;
+
+  typedef dax::exec::internal::TopologyUniform InTopologyType;
+  typedef typename dax::cont::UniformGrid< >::PointCoordinatesType::PortalConstExecution Vector3PortalType;
+
+  ValuesPortalType Values;
+  IntPortalType ValidCellIds;
+
+  OutCoordPortalType Coords;
+  OutNormPortalType Norms;
+  OutColorPortalType Colors;
+
+  InTopologyType InputTopology; //holds the input cell connectivity
+  Vector3PortalType InputCoords; //coordinates of the input voxel
+
+  DAX_CONT_EXPORT make_faces(const dax::cont::UniformGrid< >& grid,
+                             const dax::cont::ArrayHandle<T>& values,
+                             const dax::cont::ArrayHandle<int>& valid_cell_ids,
+                             dax::cont::ArrayHandle<QuadCoordType> coords,
+                             dax::cont::ArrayHandle<QuadNormalType> norms,
+                             dax::cont::ArrayHandle<QuadColorType> colors):
+  Values(values.PrepareForInput()),
+  ValidCellIds(valid_cell_ids.PrepareForInput()),
+  Coords(coords.PrepareForOutput(valid_cell_ids.GetNumberOfValues())),
+  Norms(norms.PrepareForOutput(valid_cell_ids.GetNumberOfValues())),
+  Colors(colors.PrepareForOutput(valid_cell_ids.GetNumberOfValues())),
+  InputTopology(grid.PrepareForInput()),
+  InputCoords(grid.GetPointCoordinates().PrepareForInput())
+  {
+  }
+
+  DAX_EXEC_EXPORT
+  void operator()( int index ) const
+  {
+    //we need to generate the following per voxel
+    //1. 24 coordinates that describe the points of each quad
+    //2. 6 normals one for each quad
+    //3. 6 colors one for each quad
+
+    const int vertices_for_faces[] =
+      {
+       0, 1, 5, 4, // face 0
+       1, 2, 6, 5, // face 1
+       2, 3, 7, 6, // face 2
+       0, 4, 7, 3, // face 3
+       0, 3, 2, 1, // face 4
+       4, 5, 6, 7  // face 5
+      };
+
+    //find the mapping from new cell id to original id
+    int cell_index = this->ValidCellIds.Get(index);
+
+    dax::exec::CellVertices<CellTag> verts =
+                            this->InputTopology.GetCellConnections(cell_index);
+
+    //we need to compute the coordinates, normals and colors now
+    //i think we might also need the min and max threshold values
+  }
 
 };
-
+}
 
 //we could template this class on the vector type, but why bother for this example?
 class threshold_renderer :
@@ -157,16 +231,16 @@ private:
 
   //Make it easy to call the DeviceAdapter with the right tag
   typedef dax::cont::internal::DeviceAdapterAlgorithm<AdapterTag> DeviceAdapter;
-  //container and portal used for counting array handles
-  typedef dax::cont::internal::ArrayContainerControlTagCounting CountingTag;
-  typedef dax::cont::internal::ArrayPortalCounting<int> CountingPortalType;
-
 
   dax::cont::UniformGrid<> InputGrid;
   dax::cont::ArrayHandle<float> InputScalars;
   float MinValue;
   float MaxValue;
   bool Dirty; //we need to rerender when true
+
+
+  //gl array ids that hold the rendering info
+  GLuint CoordHandle, ColorsHandle, NormalsHandle;
 
 public:
   DAX_CONT_EXPORT threshold_renderer(const dax::cont::UniformGrid<>& grid,
@@ -217,11 +291,27 @@ public:
   DeviceAdapter::StreamCompact( validCellIndices,
                                 shouldRenderCell,
                                 cellsToRender);
+  validCellIndices.ReleaseResources();
+  shouldRenderCell.ReleaseResources();
 
   //we can now generate the faces for the cells
-  // DeviceAdapter::Schedule( make_faces(), cellsToRender );
+  dax::cont::ArrayHandle<QuadCoordType> coords;
+  dax::cont::ArrayHandle<QuadNormalType> normals;
+  dax::cont::ArrayHandle<QuadColorType> colors;
+
+  make_faces<float> mf(this->InputGrid,
+                       this->InputScalars,
+                       cellsToRender,
+                       coords,
+                       normals,
+                       colors);
+
+  DeviceAdapter::Schedule(mf, cellsToRender.GetNumberOfValues() );
 
   //now push that to opengl
+  dax::opengl::TransferToOpenGL(coords, this->CoordHandle);
+  dax::opengl::TransferToOpenGL(normals, this->NormalsHandle);
+  dax::opengl::TransferToOpenGL(colors, this->ColorsHandle);
   }
 
   //called after opengl is inited
@@ -273,4 +363,3 @@ int main(int, char**)
   renderer.Start();
   return 0;
 }
-

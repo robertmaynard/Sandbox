@@ -113,12 +113,14 @@ struct cell_subset: public dax::exec::internal::WorkletBase
     }
 
   DAX_EXEC_EXPORT
-  void operator()( int cell_index ) const
+  void operator()( const int index ) const
     {
+    //map index to original cell id
+    const int cell_index = PermutationPortal.Get(index);
     dax::exec::CellVertices<CellTag> verts =
                             this->InputTopology.GetCellConnections(cell_index);
 
-    const int offset = dax::CellTraits<CellTag>::NUM_VERTICES * cell_index;
+    const int offset = dax::CellTraits<CellTag>::NUM_VERTICES * index;
     for(int i=0; i < dax::CellTraits<CellTag>::NUM_VERTICES; ++i)
       {
       this->OutputTopology.CellConnections.Set(offset+i,verts[i]);
