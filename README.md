@@ -5,12 +5,19 @@ Develop your Castle making skills in the Sandbox.
 A look at what we would have to change to have CMake find templated
 function signatures.
 
+
 ## Cuda Ptxas ##
 Trying to replicate a cuda compile bug I encountered when building dax, with
 Cuda 5.5
 
+
 ## Conceptual Executive ##
 An attempt at a delayed worklet invocation pipeline for dax.
+
+## CMakeTrackConfFiles ##
+Working on verify that CMake only tracks the proper configured files, and
+that ones that don't exist after generation aren't tracked
+
 
 ## DumpTags ##
 Code to dump information about moab files. Also provides SimpleMoab.h
@@ -36,8 +43,8 @@ used as a draft example of the final implementation.
 ## ExternC ##
 An example of writing an external C function when using CMake
 
-## FindMoab ##
 
+## FindMoab ##
 A proof of concept FindMOAB.cmake implementation to be used as a reference.
 Also provided is the basic layout of a MOABConfig.cmake, that moab could
 write out to make finding moab not require a FindMOAB.cmake
@@ -45,17 +52,16 @@ write out to make finding moab not require a FindMOAB.cmake
 Also we show how to use FindMoab and verify it works by building a basic
 example
 
-## FindTBB ##
 
+## FindTBB ##
 A simplified FindTBB module. Going to be proposed to be part of CMake modules.
 
-## FizzBuzz ##
 
+## FizzBuzz ##
 A template implementation of [FizzBuzz](http://www.codinghorror.com/blog/2007/02/why-cant-programmers-program.html) that should blow your mind ( or stack )
 
 
 ## GenericVariadicParser ##
-
 An in progress attempt at being able to strip and pack function arguments
 into a storage mechanism so that we can extract them latter. The main feature
 is that subclasses can state how many arguments they want not packed in the
@@ -73,31 +79,35 @@ params::invoke(f,param1,myInsertedParam,param2,rp);
 }
 ```
 
-## IdListToString ##
 
+## IdListToString ##
 Example of converting vtkIdLists or vtkIdType* to a string key that can be used
 for unique comparison. This string that is generated will be based on the sorted
 order of the ids
 
-## Low Level Dax ##
 
+## Low Level Dax ##
 An example of writing vis algorithms using everything but the Dax Scheduler
 infrastructure.
 
-## MoabReader ##
 
+## MoabReader ##
 A pretty feature complete VTK reader of MOAB files, can output a moab
 file a single unstructured grid, poly data or multi block.
 
-## NinjaCustomCommand ##
 
+## NinjaCustomCommand ##
 A test case that shows a bug with ninja and CMake custom command.
 
-## PortConcept ##
 
+## PortConcept ##
 More brainstorming about filters and worklets in DAX.
 
-## TryCompile ##
 
+## ShibokenTest ##
+Trying to replicate some bugs I have encountered with Shiboken
+
+
+## TryCompile ##
 A basic example of doing a try compile in CMake. In This example we are
 looking at if we have shared_ptr support
