@@ -24,6 +24,13 @@ if(OPENGL_FOUND AND GLEW_FOUND AND GLUT_FOUND)
   set_target_properties(RenderThreshold PROPERTIES COMPILE_DEFINITIONS
                       "DAX_DEVICE_ADAPTER=DAX_DEVICE_ADAPTER_TBB")
 
+  if(Dax_Cuda_FOUND)
+    cuda_add_executable(CudaRenderThreshold render_threshold.cu)
+    target_link_libraries(CudaRenderThreshold ${OPENGL_LIBRARIES} ${GLUT_LIBRARIES} ${GLEW_LIBRARIES})
+    set_target_properties(CudaRenderThreshold PROPERTIES COMPILE_DEFINITIONS
+                        "DAX_DEVICE_ADAPTER=DAX_DEVICE_ADAPTER_CUDA")
+  endif()
+
 endif()
 
 
