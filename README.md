@@ -14,8 +14,9 @@ Cuda 5.5
 ## Conceptual Executive ##
 An attempt at a delayed worklet invocation pipeline for dax.
 
+
 ## CMakeTrackConfFiles ##
-Working on verify that CMake only tracks the proper configured files, and
+Working on a test to verify that CMake only tracks the proper configured files, and
 that ones that don't exist after generation aren't tracked
 
 
