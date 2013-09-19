@@ -68,6 +68,54 @@ public:
   }
 };
 
+class PauseStep : public dax::exec::WorkletMapField
+{
+  dax::Scalar TimeStep;
+  dax::Id XDim, YDim;
+  dax::Scalar MouseX, MouseY;
+public:
+  typedef void ControlSignature(Field(In), Field(In), Field(In), Field(In), Field(Out), Field(Out), Field(Out));
+  typedef void ExecutionSignature(_1, _2, _3, _4, _5, _6, _7);
+
+  PauseStep(dax::Scalar time, dax::Id mesh_x_dim, dax::Id mesh_y_dim,
+              dax::Scalar mouse_x, dax::Scalar mouse_y):
+    TimeStep(time),XDim(mesh_x_dim), YDim(mesh_y_dim),
+    MouseX(mouse_x), MouseY(mouse_y)
+    {}
+
+  DAX_EXEC_EXPORT
+  void operator()(dax::Id index,
+                  dax::Scalar frequency,
+                  const dax::Vector3& in_pos,
+                  const dax::Vector2& in_vel,
+                  dax::Vector3& pos,
+                  ColorType& color,
+                  dax::Vector2& vel ) const
+  {
+    const dax::Scalar speed = 0.05f;
+    const dax::Id x_index = index % XDim;
+    const dax::Id y_index = index / YDim;
+
+    const dax::Scalar xX = (this->MouseX - XDim/2 + 128)/(float)XDim*4.5f;
+    const dax::Scalar yY = (this->MouseY - YDim/2 + 128)/(float)YDim*4.5f;
+    const dax::Scalar u = x_index / (float) XDim;
+    const dax::Scalar v = y_index / (float) YDim;
+
+    vel[0] = 0; vel[1]=0;
+
+    const dax::Vector2 computed_xyz(-in_pos[0] + xX, -in_pos[2] + yY);
+    const dax::Scalar rmag = dax::math::RMagnitude(computed_xyz);
+
+    pos[0]= in_pos[0] + (computed_xyz[0] * speed) * rmag;
+    pos[0]= in_pos[0] + (computed_xyz[0] * speed) * rmag;
+
+
+    color = ColorType(255*rmag,255*rmag, 255, 10);
+    pos[1] = dax::math::Sin(u*frequency + TimeStep) *
+             dax::math::Cos(v*frequency + TimeStep) * 0.2f;
+  }
+};
+
 class ComputeStep : public dax::exec::WorkletMapField
 {
   dax::Scalar TimeStep;
@@ -92,8 +140,6 @@ public:
                   ColorType& color,
                   dax::Vector2& vel ) const
   {
-    const dax::Scalar speed = 0.0005f;
-
     const dax::Id x_index = index % XDim;
     const dax::Id y_index = index / YDim;
 
@@ -103,25 +149,17 @@ public:
     const dax::Scalar v = y_index / (float) YDim;
 
     const dax::Vector2 computed_xyz(-in_pos[0] + xX, -in_pos[2] + yY);
-    const dax::Vector2 normalized = dax::math::Normal(computed_xyz);
-    vel = in_vel + normalized;
 
-    const dax::Scalar updated_speed = dax::math::Sqrt(dax::dot(vel,vel));
-    const dax::Scalar original_speed = dax::math::Sqrt(dax::dot(computed_xyz,computed_xyz));
+    const dax::Scalar rmag = dax::math::RMagnitude(computed_xyz);
+    dax::Vector2 normalized = (computed_xyz * rmag);
+    vel = normalized * rmag * 0.1f;
 
-
-    if(updated_speed >= 0.125f)
-      {
-      vel[0] = normalized[0]/original_speed*0.1f;
-      vel[1] = normalized[1]/original_speed*0.1f;
-      }
-
-    pos[0] = in_pos[0] + vel[0] * updated_speed;
+    pos[0] = in_pos[0] + vel[0];
     pos[1] = dax::math::Sin(u*frequency + TimeStep) *
              dax::math::Cos(v*frequency + TimeStep) * 0.2f;
-    pos[2] = in_pos[2] + vel[1] * updated_speed;
+    pos[2] = in_pos[2] + vel[1];
 
-    color = ColorType(128/original_speed,(int)(255/(original_speed*51)),255,10);
+    color = ColorType(140*rmag,70*rmag,255,10);
 
   }
 };
@@ -204,7 +242,7 @@ public:
   this->ActiveMouseButtons = 0;
 
   this->TimeStep = 0.0f;
-  this->Frequency = 2.42f;
+  this->Frequency = 1.42f;
 
   this->RotateX = 0;
   this->RotateY = 0;
@@ -327,9 +365,7 @@ public:
     glBindBuffer(GL_ARRAY_BUFFER, color);
     glColorPointer(4, GL_UNSIGNED_BYTE, 0, bufferObjectPtr(0) );
 
-
     const dax::Id size = this->XDim * this->YDim;
-
     glDrawArrays(GL_POINTS, 0, size);
 
     glDisableClientState(GL_COLOR_ARRAY);
