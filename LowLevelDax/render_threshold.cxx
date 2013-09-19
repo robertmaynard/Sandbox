@@ -456,11 +456,6 @@ public:
     glEnable(GL_LIGHT0);
     glEnable(GL_COLOR_MATERIAL);
 
-    //Move the camera
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    gluPerspective( 60.0f, 1.0, 1.0, grid_size*4.0);
-
     // Setup the view of the cube.
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
