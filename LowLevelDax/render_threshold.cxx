@@ -578,6 +578,10 @@ public:
     this->MouseX = x;
     this->MouseY = y;
   }
+
+  DAX_CONT_EXPORT void PassiveMouseMove(int x, int y )
+  {
+  }
 };
 
 struct float_rand

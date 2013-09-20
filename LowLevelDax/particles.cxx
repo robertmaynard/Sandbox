@@ -74,8 +74,8 @@ class PauseStep : public dax::exec::WorkletMapField
   dax::Id XDim, YDim;
   dax::Scalar MouseX, MouseY;
 public:
-  typedef void ControlSignature(Field(In), Field(In), Field(In), Field(In), Field(Out), Field(Out), Field(Out));
-  typedef void ExecutionSignature(_1, _2, _3, _4, _5, _6, _7);
+  typedef void ControlSignature(Field(In), Field(In), Field(In), Field(In), Field(Out), Field(Out));
+  typedef void ExecutionSignature(_1, _2, _3, _4, _5, _6);
 
   PauseStep(dax::Scalar time, dax::Id mesh_x_dim, dax::Id mesh_y_dim,
               dax::Scalar mouse_x, dax::Scalar mouse_y):
@@ -89,28 +89,16 @@ public:
                   const dax::Vector3& in_pos,
                   const dax::Vector2& in_vel,
                   dax::Vector3& pos,
-                  ColorType& color,
                   dax::Vector2& vel ) const
   {
-    const dax::Scalar speed = 0.05f;
     const dax::Id x_index = index % XDim;
     const dax::Id y_index = index / YDim;
-
-    const dax::Scalar xX = (this->MouseX - XDim/2 + 128)/(float)XDim*4.5f;
-    const dax::Scalar yY = (this->MouseY - YDim/2 + 128)/(float)YDim*4.5f;
     const dax::Scalar u = x_index / (float) XDim;
     const dax::Scalar v = y_index / (float) YDim;
 
-    vel[0] = 0; vel[1]=0;
+    vel = in_vel;
+    pos = in_pos;
 
-    const dax::Vector2 computed_xyz(-in_pos[0] + xX, -in_pos[2] + yY);
-    const dax::Scalar rmag = dax::math::RMagnitude(computed_xyz);
-
-    pos[0]= in_pos[0] + (computed_xyz[0] * speed) * rmag;
-    pos[0]= in_pos[0] + (computed_xyz[0] * speed) * rmag;
-
-
-    color = ColorType(255*rmag,255*rmag, 255, 10);
     pos[1] = dax::math::Sin(u*frequency + TimeStep) *
              dax::math::Cos(v*frequency + TimeStep) * 0.2f;
   }
@@ -142,17 +130,18 @@ public:
   {
     const dax::Id x_index = index % XDim;
     const dax::Id y_index = index / YDim;
-
-    const dax::Scalar xX = (this->MouseX - XDim/2 + 128)/(float)XDim*4.5f;
-    const dax::Scalar yY = (this->MouseY - YDim/2 + 128)/(float)YDim*4.5f;
     const dax::Scalar u = x_index / (float) XDim;
     const dax::Scalar v = y_index / (float) YDim;
+
+    const dax::Scalar xX = this->MouseX / (this->XDim * 8.0f);
+    const dax::Scalar yY = this->MouseY / (this->YDim * 8.0f);
 
     const dax::Vector2 computed_xyz(-in_pos[0] + xX, -in_pos[2] + yY);
 
     const dax::Scalar rmag = dax::math::RMagnitude(computed_xyz);
     dax::Vector2 normalized = (computed_xyz * rmag);
-    vel = normalized * rmag * 0.1f;
+
+    vel = normalized * rmag * 0.005f;
 
     pos[0] = in_pos[0] + vel[0];
     pos[1] = dax::math::Sin(u*frequency + TimeStep) *
@@ -239,10 +228,10 @@ public:
 
   this->MouseX = 0;
   this->MouseY = 0;
-  this->ActiveMouseButtons = 0;
+  this->ActiveMouseButtons=0;
 
   this->TimeStep = 0.0f;
-  this->Frequency = 1.42f;
+  this->Frequency = 2.05f;
 
   this->RotateX = 0;
   this->RotateY = 0;
@@ -277,30 +266,49 @@ public:
     this->TwizzleHandles.handles(coord,color);
     dax::opengl::TransferToOpenGL(this->ParticleCoords, coord);
     dax::opengl::TransferToOpenGL(this->ParticleColors, color);
-
-
   }
 
   void compute_next_step()
   {
     GLuint coord, color;
     this->TwizzleHandles.handles(coord,color);
-
-    ComputeStep compu_step(this->TimeStep, this->XDim, this->YDim,
-                           this->MouseX, this->MouseY);
     const dax::Id size = this->XDim * this->YDim;
 
-    this->Scheduler.Invoke(compu_step,
-                           dax::cont::make_ArrayHandleCounting(0,size),
-                           this->Frequency,
-                           this->ParticleCoords,
-                           this->ParticleVelocity,
-                           this->ParticleCoords,
-                           this->ParticleColors,
-                           this->ParticleVelocity);
+
+    if (ActiveMouseButtons)
+      {
+      this->TimeStep += 0.012;
+      PauseStep pause_step(this->TimeStep,
+                           this->XDim, this->YDim,
+                           this->MouseX, this->MouseY);
+      this->Scheduler.Invoke(pause_step,
+                             dax::cont::make_ArrayHandleCounting(0,size),
+                             this->Frequency,
+                             this->ParticleCoords,
+                             this->ParticleVelocity,
+                             this->ParticleCoords,
+                             this->ParticleVelocity);
+      }
+    else
+      {
+      this->TimeStep += 0.12;
+      ComputeStep compu_step(this->TimeStep,
+                             this->XDim, this->YDim,
+                             this->MouseX, this->MouseY);
+      this->Scheduler.Invoke(compu_step,
+                             dax::cont::make_ArrayHandleCounting(0,size),
+                             this->Frequency,
+                             this->ParticleCoords,
+                             this->ParticleVelocity,
+                             this->ParticleCoords,
+                             this->ParticleColors,
+                             this->ParticleVelocity);
+      }
 
     dax::opengl::TransferToOpenGL(this->ParticleCoords, coord);
     dax::opengl::TransferToOpenGL(this->ParticleColors, color);
+
+    glutPostRedisplay();
   }
 
   //called after opengl is inited, this is where we can set our gl flags
@@ -331,13 +339,6 @@ public:
     glEnable(GL_COLOR_MATERIAL);
 
     glClearColor(0.0, 0.0, 0.0, 1.0);
-    //Viewport
-    glViewport(0, 0, 800.0f, 600.0f);
-
-    //Projection
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    gluPerspective(60.0, (800.0f /  600.0f), 0.1, 10.0);
 
     this->construct_starting_data();
   }
@@ -349,12 +350,12 @@ public:
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    //View matrix
+    //Move the camera
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-
     glTranslatef(0.0, 0.0, this->TranslateZ);
-    glRotatef(90.0, 1.0, 0.0, 0.0);
+    glRotatef(this->RotateX, 1.0, 0.0, 0.0);
+    glRotatef(this->RotateY, 0.0, 1.0, 0.0);
 
     //Render from VBO
     glEnableClientState(GL_VERTEX_ARRAY);
@@ -371,11 +372,7 @@ public:
     glDisableClientState(GL_COLOR_ARRAY);
     glDisableClientState(GL_VERTEX_ARRAY);
 
-
     glutSwapBuffers();
-    glutPostRedisplay();
-
-    this->TimeStep += 0.01;
 
     this->TwizzleHandles.switchHandles();
     this->compute_next_step();
@@ -383,7 +380,17 @@ public:
 
   DAX_CONT_EXPORT void Idle(){ }
 
-  DAX_CONT_EXPORT void ChangeSize(int daxNotUsed(w), int daxNotUsed(h)) {}
+  DAX_CONT_EXPORT void ChangeSize(int w, int h)
+  {
+    h = std::max(h,1);
+    float ratio =  w * 1.0 / h;
+
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glViewport(0, 0, w, h);
+    gluPerspective(60.0f, ratio, 0.01f, 100.0f);
+    glMatrixMode(GL_MODELVIEW);
+  }
 
   DAX_CONT_EXPORT void Key(unsigned char key, int daxNotUsed(x), int daxNotUsed(y) )
   {
@@ -404,10 +411,38 @@ public:
   DAX_CONT_EXPORT void Mouse(int button, int state,
                              int x, int y )
   {
+    if (state == GLUT_DOWN)
+      {
+      this->ActiveMouseButtons |= 1<<button;
+      }
+      else if (state == GLUT_UP)
+      {
+      this->ActiveMouseButtons = 0;
+      }
+    glutPostRedisplay();
   }
 
   DAX_CONT_EXPORT void MouseMove(int x, int y )
   {
+    float dx = (float)(x - MouseX);
+    float dy = (float)(y - MouseY);
+
+    if (ActiveMouseButtons & 1)
+      {
+      this->RotateX += dy * 0.2f;
+      this->RotateY += dx * 0.2f;
+      }
+    else if (ActiveMouseButtons & 4)
+      {
+      this->TranslateZ += dy * 0.01f;
+      }
+    //don't update the mouse position if any key is being pressed down
+    glutPostRedisplay();
+  }
+
+  DAX_CONT_EXPORT void PassiveMouseMove(int x, int y )
+  {
+    //we only update the mouse when the user isn't pressing any mouse keys
     this->MouseX = x;
     this->MouseY = y;
   }
