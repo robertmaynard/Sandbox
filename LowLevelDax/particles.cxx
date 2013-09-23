@@ -49,7 +49,7 @@ public:
                   dax::Vector2 seeds,
                   dax::Vector3& coord,
                   ColorType& color,
-                  dax::Vector2& velocity ) const
+                  dax::Vector3& velocity ) const
   {
     //compute our places given the flat index
     const dax::Id x_index = index % XDim;
@@ -63,7 +63,7 @@ public:
 
     //compute the starting color and velcity
     color=ColorType(0,255,255,1);
-    velocity=dax::make_Vector2(0.0f,0.0f);
+    velocity=dax::make_Vector3(0.0f,0.0f,0.0f);
 
   }
 };
@@ -72,24 +72,22 @@ class PauseStep : public dax::exec::WorkletMapField
 {
   dax::Scalar TimeStep;
   dax::Id XDim, YDim;
-  dax::Scalar MouseX, MouseY;
 public:
   typedef void ControlSignature(Field(In), Field(In), Field(In), Field(In), Field(Out), Field(Out));
   typedef void ExecutionSignature(_1, _2, _3, _4, _5, _6);
 
-  PauseStep(dax::Scalar time, dax::Id mesh_x_dim, dax::Id mesh_y_dim,
-              dax::Scalar mouse_x, dax::Scalar mouse_y):
-    TimeStep(time),XDim(mesh_x_dim), YDim(mesh_y_dim),
-    MouseX(mouse_x), MouseY(mouse_y)
+  PauseStep(dax::Scalar time, dax::Id mesh_x_dim, dax::Id mesh_y_dim):
+    TimeStep(time),
+    XDim(mesh_x_dim), YDim(mesh_y_dim)
     {}
 
   DAX_EXEC_EXPORT
   void operator()(dax::Id index,
                   dax::Scalar frequency,
                   const dax::Vector3& in_pos,
-                  const dax::Vector2& in_vel,
+                  const dax::Vector3& in_vel,
                   dax::Vector3& pos,
-                  dax::Vector2& vel ) const
+                  dax::Vector3& vel ) const
   {
     const dax::Id x_index = index % XDim;
     const dax::Id y_index = index / YDim;
@@ -97,10 +95,11 @@ public:
     const dax::Scalar v = y_index / (float) YDim;
 
     vel = in_vel;
-    pos = in_pos;
 
+    pos[0] = in_pos[0];
     pos[1] = dax::math::Sin(u*frequency + TimeStep) *
              dax::math::Cos(v*frequency + TimeStep) * 0.2f;
+    pos[2] = in_pos[2];
   }
 };
 
@@ -108,47 +107,53 @@ class ComputeStep : public dax::exec::WorkletMapField
 {
   dax::Scalar TimeStep;
   dax::Id XDim, YDim;
-  dax::Scalar MouseX, MouseY;
+  dax::Vector3 WorldMousePos;
 public:
   typedef void ControlSignature(Field(In), Field(In), Field(In), Field(In), Field(Out), Field(Out), Field(Out));
   typedef void ExecutionSignature(_1, _2, _3, _4, _5, _6, _7);
 
-  ComputeStep(dax::Scalar time, dax::Id mesh_x_dim, dax::Id mesh_y_dim,
-              dax::Scalar mouse_x, dax::Scalar mouse_y):
-    TimeStep(time),XDim(mesh_x_dim), YDim(mesh_y_dim),
-    MouseX(mouse_x), MouseY(mouse_y)
+  ComputeStep(dax::Scalar time,
+              dax::Id mesh_x_dim, dax::Id mesh_y_dim,
+              dax::Vector3 mouse):
+    TimeStep(time),
+    XDim(mesh_x_dim), YDim(mesh_y_dim),
+    WorldMousePos(mouse)
     {}
 
   DAX_EXEC_EXPORT
   void operator()(dax::Id index,
                   dax::Scalar frequency,
                   const dax::Vector3& in_pos,
-                  const dax::Vector2& in_vel,
+                  const dax::Vector3& in_vel,
                   dax::Vector3& pos,
                   ColorType& color,
-                  dax::Vector2& vel ) const
+                  dax::Vector3& vel ) const
   {
     const dax::Id x_index = index % XDim;
     const dax::Id y_index = index / YDim;
     const dax::Scalar u = x_index / (float) XDim;
     const dax::Scalar v = y_index / (float) YDim;
 
-    const dax::Scalar xX = this->MouseX / (this->XDim * 8.0f);
-    const dax::Scalar yY = this->MouseY / (this->YDim * 8.0f);
 
-    const dax::Vector2 computed_xyz(-in_pos[0] + xX, -in_pos[2] + yY);
+    dax::Vector3 m_pos = WorldMousePos + (in_pos * -1);
+    m_pos[0] = WorldMousePos[0] * (x_index/static_cast<float>(XDim)) + (in_pos[0] * -1);
+    m_pos[2] = WorldMousePos[1] + (in_pos[1] * -1);
+    m_pos[2] = WorldMousePos[2] * (y_index/static_cast<float>(YDim)) + (in_pos[2] * -1);
 
-    const dax::Scalar rmag = dax::math::RMagnitude(computed_xyz);
-    dax::Vector2 normalized = (computed_xyz * rmag);
 
-    vel = normalized * rmag * 0.005f;
+    const dax::Scalar rmag = dax::math::RMagnitude(m_pos);
+    dax::Vector3 normalized = (m_pos * rmag);
 
-    pos[0] = in_pos[0] + vel[0];
+    vel = normalized * rmag * 0.03;
+
+    pos = in_pos + vel;
     pos[1] = dax::math::Sin(u*frequency + TimeStep) *
-             dax::math::Cos(v*frequency + TimeStep) * 0.2f;
-    pos[2] = in_pos[2] + vel[1];
+             dax::math::Cos(v*frequency + TimeStep);
 
-    color = ColorType(140*rmag,70*rmag,255,10);
+    const dax::Vector2 color_ps = dax::make_Vector2(in_pos[0],in_pos[2]);
+    const dax::Scalar color_rmag = dax::math::RMagnitude(color_ps);
+
+    color = ColorType(255* color_rmag,142 * color_rmag,255,10);
 
   }
 };
@@ -203,14 +208,19 @@ private:
   dax::cont::Scheduler<> Scheduler;
   dax::cont::ArrayHandle<dax::Vector2> SeedHandle;
   dax::cont::ArrayHandle<dax::Vector3> ParticleCoords;
-  dax::cont::ArrayHandle<dax::Vector2> ParticleVelocity;
+  dax::cont::ArrayHandle<dax::Vector3> ParticleVelocity;
   dax::cont::ArrayHandle<ColorType> ParticleColors;
 
   unsigned int XDim, YDim;
   dax::Scalar TimeStep;
   dax::Scalar Frequency;
 
-  float MouseX, MouseY, RotateX, RotateY, TranslateZ;
+  //mouse x,y keeps track of the mouse for the rendering
+  //WorldMousePos keeps track of the mouse for the computation
+  float MouseX, MouseY;
+  dax::Vector3 WorldMousePos;
+  float RotateX, RotateY, TranslateZ;
+  int ScreenWidth, ScreenHeight;
   int ActiveMouseButtons;
 
   //gl array ids that hold the rendering info
@@ -226,6 +236,7 @@ public:
   this->YDim = y_dim;
   this->SeedHandle = dax::cont::make_ArrayHandle(seeds);
 
+  this->WorldMousePos = dax::make_Vector3(0.0f,0.0f,0.0f);
   this->MouseX = 0;
   this->MouseY = 0;
   this->ActiveMouseButtons=0;
@@ -236,6 +247,9 @@ public:
   this->RotateX = 0;
   this->RotateY = 0;
   this->TranslateZ = -3.0;
+
+  this->ScreenWidth = 0;
+  this->ScreenHeight = 0;
   }
 
   void construct_starting_data()
@@ -274,13 +288,11 @@ public:
     this->TwizzleHandles.handles(coord,color);
     const dax::Id size = this->XDim * this->YDim;
 
-
     if (ActiveMouseButtons)
       {
       this->TimeStep += 0.012;
       PauseStep pause_step(this->TimeStep,
-                           this->XDim, this->YDim,
-                           this->MouseX, this->MouseY);
+                           this->XDim, this->YDim);
       this->Scheduler.Invoke(pause_step,
                              dax::cont::make_ArrayHandleCounting(0,size),
                              this->Frequency,
@@ -291,10 +303,10 @@ public:
       }
     else
       {
-      this->TimeStep += 0.12;
+      this->TimeStep += 0.048;
       ComputeStep compu_step(this->TimeStep,
                              this->XDim, this->YDim,
-                             this->MouseX, this->MouseY);
+                             this->WorldMousePos);
       this->Scheduler.Invoke(compu_step,
                              dax::cont::make_ArrayHandleCounting(0,size),
                              this->Frequency,
@@ -317,7 +329,12 @@ public:
     //init the gl handles for the twizzler
     this->TwizzleHandles.initHandles();
 
-    glDisable(GL_DEPTH_TEST);
+    //get the screen dims
+    this->ScreenWidth  = glutGet(GLUT_SCREEN_WIDTH);
+    this->ScreenHeight = glutGet(GLUT_SCREEN_HEIGHT);
+
+    glEnable(GL_DEPTH);
+    glEnable(GL_DEPTH_TEST);
     glShadeModel(GL_SMOOTH);
 
     // good old-fashioned fixed function lighting
@@ -388,7 +405,7 @@ public:
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     glViewport(0, 0, w, h);
-    gluPerspective(60.0f, ratio, 0.01f, 100.0f);
+    gluPerspective(60.0f, ratio, 1.0f, 100.0f);
     glMatrixMode(GL_MODELVIEW);
   }
 
@@ -419,6 +436,9 @@ public:
       {
       this->ActiveMouseButtons = 0;
       }
+
+    this->MouseX = x;
+    this->MouseY = y;
     glutPostRedisplay();
   }
 
@@ -436,7 +456,9 @@ public:
       {
       this->TranslateZ += dy * 0.01f;
       }
-    //don't update the mouse position if any key is being pressed down
+    //don't update the mouse position for computation if any key is being pressed down
+    this->MouseX = x;
+    this->MouseY = y;
     glutPostRedisplay();
   }
 
@@ -445,6 +467,28 @@ public:
     //we only update the mouse when the user isn't pressing any mouse keys
     this->MouseX = x;
     this->MouseY = y;
+
+    GLint viewport[4];
+    GLdouble modelview[16];
+    GLdouble projection[16];
+    GLdouble worldPos[3];
+    GLfloat winX, winY, winZ;
+
+    glGetDoublev( GL_MODELVIEW_MATRIX, modelview );
+    glGetDoublev( GL_PROJECTION_MATRIX, projection );
+    glGetIntegerv( GL_VIEWPORT, viewport );
+
+    winX = (float)x;
+    winY = (float)viewport[3] - (float)y;
+    winZ = 1;
+    gluUnProject( winX, winY, winZ, modelview, projection, viewport,
+                 &worldPos[0],
+                 &worldPos[1],
+                 &worldPos[2]);
+
+    this->WorldMousePos[0] = worldPos[0];
+    this->WorldMousePos[1] = worldPos[1];
+    this->WorldMousePos[2] = worldPos[2];
   }
 };
 
