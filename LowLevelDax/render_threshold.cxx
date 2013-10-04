@@ -259,17 +259,17 @@ struct make_faces : public dax::exec::internal::WorkletBase
       const float h = interp*5.0f;
       const float s = 1.0f;
       const float v = 0.7f;
-      const unsigned int index = static_cast<unsigned int>(dax::math::Floor(h));
-      const dax::Scalar fraction = h - index;
+      const unsigned int color_index = static_cast<unsigned int>(dax::math::Floor(h));
+      const dax::Scalar fraction = h - color_index;
 
       color_values = dax::Vector4(v,
                                   v * (1.0f - s),
                                   v * (1.0f - s * fraction),
                                   v * (1.0f - s * (1-fraction)));
 
-      computed_point_colors[i][0] = color_values[reds[index]];
-      computed_point_colors[i][1] = color_values[greens[index]];
-      computed_point_colors[i][2] = color_values[blues[index]];
+      computed_point_colors[i][0] = color_values[reds[color_index]];
+      computed_point_colors[i][1] = color_values[greens[color_index]];
+      computed_point_colors[i][2] = color_values[blues[color_index]];
       computed_point_colors[i][3] = 1.0f;
       }
 
