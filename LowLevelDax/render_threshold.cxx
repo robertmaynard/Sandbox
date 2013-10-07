@@ -320,7 +320,7 @@ private:
   typedef DAX_DEFAULT_DEVICE_ADAPTER_TAG AdapterTag;
 
   //Make it easy to call the DeviceAdapter with the right tag
-  typedef dax::cont::internal::DeviceAdapterAlgorithm<AdapterTag> DeviceAdapter;
+  typedef dax::cont::DeviceAdapterAlgorithm<AdapterTag> DeviceAdapter;
 
   dax::cont::UniformGrid<> InputGrid;
   dax::cont::ArrayHandle<float> InputScalars;

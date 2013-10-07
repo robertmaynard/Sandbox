@@ -139,7 +139,7 @@ void ThresholdExample(GridType grid, std::vector<T> &array,
   typedef DAX_DEFAULT_DEVICE_ADAPTER_TAG AdapterTag;
 
   //Make it easy to call the DeviceAdapter with the right tag
-  typedef dax::cont::internal::DeviceAdapterAlgorithm<AdapterTag> DeviceAdapter;
+  typedef dax::cont::DeviceAdapterAlgorithm<AdapterTag> DeviceAdapter;
 
 
   //container and portal used for counting array handles
