@@ -37,6 +37,8 @@ GLvoid* bufferObjectPtr( unsigned int idx )
   return (GLvoid*) ( ((char*)NULL) + idx );
   }
 
+}
+
 int grid_size = 256;
 typedef dax::Tuple<dax::Vector3,4> QuadCoordType;
 typedef dax::Tuple<dax::Vector3,4> QuadNormalType;
@@ -309,7 +311,6 @@ struct make_faces : public dax::exec::internal::WorkletBase
       }
   }
 };
-}
 
 //we could template this class on the vector type, but why bother for this example?
 class threshold_renderer :
