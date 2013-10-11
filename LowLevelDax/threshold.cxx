@@ -141,17 +141,10 @@ void ThresholdExample(GridType grid, std::vector<T> &array,
   //Make it easy to call the DeviceAdapter with the right tag
   typedef dax::cont::DeviceAdapterAlgorithm<AdapterTag> DeviceAdapter;
 
-
-  //container and portal used for counting array handles
-  typedef dax::cont::internal::ArrayContainerControlTagCounting CountingTag;
-  typedef dax::cont::internal::ArrayPortalCounting<int> CountingPortalType;
-
-
   //make a handle to the std::vector, this actually doesn't copy any memory
   //but waits for something to call PrepareForInput or PrepareForOutput before
   //moving the memory to cuda/tbb if required
   dax::cont::ArrayHandle<T> arrayHandle = dax::cont::make_ArrayHandle(array);
-
 
   //schedule the thresholding on a per cell basis
   dax::cont::ArrayHandle<int> passesThreshold;
@@ -167,13 +160,9 @@ void ThresholdExample(GridType grid, std::vector<T> &array,
   dax::cont::ArrayHandle<int> cellUpperBounds;
   cellUpperBounds.PrepareForOutput(numNewCells); //allocate
 
-  //create the counting array handle for the upper bounds
-  CountingPortalType cportal(0,numNewCells);
-  dax::cont::ArrayHandle<int,CountingTag> countingHandle(cportal);
-
   DeviceAdapter::UpperBounds( onlyGoodCellIds,
-                              countingHandle,
-                              cellUpperBounds );
+                        dax::cont::make_ArrayHandleCounting(0,numNewCells),
+                        cellUpperBounds );
 
   //now that we have the good cell ids only
   //lets extract the topology for those cells by calling cell_subset
