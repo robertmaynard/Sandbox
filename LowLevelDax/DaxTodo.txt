@@ -1,0 +1,11 @@
+Dax Todo list:
+
+Render threshold and make it even more piston like in the alg depart
+
+full 'daxy' threshold in LLDax that fully explains each steps
+
+Abstraction ontop of thrust where it is, and what needs to happen
+to expose more thrust methods
+
+
+
