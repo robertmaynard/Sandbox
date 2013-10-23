@@ -6,6 +6,9 @@
 #include <dax/cont/DeviceAdapter.h>
 #include <dax/cont/ArrayHandle.h>
 #include <dax/cont/ArrayHandleCounting.h>
+//if you get a compile error on the next include, make sure to get
+//the latest dax version, this is a new feature
+#include <dax/cont/ArrayHandlePermutation.h>
 #include <dax/Extent.h>
 #include <dax/cont/UniformGrid.h>
 #include <dax/cont/UnstructuredGrid.h>
@@ -163,14 +166,15 @@ struct number_of_valid_neighhbors: public dax::exec::internal::WorkletBase
     }
 };
 
-template<typename T>
+template<typename T, typename PermutationHandleType >
 struct make_faces : public dax::exec::internal::WorkletBase
 {
   typedef dax::CellTagVoxel CellTag;
 
   //hold a portal so that we can get values in the exec env
   typedef typename dax::cont::ArrayHandle< T >::PortalConstExecution ValuesPortalType;
-  typedef typename dax::cont::ArrayHandle< int >::PortalConstExecution IntPortalType;
+
+  typedef typename PermutationHandleType::PortalConstExecution IntPortalType;
 
   typedef dax::cont::ArrayHandle< QuadCoordType >::PortalExecution OutCoordPortalType;
   typedef dax::cont::ArrayHandle< QuadNormalType >::PortalExecution OutNormPortalType;
@@ -195,7 +199,7 @@ struct make_faces : public dax::exec::internal::WorkletBase
   DAX_CONT_EXPORT make_faces(dax::cont::UniformGrid< > grid,
                              dax::cont::ArrayHandle<T> values,
                              T min_value, T max_value,
-                             const dax::cont::ArrayHandle<int>& valid_cell_ids,
+                             const PermutationHandleType& valid_cell_ids,
                              dax::cont::ArrayHandle<QuadCoordType> coords,
                              dax::cont::ArrayHandle<QuadNormalType> norms,
                              dax::cont::ArrayHandle<QuadColorType> colors):
@@ -426,13 +430,20 @@ public:
   dax::cont::ArrayHandle<QuadNormalType> normals;
   dax::cont::ArrayHandle<QuadColorType> colors;
 
-  //make a permutation array handle, todo we need to make an
-  //dax::cont::make_ArrayHandlePermutation
-  make_faces<float> mf(this->InputGrid,
+  //permutate the valid cells with the cells to render array
+  //by using the ArrayHandlePermutation which takes in two other array handle
+  //types.
+  typedef dax::cont::ArrayHandlePermutation<
+    dax::cont::ArrayHandle<int>, dax::cont::ArrayHandle<int> > PermutationType;
+
+  PermutationType permuted_valid_cells(cellsToRender,validCellIndices);
+
+  make_faces<float, PermutationType > mf(
+                       this->InputGrid,
                        this->InputScalars,
                        this->MinValue,
                        this->MaxValue,
-                       cellsToRender,
+                       permuted_valid_cells,
                        coords,
                        normals,
                        colors);
