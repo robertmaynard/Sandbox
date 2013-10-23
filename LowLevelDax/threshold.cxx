@@ -158,8 +158,6 @@ void ThresholdExample(GridType grid, std::vector<T> &array,
               DeviceAdapter::ScanInclusive( passesThreshold, onlyGoodCellIds );
 
   dax::cont::ArrayHandle<int> cellUpperBounds;
-  cellUpperBounds.PrepareForOutput(numNewCells); //allocate
-
   DeviceAdapter::UpperBounds( onlyGoodCellIds,
                         dax::cont::make_ArrayHandleCounting(0,numNewCells),
                         cellUpperBounds );

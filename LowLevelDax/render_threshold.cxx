@@ -114,7 +114,7 @@ struct number_of_valid_neighhbors: public dax::exec::internal::WorkletBase
 
 
   //holds if this cell should be renderd
-  typedef dax::cont::ArrayHandle< bool >::PortalExecution OutPortalType;
+  typedef dax::cont::ArrayHandle< int >::PortalExecution OutPortalType;
   OutPortalType ShouldRender;
 
   dax::Id3 Dims;
@@ -123,7 +123,7 @@ struct number_of_valid_neighhbors: public dax::exec::internal::WorkletBase
   number_of_valid_neighhbors(dax::cont::UniformGrid< > grid,
                  dax::cont::ArrayHandle<int> valid_cell_ids,
                  dax::cont::ArrayHandle<int> cell_counts,
-                 dax::cont::ArrayHandle<bool> should_render):
+                 dax::cont::ArrayHandle<int> should_render):
   ValidCellIds(valid_cell_ids.PrepareForInput()),
   CellCountPortal(cell_counts.PrepareForInput()),
   ShouldRender(should_render.PrepareForOutput( valid_cell_ids.GetNumberOfValues() )),
@@ -157,8 +157,9 @@ struct number_of_valid_neighhbors: public dax::exec::internal::WorkletBase
     neighbor_count += !(k == 0)               && (CellCountPortal.Get(neighbors[4]) > 0);
     neighbor_count += !(k == this->Dims[2]-1) && (CellCountPortal.Get(neighbors[5]) > 0);
 
+    neighbor_count = static_cast<int>(neighbor_count != 6);
     //set us to 1 if we are going to generate faces, otherwise set to 0
-    this->ShouldRender.Set(index,(neighbor_count != 6));
+    this->ShouldRender.Set(index, neighbor_count );
     }
 };
 
@@ -378,10 +379,20 @@ public:
   dax::Id3 dims = dax::extentCellDimensions(this->InputGrid.GetExtent());
   DeviceAdapter::Schedule( tc, dims );
 
-  //extract only cells ids which pass the threshold
+  //count the number of cells that passed the threshold
+  dax::cont::ArrayHandle<int> onlyGoodCellIds;
+  const dax::Id numNewCells = DeviceAdapter::ScanInclusive( passesThreshold,
+                                                            onlyGoodCellIds );
+
+  //compute offsets to the valid threshold cell ids
   dax::cont::ArrayHandle<int> validCellIndices;
-  DeviceAdapter::StreamCompact( passesThreshold,
-                                validCellIndices);
+  DeviceAdapter::UpperBounds( onlyGoodCellIds,
+                        dax::cont::make_ArrayHandleCounting(0,numNewCells),
+                        validCellIndices );
+
+  //release memory only needed by upper bounds algorithm
+  onlyGoodCellIds.ReleaseResources();
+
   if(validCellIndices.GetNumberOfValues() == 0)
     {
     this->NumberOfFaces = 0;
@@ -391,7 +402,7 @@ public:
 
   //now that we have the good cell ids only, lets
   //see which of those cells we want to generate faces for.
-  dax::cont::ArrayHandle<bool> shouldRenderCell;
+  dax::cont::ArrayHandle<int> shouldRenderCell;
   number_of_valid_neighhbors nv(this->InputGrid,
                                 validCellIndices,
                                 passesThreshold,
@@ -399,11 +410,15 @@ public:
   DeviceAdapter::Schedule( nv,  validCellIndices.GetNumberOfValues() );
 
   //compact again on cells that we need to render
+  dax::cont::ArrayHandle<int> onlyGoodFaceIds;
+  const dax::Id numFaceCells = DeviceAdapter::ScanInclusive( shouldRenderCell,
+                                                             onlyGoodFaceIds);
   dax::cont::ArrayHandle<int> cellsToRender;
-  DeviceAdapter::StreamCompact( validCellIndices,
-                                shouldRenderCell,
-                                cellsToRender);
-  validCellIndices.ReleaseResources();
+  DeviceAdapter::UpperBounds( onlyGoodFaceIds,
+                              dax::cont::make_ArrayHandleCounting(0,numFaceCells),
+                              cellsToRender );
+  //release memory we don't need
+  onlyGoodFaceIds.ReleaseResources();
   shouldRenderCell.ReleaseResources();
 
   //we can now generate the faces for the cells
@@ -411,6 +426,8 @@ public:
   dax::cont::ArrayHandle<QuadNormalType> normals;
   dax::cont::ArrayHandle<QuadColorType> colors;
 
+  //make a permutation array handle, todo we need to make an
+  //dax::cont::make_ArrayHandlePermutation
   make_faces<float> mf(this->InputGrid,
                        this->InputScalars,
                        this->MinValue,
