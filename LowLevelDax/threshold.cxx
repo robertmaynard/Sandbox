@@ -73,7 +73,7 @@ struct threshold_cell : public dax::exec::internal::WorkletBase
     for(int i=0; i < dax::CellTraits<CellTag>::NUM_VERTICES; ++i)
       {
       const T value = this->ValuePortal.Get( verts[i] );
-      valid &= value >= this->MinValue && value <= this->MaxValue;
+      valid &= (value >= this->MinValue && value <= this->MaxValue);
       }
     this->PassesThreshold.Set(cell_index,valid);
     }

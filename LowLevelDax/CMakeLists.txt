@@ -13,6 +13,11 @@ target_link_libraries(Threshold ${TBB_LIBRARIES})
 set_target_properties(Threshold PROPERTIES COMPILE_DEFINITIONS
                       "DAX_DEVICE_ADAPTER=DAX_DEVICE_ADAPTER_TBB")
 
+add_executable(DaxThreshold dax_threshold.cxx)
+target_link_libraries(DaxThreshold ${TBB_LIBRARIES})
+set_target_properties(DaxThreshold PROPERTIES COMPILE_DEFINITIONS
+                      "DAX_DEVICE_ADAPTER=DAX_DEVICE_ADAPTER_TBB")
+
 find_package(OpenGL)
 find_package(GLEW)
 find_package(GLUT)
