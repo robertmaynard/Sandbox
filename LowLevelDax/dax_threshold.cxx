@@ -4,7 +4,8 @@
 #include <dax/CellTag.h>
 #include <dax/CellTraits.h>
 #include <dax/cont/ArrayHandle.h>
-#include <dax/cont/Scheduler.h>
+#include <dax/cont/DispatcherGenerateTopology.h>
+#include <dax/cont/DispatcherMapCell.h>
 #include <dax/cont/UniformGrid.h>
 #include <dax/cont/UnstructuredGrid.h>
 
@@ -18,34 +19,15 @@
 
 /*
 ################################################################################
-####                   DAX Scheduler Infrastructure                         ####
+####                   DAX Dispatcher Infrastructure                        ####
 ################################################################################
 
-  The Dax scheduler infrastructure and how to extend it is documented
-  in the following link:
-      http://www.daxtoolkit.org/index.php/Understanding_Schedule
-      https://gist.github.com/robertmaynard/6038997 (markdown format)
-
-  This documentation is how to add new Worklet Signature types like Field(),
-  or Topology, and is considered to be an advanced topic
-
-
+  The Dax Dispatcher infrastructure is best explained by reading:
+    http://www.daxtoolkit.org/index.php/Simplified_Scheduler_Objects
 */
+
 
 /*
-################################################################################
-####                   DAX Scheduler Notes                                  ####
-################################################################################
-
-  We are currently in the process of revising the scheduler infastructure.
-  Mainly dealing with how complicated it is to create a new scheduler class.
-
-  The updated proposal of the new system can be found at:
-    http://www.daxtoolkit.org/index.php/Simplified_Scheduler_Objects
-
-*/
-
-    /*
 ################################################################################
 ####                   Finding Dax Files                                    ####
 ################################################################################
@@ -67,7 +49,7 @@ public:
   /*
   Control Signature.
   Each argument in the control signature maps to a required argument
-  that the user must pass to the scheduler. So for this example
+  that the user must pass to the dispatcher. So for this example
   the user must specify 3 arguments to the control side. The first
   being geometry, the second being a point field, and the third being
   an output cell field
@@ -211,21 +193,6 @@ void Dax_Threshold(GridType grid,
 {
 
   /*
-  The basic premise is The dax::cont::Scheduler job is to prepare all the
-  required data that is going to be needed in the execution environment to be
-  ready for transfer. It can create new Fields, or determine that we should only
-  execute on a subset of the passed in data. Once the worklet is running the
-  scheduler has no control over what happens.
-  It is merely pre and post worklet execution work.
-
-  Scheduler is templated on the device adapter you want the algorithm to run
-  on, this device adapter should be equal to what each array handle is
-  templated on.
-  */
-  dax::cont::Scheduler<> scheduler;
-
-
-  /*
   Take a pre allocated chunk of control/host side memory and tell dax
   that you will want to have access to it on the execution side
   (aka inside worklets )
@@ -234,11 +201,11 @@ void Dax_Threshold(GridType grid,
 
   /*
   Construct an array handle with no control side memory allocated. The
-  classification worklet will allocate execution side memory, which will not
+  count worklet will allocate execution side memory, which will not
   transfer that memory to control/host unless explicitly asked too ( by asking
   for a control side portal)
   */
-  dax::cont::ArrayHandle< dax::Id > classification;
+  dax::cont::ArrayHandle< dax::Id > count;
 
 
   /*
@@ -246,27 +213,23 @@ void Dax_Threshold(GridType grid,
 
   Here are the steps that Dax takes to launch the ThresholdClassify worklet
 
-  1. Scheduler uses dax/cont/scheduling/DetermineScheduler.h to determine
-     what actual scheduling implementation it should use. Since
-     ThresholdClassify is of type dax::exec::WorkletMapCell it
-     knows that it should use dax/cont/scheduling/SchedulerCells.h
+  1. We construct a DispatcherMapCell since the worklet type is
+     WorkletMapCell. We must give the dispatcher an instance of the worklet
+     since the constructor requires a min and max value
 
-     This is all implemented using tag based dispatching to a class called
-     dax::cont::scheduling::Scheduler, where each worklet type implements
-     a specialization given a tag that represents the worklet type
+  2. We pass to the dispatcher Invoke method all the parameters, so that we
+     fulfill the requirements of the control signature. Invoke can in theory
+     handle an arbitrary number of parameters. Since DispatcherMapCell is
+     a very simple dispatcher it just forwards the invoke to the parent
+     class dax::cont::dispatch::DispatcherBase which does all the work
 
-
-  2. We pass to SchedulerCells the worklet and all the other parameters
-     passed to the Invoke method. Invoke can in theory handle an arbitrary number
-     of parameters.
-
-     A. Scheduler Cells uses dax::cont::scheduling::VerifyUserArgLength to
+     A. DispatcherBase uses dax::cont::dispatch::VerifyUserArgLength to
         make sure at compile time that the number of items passed to the
         Invoke method matches the number of parameters in the worklets
         ControlSignature. It will state specifically if you have too many or not
         enough items.
 
-     B. Create the concept map binding between the user provided arugments
+     B. Create the concept map binding between the user provided arguments
         and the ControlSignature requirements for each argument.
 
         We construct a dax::cont::internal::binding<InvocationSignature>
@@ -282,13 +245,13 @@ void Dax_Threshold(GridType grid,
         it should use in the execution environment.
 
         You can read more about how the resolution of ConceptMaps happen
-        by reading "Understanding the Dax Scheduler" mainly the Control Binding
+        by reading "Understanding the Dax Dispatcher" mainly the Control Binding
         section
           https://gist.github.com/robertmaynard/6038997 (markdown format)
-          http://www.daxtoolkit.org/index.php/Understanding_Schedule
+          http://www.daxtoolkit.org/index.php/Understanding_Dispatch
 
 
-      C. Scheduler Cells invokes dax::cont::scheduling::CollectCount with the
+      C. DispatcherBase invokes dax::cont::dispatch::CollectCount with the
         given domain ( Cells in this case ) to determine the number of iterations
         the worklet should be scheduled. The Domain of a worklet details
         what parameters we should trust for length. For example if our domain
@@ -309,7 +272,7 @@ void Dax_Threshold(GridType grid,
         to construct the proper exec objects for the worklet.
 
 
-    3.  We pass the exec::Functor over to the DeviceAdapter that the scheduler
+    3.  We pass the exec::Functor over to the DeviceAdapter that the dispatcher
         is templated on. Specifically we pass it to the Schedule method
         of the DeviceAdapter. Each DeviceAdapter will have two Schedule
         methods. One accepts a dax::Id which is the number of instances
@@ -404,10 +367,10 @@ void Dax_Threshold(GridType grid,
     method on each. Since some ExecArg return reference objects, they have local
     storage that needs to be written back into global memory
   */
-  scheduler.Invoke(worklet::ThresholdClassify< dax::Scalar >(minValue,maxValue),
-                  grid, arrayHandle, classification);
-
-
+  worklet::ThresholdClassify< dax::Scalar > worklet(minValue,maxValue);
+  dax::cont::DispatcherMapCell< worklet::ThresholdClassify <dax::Scalar > >
+                                                        dispatcher( worklet );
+  dispatcher.Invoke(grid, arrayHandle, count);
 
   /*
   now determine the type of the output unstructured grid type
@@ -431,71 +394,62 @@ void Dax_Threshold(GridType grid,
     1. Resolve duplicate topology. By default this is enabled
         SetRemoveDuplicatePoints( bool )
 
-    2. Release the classification information. By default this is enabled
-        SetReleaseClassification( bool )
-       When enabled we release the classification information as soon as
+    2. Release the count information. By default this is enabled
+        SetReleaseCount( bool )
+       When enabled we release the count information as soon as
        possible, which means before running the second worklet but after
-       computing the InclusiveScan and UpperBounds on the classification array
+       computing the InclusiveScan and UpperBounds on the count array
 
     3. Apply the threshold operation on other point fields.
         CompactPointFiled( original_point_field, output_point_field )
 
   */
-  typedef dax::cont::GenerateTopology< worklet::ThresholdTopology > ScheduleGT;
-  ScheduleGT generateWorklet(classification);
+  typedef dax::cont::DispatcherGenerateTopology< worklet::ThresholdTopology >
+                                                          DispatcherGT;
+  DispatcherGT generateWorklet(count);
 
   /*
   Execute the second step of the threshold algorithm
 
-  Here are the steps that Dax takes to launch the dax::cont::GenerateTopology worklet
+  Here are the steps that Dax takes to launch the worklet::ThresholdTopology worklet
 
-  1. Scheduler uses dax/cont/scheduling/DetermineScheduler.h to determine
-     what actual scheduling implementation it should use. Since
-     dax::cont::GenerateTopology is of type  dax::cont::GenerateTopology it
-     knows that it should use dax/cont/scheduling/SchedulerGenerateToplogy.h
+  1. We construct a DispatcherGenerateTopology since the worklet type is
+     WorkletGenerateTopology. The GenerateTopology Dispatcher requires two
+     things, the first being the count array tell it how many cells each
+     input cell is going to generate, and the optional worklet parameter.
 
-     This is all implemented using tag based dispatching to a class called
-     dax::cont::scheduling::Scheduler, where each worklet type implements
-     a specialization given a tag that represents the worklet type
+  2. We call Invoke on an instance of the dispatcher passing it all the
+     parameters it requires to fulfill the ControlSignature of the worklet.
 
+     A. We call DeviceAdapter::InclusiveScan on the Count Array held by the
+        DispatcherGenerateTopology.
 
-  2. We pass to SchedulerGenerateToplogy the worklet and all the other parameters
-     passed to the Invoke method. Invoke can in theory handle an arbitrary number
-     of parameters.
+     B. Release the count array if that option has been set.
 
-     A. Scheduler Cells uses dax::cont::scheduling::VerifyUserArgLength to
-        make sure at compile time that the number of items passed to the
-        Invoke method matches the number of parameters in the worklets
-        ControlSignature. It will state specifically if you have too many or not
-        enough items.
-
-     B. We call DeviceAdapter::InclusiveScan on the classification array passed
-        to the GenerateTopology helper
-
-     C. Release the classification array if the GenerateTopology has that
-        option enabled
-
-     D. Call DeviceAdapter::UpperBounds on the output of Step 2B.
+     C. Call DeviceAdapter::UpperBounds on the output of Step 2B.
         Release the inclusive scan ouput
 
-     E. Compute the VisitIndex if needed. The VisitIndex is used when you
+     D. Compute the VisitIndex if needed. The VisitIndex is used when you
         need to iterate multiple times over the same cell. each time you
         visit that cell you want a integer value stating how many times you
         already have been to that cell. this is needed when doing something
         like tetrahedralization
 
-     F. Invoke the default scheduler with a permutation on the grid. This
-        worklets only goal is to create the new topology for the output grid.
+     E. Invoke our derived parents BasicInvoke method with a permutation on the grid.
+        The BasicInvoke will verify the user has passed in all the proper
+        arguments to fulfill the ControlSignature of the worklet.
+
+        This worklets only goal is to create the new topology for the output grid.
         By topology I mean something very similar to the vtkCellArray entry
         for a single cell ( all the point indicies it uses. )
 
-       F i) See the Classify Worklet documentation, except the domain this
+       i) See the Classify Worklet documentation, except the domain this
             time is PermutedCells ( Which you should consider equal to
             Cell for for Step C), and Step E we call the basic
             DeviceAdapter::Schedule( dax::Id ) since we aren't working
             on all the cells of a uniform grid.
 
-     G. Next we check if the user wants to remove duplicates. Currently the
+     F. Next we check if the user wants to remove duplicates. Currently the
         duplicate removal is a two step affair. This allows us to store
         a mask that can be reused when thresholding other point fields, instead
         of having to recompute it each time.
@@ -547,7 +501,7 @@ void Dax_Threshold(GridType grid,
 
 
   */
-  scheduler.Invoke( generateWorklet,grid, out_grid);
+  generateWorklet.Invoke(grid, out_grid);
 
   std::cout << "Input Grid number of cells: " << grid.GetNumberOfCells() << std::endl;
   std::cout << "Output Grid number of cells: " << out_grid.GetNumberOfCells() << std::endl;
