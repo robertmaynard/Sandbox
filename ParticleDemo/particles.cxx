@@ -3,12 +3,12 @@
 //Threshold a voxel dataset where we only extract the exterior faces and
 //pass those faces to openGL for rendering
 
-#include <dax/cont/Scheduler.h>
-#include <dax/cont/ArrayHandle.h>
-#include <dax/cont/ArrayHandleCounting.h>
-#include <dax/cont/UnstructuredGrid.h>
 #include <dax/CellTag.h>
 #include <dax/CellTraits.h>
+#include <dax/cont/ArrayHandle.h>
+#include <dax/cont/ArrayHandleCounting.h>
+#include <dax/cont/DispatcherMapField.h>
+#include <dax/cont/UnstructuredGrid.h>
 
 #include <dax/math/Compare.h> //Min && Max
 #include <dax/math/Precision.h> //Floor
@@ -205,7 +205,6 @@ private:
     return (GLvoid*) ( ((char*)NULL) + idx );
     }
 
-  dax::cont::Scheduler<> Scheduler;
   dax::cont::ArrayHandle<dax::Vector2> SeedHandle;
   dax::cont::ArrayHandle<dax::Vector3> ParticleCoords;
   dax::cont::ArrayHandle<dax::Vector3> ParticleVelocity;
@@ -261,14 +260,13 @@ public:
     InitFields init(this->XDim,this->YDim);
     const dax::Id size = this->XDim * this->YDim;
 
-
-    this->Scheduler.Invoke(init,
-                           dax::cont::make_ArrayHandleCounting(0,size),
-                           this->Frequency,
-                           this->SeedHandle,
-                           this->ParticleCoords,
-                           this->ParticleColors,
-                           this->ParticleVelocity);
+    dax::cont::DispatcherMapField<InitFields> dispatcher(init);
+    dispatcher.Invoke(dax::cont::make_ArrayHandleCounting(0,size),
+                      this->Frequency,
+                      this->SeedHandle,
+                      this->ParticleCoords,
+                      this->ParticleColors,
+                      this->ParticleVelocity);
 
     this->SeedHandle.ReleaseResourcesExecution();
     //now push that to opengl
@@ -291,30 +289,29 @@ public:
     if (ActiveMouseButtons)
       {
       this->TimeStep += 0.012;
-      PauseStep pause_step(this->TimeStep,
-                           this->XDim, this->YDim);
-      this->Scheduler.Invoke(pause_step,
-                             dax::cont::make_ArrayHandleCounting(0,size),
-                             this->Frequency,
-                             this->ParticleCoords,
-                             this->ParticleVelocity,
-                             this->ParticleCoords,
-                             this->ParticleVelocity);
+      dax::cont::DispatcherMapField<PauseStep> dispatcher(
+                PauseStep(this->TimeStep, this->XDim, this->YDim) );
+
+      dispatcher.Invoke(dax::cont::make_ArrayHandleCounting(0,size),
+                        this->Frequency,
+                        this->ParticleCoords,
+                        this->ParticleVelocity,
+                        this->ParticleCoords,
+                        this->ParticleVelocity);
       }
     else
       {
       this->TimeStep += 0.048;
-      ComputeStep compu_step(this->TimeStep,
-                             this->XDim, this->YDim,
-                             this->WorldMousePos);
-      this->Scheduler.Invoke(compu_step,
-                             dax::cont::make_ArrayHandleCounting(0,size),
-                             this->Frequency,
-                             this->ParticleCoords,
-                             this->ParticleVelocity,
-                             this->ParticleCoords,
-                             this->ParticleColors,
-                             this->ParticleVelocity);
+      dax::cont::DispatcherMapField<ComputeStep> dispatcher(
+                                ComputeStep(this->TimeStep, this->XDim,
+                                            this->YDim, this->WorldMousePos));
+      dispatcher.Invoke(dax::cont::make_ArrayHandleCounting(0,size),
+                        this->Frequency,
+                        this->ParticleCoords,
+                        this->ParticleVelocity,
+                        this->ParticleCoords,
+                        this->ParticleColors,
+                        this->ParticleVelocity);
       }
 
     dax::opengl::TransferToOpenGL(this->ParticleCoords, coord);
