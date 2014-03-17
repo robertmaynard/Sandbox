@@ -24,7 +24,7 @@
 # Search Variables defined by this module:
 #
 #  MOAB_FOUND              System has MOAB libs/headers
-#  MOAB_INCLUDE_DIR        The location of MOAB headers
+#  MOAB_INCLUDE_DIRS        The location of MOAB headers
 #  MOAB_LIBRARIES          The moab library to link too
 #
 
@@ -46,13 +46,15 @@ find_library(MOAB_LIBRARY
     lib/moab lib
 )
 
-if (MOAB_LIBRARY)
+include(FindPackageHandleStandardArgs)
+FIND_PACKAGE_HANDLE_STANDARD_ARGS(MOAB DEFAULT_MSG
+                                  MOAB_LIBRARY
+                                  MOAB_INCLUDE_DIR)
 
-  list(APPEND MOAB_LIBRARIES ${MOAB_LIBRARY})
-
+if(MOAB_FOUND)
   if(MOAB_WITH_NETCDF)
-    find_package(NetCDF)
-    list(APPEND MOAB_LIBRARIES
+    find_package(NetCDF REQUIRED)
+    list(APPEND MOAB_LIBRARY
         ${NetCDF_LIBRARIES})
   endif()
 
@@ -60,17 +62,15 @@ if (MOAB_LIBRARY)
     #TODO: determine what exact bindings to HDF5 moab uses.
     #are they using the C library, C++ library or high level C bindings
     find_package(HDF5 COMPONENTS C CXX HL)
-    list(APPEND MOAB_LIBRARIES
+    list(APPEND MOAB_LIBRARY
           ${HDF5_C_LIBRARIES}
           ${HDF5_CXX_LIBRARIES}
           ${HDF5_HL_LIBRARIES})
   endif()
-
+  
+  set(MOAB_INCLUDE_DIRS ${ZLIB_INCLUDE_DIR})
+  set(MOAB_LIBRARIES ${ZLIB_LIBRARY})
 endif()
 
-include(FindPackageHandleStandardArgs)
-FIND_PACKAGE_HANDLE_STANDARD_ARGS(MOAB DEFAULT_MSG
-                                  MOAB_LIBRARIES MOAB_INCLUDE_DIR)
-
-mark_as_advanced(MOAB_INCLUDE_DIR MOAB_LIBRARIES)
+mark_as_advanced(MOAB_INCLUDE_DIR MOAB_LIBRARY)
 
