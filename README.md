@@ -91,6 +91,10 @@ order of the ids
 An example of writing vis algorithms using everything but the Dax Scheduler
 infrastructure.
 
+## LHMC ##
+An example of looking at using Low High tables to speed up operations such
+as Marching Cubes
+
 
 ## MoabReader ##
 A pretty feature complete VTK reader of MOAB files, can output a moab
