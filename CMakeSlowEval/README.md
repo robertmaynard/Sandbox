@@ -1,0 +1,1 @@
+An example of how to make CMake variable evaluation slow down
