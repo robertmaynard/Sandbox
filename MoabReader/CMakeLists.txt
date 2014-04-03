@@ -1,4 +1,4 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8.2 FATAL_ERROR)
+cmake_minimum_required(VERSION 2.8.8)
 
 project(vtkMoabReader)
 
