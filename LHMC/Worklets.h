@@ -178,68 +178,73 @@ public:
 
 };
 
-//does a combined clip and marching cubes at the same time
-class MandlebulbClipCount : public dax::exec::WorkletMapCell
+
+// -----------------------------------------------------------------------------
+class MarchingCubesHLClip : public dax::exec::WorkletMapField
 {
+  //determine the topology type that we need in the exec env
+  typedef dax::cont::UniformGrid< >::TopologyStructConstExecution TopologyType;
+  TopologyType Topology; //holds the cell connectivity
+
+  typedef dax::cont::ArrayHandle< dax::Scalar >::PortalConstExecution ValuesPortalType;
+  ValuesPortalType ValuesPortal;
+
+  typedef dax::cont::UniformGrid< >::PointCoordinatesType::PortalConstExecution CoordsPortalType;
+  CoordsPortalType CoordsPortal;
+
+  dax::Vector3 Origin;
+  dax::Vector3 Location;
+  dax::Vector3 Normal;
+  dax::Scalar IsoValue;
+
 public:
-  typedef void ControlSignature(Topology, Field(Point), Field(Point), Field(Out));
-  typedef _4 ExecutionSignature(_2, _3);
+  typedef void ControlSignature(Field, Field(Out));
+  typedef _2 ExecutionSignature(_1, WorkId);
 
-  DAX_CONT_EXPORT MandlebulbClipCount(dax::Vector3 origin,
-                                        dax::Vector3 location,
-                                        dax::Vector3 normal,
-                                        dax::Scalar isoValue)
-  : Origin(origin),
+  DAX_CONT_EXPORT MarchingCubesHLClip(dax::Vector3 origin,
+                                      dax::Vector3 location,
+                                      dax::Vector3 normal,
+                                      dax::Scalar isoValue,
+                                      dax::cont::UniformGrid< > grid,
+                                      dax::cont::ArrayHandle< dax::Scalar > values,
+                                      dax::cont::UniformGrid< >::PointCoordinatesType coords)
+   :
+    Topology(grid.PrepareForInput()),
+    ValuesPortal(values.PrepareForInput()),
+    CoordsPortal(coords.PrepareForInput()),
+    IsoValue(isoValue),
+    Origin(origin),
     Location(location),
-    Normal(normal),
-    MCount(isoValue)
+    Normal(normal)
   {
   }
 
-  template<class CellTag>
   DAX_EXEC_EXPORT
-  dax::Scalar operator()(
-    const dax::exec::CellField<dax::Vector3,CellTag> &coords,
-    const dax::exec::CellField<dax::Scalar,CellTag> &values) const
+  dax::Id operator()(const dax::Vector2& low_high, dax::Id cellIndex )const
   {
-    dax::Id faces = 0;
-    const bool is_good = this->InClipArea(coords,
-                   typename dax::CellTraits<CellTag>::CanonicalCellTag());
-    if(is_good)
+    dax::Id count = 0;
+    int voxelClass = 0;
+    if( low_high[1] >= IsoValue && low_high[0] <= IsoValue )
       {
-      //if we intersect the slice plane generate faces
-      faces = this->MCount(values);
+      const dax::Scalar local_value = dax::dot(Normal,Location);
+
+      dax::exec::CellVertices<dax::CellTagVoxel> verts =
+                                  this->Topology.GetCellConnections(cellIndex);
+
+      count = (this->ValuesPortal.Get( verts[0] ) > IsoValue) << 0;
+      voxelClass = dax::dot(Normal, CoordsPortal.Get( verts[0] ) - Origin ) > local_value;
+      for(int i=1; i < 8; ++i)
+        {
+        count |= (this->ValuesPortal.Get( verts[i] ) > IsoValue) << i;
+        voxelClass |= dax::dot(Normal, CoordsPortal.Get( verts[i] ) - Origin ) > local_value;
+        }
+      count = dax::worklet::internal::marchingcubes::NumFaces[count];
       }
-    return faces;
+
+    if(voxelClass==0) { return 0;}
+    else{ return count; }
   }
- private:
-
-  template<class CellTag>
-    DAX_EXEC_EXPORT
-    bool InClipArea(
-      const dax::exec::CellField<dax::Vector3,CellTag> &coords,
-      dax::CellTagHexahedron) const
-    {
-      //compute the location
-      const dax::Scalar loca_value = dax::dot(Normal,Location);
-      const int voxelClass =(
-            ( dax::dot(Normal, coords[0] - Origin ) > loca_value ) |
-            ( dax::dot(Normal, coords[1] - Origin ) > loca_value ) |
-            ( dax::dot(Normal, coords[2] - Origin ) > loca_value ) |
-            ( dax::dot(Normal, coords[3] - Origin ) > loca_value ) |
-            ( dax::dot(Normal, coords[4] - Origin ) > loca_value ) |
-            ( dax::dot(Normal, coords[5] - Origin ) > loca_value ) |
-            ( dax::dot(Normal, coords[6] - Origin ) > loca_value ) |
-            ( dax::dot(Normal, coords[7] - Origin ) > loca_value ) );
-      return voxelClass != 0;
-    }
-
-    dax::Vector3 Origin;
-    dax::Vector3 Location;
-    dax::Vector3 Normal;
-    dax::worklet::MarchingCubesCount MCount;
 };
-
 
 //basic implementation of computing color and norms for triangles
 //since dax doesn't have a per vert worklet we are going to replicate

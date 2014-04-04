@@ -143,18 +143,19 @@ mandle::MandlebulbSurface extractCut( mandle::MandlebulbVolume& vol,
   dax::Vector3 normal(0,0,1);
 
   //lets extract the clip
-  mandle::MandlebulbSurface surface;
   dax::cont::ArrayHandle<dax::Id> count;
 
   dax::cont::Timer<> timer;
 
-  //run the classify step
-  dax::cont::DispatcherMapCell< ::worklet::MandlebulbClipCount >
-      classify( (::worklet::MandlebulbClipCount( origin, location, normal, iteration)) );
-  classify.Invoke(vol.Grid,
-                  vol.Grid.GetPointCoordinates(),
-                  vol.EscapeIteration,
-                  count );
+
+  dax::cont::DispatcherMapField< ::worklet::MarchingCubesHLClip >
+        classify( ( ::worklet::MarchingCubesHLClip(origin, location, normal,
+                                                   iteration, vol.Grid,
+                                                   vol.EscapeIteration,
+                                                   vol.Grid.GetPointCoordinates() )) );
+
+  classify.Invoke( vol.LowHigh, count );
+
   std::cout << "mc stage 1: "  << timer.GetElapsedTime() << std::endl;
 
   return detail::generateSurface(vol,iteration,count);
