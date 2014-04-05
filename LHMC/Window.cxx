@@ -37,13 +37,8 @@ class Window::InternalMandleData
 public:
   void release()
   {
-    Volume.EscapeIteration.ReleaseResources();
-
-    Surface.Data.GetPointCoordinates().ReleaseResources();
-    Surface.Data.GetCellConnections().ReleaseResources();
-
-    Surface.Colors.ReleaseResources();
-    Surface.Norms.ReleaseResources();
+    Volume.ReleaseAllResources();
+    Surface.ReleaseAllResources();
   }
 
   MandlebulbVolume Volume;
@@ -76,7 +71,7 @@ Window::Window(const ArgumentsParser &arguments)
   this->RotateY = 180;
   this->TranslateZ = -3;
 
-  this->Iteration = 32;
+  this->Iteration = 1;
   this->ClipRatio = 0.3;
   this->Remesh = true;
   this->Mode = 0;

@@ -24,10 +24,12 @@
 
 #include <dax/opengl/internal/OpenGLHeaders.h>
 
+#include <vector>
+#include <iostream>
+
 //helper structs to make it easier to pass data around between functions
 namespace mandle
 {
-
   class MandlebulbVolume
   {
   public:
@@ -35,16 +37,35 @@ namespace mandle
 
   MandlebulbVolume( dax::Vector3 origin,
                    dax::Vector3 spacing,
-                   dax::Extent3 extent )
-  {
-    Grid.SetOrigin ( origin  );
-    Grid.SetExtent ( extent  );
-    Grid.SetSpacing( spacing );
-  }
+                   dax::Extent3 extent );
 
-  dax::cont::UniformGrid< > Grid;
-  dax::cont::ArrayHandle<dax::Scalar> EscapeIteration;
-  dax::cont::ArrayHandle<dax::Vector2> LowHigh;
+  void compute();
+  bool isValidSubGrid(std::size_t index, dax::Scalar value);
+  bool releaseExecMemForSubGrid(std::size_t index);
+
+  const dax::cont::UniformGrid< >& subGrid( std::size_t index ) const
+    { return SubGrids[index]; }
+  const dax::cont::ArrayHandle<dax::Vector2>& subLowHighs( std::size_t index ) const
+    { return LowHighs[index]; }
+  const dax::cont::ArrayHandle<dax::Scalar>& subEscapes( std::size_t index ) const
+    { return EscapeIterations[index]; }
+
+  void ReleaseAllResources()
+    {
+    PerSliceLowHighs.clear();
+    SubGrids.clear();
+    LowHighs.clear();
+    EscapeIterations.clear();
+    }
+
+  std::size_t numSubGrids() const { return NumberOfSubGrids; }
+private:
+  std::size_t NumberOfSubGrids;
+  std::vector< dax::Vector2 > PerSliceLowHighs;
+
+  std::vector< dax::cont::UniformGrid< > > SubGrids;
+  std::vector< dax::cont::ArrayHandle<dax::Vector2> > LowHighs;
+  std::vector< dax::cont::ArrayHandle<dax::Scalar> > EscapeIterations;
   };
 
   class MandlebulbSurface
@@ -53,8 +74,15 @@ namespace mandle
 
   typedef dax::Tuple<unsigned char,4> ColorType;
 
-
   public:
+  void ReleaseAllResources()
+    {
+    this->Data.GetPointCoordinates().ReleaseResources();
+    this->Data.GetCellConnections().ReleaseResources();
+    this->Colors.ReleaseResources();
+    this->Norms.ReleaseResources();
+    }
+
 
   DataType Data;
   dax::cont::ArrayHandle<ColorType> Colors;

@@ -47,6 +47,12 @@ set(sources
 #-----------------------------------------------------------------------------
 set_source_files_properties(${headers} PROPERTIES HEADER_FILE_ONLY TRUE)
 
+add_executable(lhmc ${headers} ${sources})
+set_target_properties(lhmc PROPERTIES COMPILE_DEFINITIONS
+                    "DAX_DEVICE_ADAPTER=DAX_DEVICE_ADAPTER_SERIAL")
+target_link_libraries(lhmc ${OPENGL_LIBRARIES}
+                      ${GLUT_LIBRARIES} ${GLEW_LIBRARIES})
+
 #-----------------------------------------------------------------------------
 if (Dax_TBB_FOUND)
   add_executable(lhmcTBB ${headers} ${sources})

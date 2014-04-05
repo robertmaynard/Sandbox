@@ -28,7 +28,7 @@
 #include <dax/exec/WorkletMapCell.h>
 #include <dax/worklet/MarchingCubes.h>
 
-
+#include <iostream>
 #include "CoolWarmColorMap.h"
 
 namespace mandle
@@ -74,7 +74,7 @@ public:
     // The fractal is defined as the number of iterations of
     // pos -> pos^N + inCoordiante it takes to escape. We consider anything
     // outside of the radius sqrt(2) to be escaped.
-    const dax::Id MAX_ITERATION = 35;
+    const dax::Id MAX_ITERATION = 10;
 
     dax::Vector3 pos = inCoordinate;
     if (dax::math::MagnitudeSquared(pos) > 2) { return 0; }
@@ -94,7 +94,7 @@ public:
   {
     // Compute the 10th power Mandelbulb. This function raises a coordinate
     // to the 10th power based on White and Nylander's formula.
-    const int N = 10;
+    const int N = 35;
 
     const dax::Scalar squareR = dax::math::MagnitudeSquared(pos);
     const dax::Scalar t = dax::math::Sqrt(pos[0] * pos[0] + pos[1] * pos[1]);
@@ -133,11 +133,11 @@ public:
 };
 
 // -----------------------------------------------------------------------------
-class MarchingCubesHLCount : public dax::exec::WorkletMapField
+class MarchingCubesHLCount : public dax::exec::WorkletMapCell
 {
   //determine the topology type that we need in the exec env
   typedef dax::cont::UniformGrid< >::TopologyStructConstExecution TopologyType;
-  TopologyType Topology; //holds the cell connectivity
+  TopologyType Topo; //holds the cell connectivity
 
   typedef dax::cont::ArrayHandle< dax::Scalar >::PortalConstExecution ValuesPortalType;
   ValuesPortalType ValuesPortal;
@@ -145,13 +145,13 @@ class MarchingCubesHLCount : public dax::exec::WorkletMapField
   dax::Scalar IsoValue;
 
 public:
-  typedef void ControlSignature(Field, Field(Out));
-  typedef _2 ExecutionSignature(_1, WorkId);
+  typedef void ControlSignature(Topology, Field, Field(Out));
+  typedef _3 ExecutionSignature(_2, WorkId);
 
   DAX_CONT_EXPORT MarchingCubesHLCount(dax::Scalar isoValue,
                                        dax::cont::UniformGrid< > grid,
                                        dax::cont::ArrayHandle< dax::Scalar > values):
-    Topology(grid.PrepareForInput()),
+    Topo(grid.PrepareForInput()),
     ValuesPortal(values.PrepareForInput()),
     IsoValue(isoValue)
   {
@@ -164,15 +164,14 @@ public:
     if( low_high[1] >= IsoValue && low_high[0] <= IsoValue )
       {
       dax::exec::CellVertices<dax::CellTagVoxel> verts =
-                                  this->Topology.GetCellConnections(cellIndex);
-
-      count = (this->ValuesPortal.Get( verts[0] ) > IsoValue) << 0;
-      for(int i=1; i < 8; ++i)
+                                  this->Topo.GetCellConnections(cellIndex);
+      for(int i=0; i < 8; ++i)
         {
-        count |= (this->ValuesPortal.Get( verts[i] ) > IsoValue) << i;
+        count |= ( (this->ValuesPortal.Get( verts[i] ) > IsoValue) << i );
         }
       count = dax::worklet::internal::marchingcubes::NumFaces[count];
       }
+
     return count;
   }
 
