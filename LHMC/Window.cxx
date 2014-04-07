@@ -204,7 +204,7 @@ void Window::PostInit()
   glClearColor(1.0, 1.0, 1.0, 1.0);
 
   //compute the mandlebulb
-  dax::Vector3 origin(-1);
+  dax::Vector3 origin(-2);
   dax::Vector3 spacing(2.0/this->GridSize);
   dax::Extent3 extent(dax::Id3(0),
                       dax::Id3(this->GridSize));

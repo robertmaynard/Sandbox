@@ -106,8 +106,6 @@ namespace mandle
       subGrid.SetExtent(sub_extent);
 
       this->SubGrids.push_back(subGrid);
-      std::cout << "num of cells in grid " << this->SubGrids[i].GetNumberOfCells() << std::endl;
-      std::cout << "num of points in grid " << this->SubGrids[i].GetNumberOfPoints() << std::endl;
       }
 
     //add in the last subgrid
@@ -253,21 +251,38 @@ mandle::MandlebulbSurface extractSurface( mandle::MandlebulbVolume& vol,
   typedef std::vector< dax::cont::ArrayHandle<dax::Scalar> >::const_iterator escIt;
   typedef std::vector< dax::cont::ArrayHandle<dax::Vector2> >::const_iterator lhIt;
 
+  std::size_t numValidSubGrids=0, totalSubGrids=0;
+  std::size_t totalValidCells=0, totalCells=0;
+  double elapsedTime=0;
 
   const std::size_t size = vol.numSubGrids();
-  for(std::size_t i = 0; i < size; ++i)
+  for(std::size_t i = 0; i < size; ++i, ++totalSubGrids)
     {
     if(vol.isValidSubGrid(i, iteration))
       {
+      timer.Reset();
+      ++numValidSubGrids;
       dax::cont::ArrayHandle<dax::Id> count;
       dax::cont::DispatcherMapCell< ::worklet::MarchingCubesHLCount >
         classify( ( ::worklet::MarchingCubesHLCount(iteration, vol.subGrid(i),  vol.subEscapes(i) )) );
       classify.Invoke( vol.subGrid(i), vol.subLowHighs(i), count );
+      elapsedTime += timer.GetElapsedTime();
+
+      //debug
+        {
+        dax::cont::ArrayHandle<dax::Id> scannedNewCellCounts;
+        DeviceAdapter::StreamCompact(count, scannedNewCellCounts);
+        totalValidCells += scannedNewCellCounts.GetNumberOfValues();
+        }
+
       }
+    totalCells += vol.subGrid(i).GetNumberOfCells();
     vol.releaseExecMemForSubGrid(i);
     }
 
-  std::cout << "mc stage 1: " << timer.GetElapsedTime() << " sec" << std::endl;
+  std::cout << "mc stage 1: " << elapsedTime  << " sec" << std::endl;
+  std::cout << (numValidSubGrids/(float)totalSubGrids * 100) << "% of the subgrids are valid " << std::endl;
+  std::cout << (totalValidCells/(float)totalCells * 100) << "% of the cells are valid " << std::endl;
 
   mandle::MandlebulbSurface surface;
   return surface;

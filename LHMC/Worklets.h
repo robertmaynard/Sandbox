@@ -94,7 +94,7 @@ public:
   {
     // Compute the 10th power Mandelbulb. This function raises a coordinate
     // to the 10th power based on White and Nylander's formula.
-    const int N = 35;
+    const int N = 10;
 
     const dax::Scalar squareR = dax::math::MagnitudeSquared(pos);
     const dax::Scalar t = dax::math::Sqrt(pos[0] * pos[0] + pos[1] * pos[1]);
