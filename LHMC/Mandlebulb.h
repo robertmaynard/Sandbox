@@ -87,6 +87,8 @@ private:
     this->Norms.ReleaseResources();
     }
 
+  std::vector< dax::cont::UnstructuredGrid< dax::CellTagTriangle > > Grids;
+
   dax::cont::ArrayHandle<dax::Vector3> Points;
   dax::cont::ArrayHandle<dax::Vector3> Norms;
   dax::cont::ArrayHandle<ColorType> Colors;

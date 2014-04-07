@@ -37,7 +37,6 @@ dax::Id generateSurface( const dax::cont::UniformGrid< >& vol,
                          mandle::MandlebulbSurface& surface)
 
 {
-  std::cout << "generateSurface " << std::endl;
   dax::cont::UnstructuredGrid< dax::CellTagTriangle > tempGrid;
 
   //setup the info for the second step
@@ -49,21 +48,7 @@ dax::Id generateSurface( const dax::cont::UniformGrid< >& vol,
 
   surfDispatch.Invoke( vol, tempGrid, escape);
 
-  // //generate a color for each point based on the escape iteration
-  // if(surface.Data.GetNumberOfPoints() > 0)
-  //   {
-  //   mandle::SurfaceCoords surface_coords(surface.Data);
-  //   dax::cont::DispatcherMapField<worklet::ColorsAndNorms> colorNormsDispatcher;
-  //   colorNormsDispatcher.Invoke(
-  //                 dax::cont::make_ArrayHandleCounting(dax::Id(0),
-  //                                         surface.Data.GetNumberOfPoints()),
-  //                 surface_coords,
-  //                 surface.Norms,
-  //                 surface.Colors);
-  //   std::cout << "colors & norms: " << timer.GetElapsedTime() << " sec"
-  //             << std::endl;
-  //   }
-
+  surface.Grids.push_back(tempGrid);
   return tempGrid.GetNumberOfCells();
 }
 
@@ -81,7 +66,7 @@ namespace mandle
 
   //Todo make the subGridPerDim a far smarter algorithm based
   //on the extents being passed in.
-  const std::size_t subGridPerDim = 24;
+  const std::size_t subGridPerDim = 16;
 
   dax::Id3 size = dax::extentDimensions(extent);
 
@@ -304,8 +289,6 @@ mandle::MandlebulbSurface extractSurface( mandle::MandlebulbVolume& vol,
       timer.Reset();
       totalTris += generateSurface(vol.subGrid(i), vol.subEscapes(i), iteration, count, surface);
       elapsedTime2 += timer.GetElapsedTime();
-
-
       }
     totalCells += vol.subGrid(i).GetNumberOfCells();
     }
