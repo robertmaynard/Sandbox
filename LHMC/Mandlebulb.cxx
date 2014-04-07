@@ -81,55 +81,69 @@ namespace mandle
                                       dax::Vector3 spacing,
                                       dax::Extent3 extent )
   {
-    this->NumberOfSubGrids = 200;
+    //Todo make the subGridPerDim a far smarter algorithm based
+    //on the extents being passed in.
+    const std::size_t subGridPerDim = 24;
+
     dax::Id3 size = dax::extentDimensions(extent);
 
-    const std::size_t z_size_per_sub_grid = size[2] / this->NumberOfSubGrids;
-    const std::size_t z_remainder = size[2] % this->NumberOfSubGrids;
-
-    std::cout << "z_size_per_sub_grid:  " <<z_size_per_sub_grid << std::endl;
-
-    for(std::size_t i=0; i < this->NumberOfSubGrids-1; ++i)
+    dax::Id3 size_per_sub_grid, remainder;
+    for(std::size_t dim=0; dim < 3; ++dim)
       {
-      dax::cont::UniformGrid< > subGrid;
-      subGrid.SetSpacing( spacing ); //same as the full grid
-
-      //calculate the origin, only z changes
-      dax::Vector3 sub_origin = origin;
-      sub_origin[2] = origin[2] + ( (i * z_size_per_sub_grid) * spacing[2]);
-      subGrid.SetOrigin( sub_origin );
-
-      //calculate out the new extent
-      dax::Extent3 sub_extent = extent;
-      sub_extent.Min[2] = 0;
-      sub_extent.Max[2] = z_size_per_sub_grid -1 ; //account for it being cells
-      subGrid.SetExtent(sub_extent);
-
-      this->SubGrids.push_back(subGrid);
+      size_per_sub_grid[dim] = size[dim] / subGridPerDim;
+      remainder[dim] = size[dim] % subGridPerDim;
       }
 
-    //add in the last subgrid
-    dax::cont::UniformGrid< > subGrid;
-    subGrid.SetSpacing( spacing ); //same as the full grid
+    dax::Id3 my_remainder;
 
-    //calculate the origin, only z changes
-    dax::Vector3 sub_origin = origin;
-    sub_origin[2] = origin[2] + z_remainder +
-            ( (this->NumberOfSubGrids-1) * z_size_per_sub_grid * spacing[2]);
-    subGrid.SetOrigin( sub_origin );
+    for(std::size_t k=0; k < subGridPerDim; ++k)
+      {
+      if(k == subGridPerDim-1)
+        { my_remainder[2]=remainder[2]; }
+      else { my_remainder[2]=0; }
 
-    //calculate out the new extent
-    dax::Extent3 sub_extent = extent;
-    sub_extent.Min[2] = 0;
-    sub_extent.Max[2] = (z_size_per_sub_grid -1) + z_remainder; //account for it being cells
-    subGrid.SetExtent(sub_extent);
+      for(std::size_t j=0; j < subGridPerDim; ++j)
+        {
+        if(j == subGridPerDim-1)
+          { my_remainder[1]=remainder[1]; }
+        else { my_remainder[1]=0; }
 
-    this->SubGrids.push_back(subGrid);
+        for(std::size_t i=0; i < subGridPerDim; ++i)
+          {
+          if(i == subGridPerDim-1)
+            { my_remainder[0]=remainder[0]; }
+          else { my_remainder[0]=0; }
+
+          dax::cont::UniformGrid< > subGrid;
+          subGrid.SetSpacing( spacing ); //same as the full grid
+
+          //calculate the origin
+          dax::Vector3 offset(i * size_per_sub_grid[0],
+                              j * size_per_sub_grid[1],
+                              k * size_per_sub_grid[2]);
+          dax::Vector3 sub_origin = origin + ( offset * spacing);
+
+          sub_origin[0] +=  my_remainder[0];
+          sub_origin[1] +=  my_remainder[1];
+          sub_origin[2] +=  my_remainder[2];
+          subGrid.SetOrigin( sub_origin );
+
+          //calculate out the new extent
+          dax::Extent3 sub_extent;
+          sub_extent.Min = dax::Id3(0,0,0);
+          sub_extent.Max = size_per_sub_grid - dax::make_Id3(1,1,1) + my_remainder; //account for it being cells
+          subGrid.SetExtent(sub_extent);
+
+          this->SubGrids.push_back(subGrid);
+          }
+        }
+      }
+    std::cout << "Number of subgrids " << this->SubGrids.size() << std::endl;
 
     //now create the rest of the vectors to the same size as the subgrids
-    this->PerSliceLowHighs.resize(this->NumberOfSubGrids);
-    this->LowHighs.resize(this->NumberOfSubGrids);
-    this->EscapeIterations.resize(this->NumberOfSubGrids);
+    this->PerSliceLowHighs.resize( this->SubGrids.size() );
+    this->LowHighs.resize( this->SubGrids.size() );
+    this->EscapeIterations.resize( this->SubGrids.size() );
   }
 
   void MandlebulbVolume::compute()
@@ -164,7 +178,7 @@ namespace mandle
                                                   g, e, lh);
       (*lowhigh)=lh;
 
-      // // //pull everything down to the control side
+      //pull everything down to the control side
       (*escape).GetPortalConstControl();
       (*lowhigh).GetPortalConstControl();
 
@@ -256,6 +270,17 @@ mandle::MandlebulbSurface extractSurface( mandle::MandlebulbVolume& vol,
   double elapsedTime=0;
 
   const std::size_t size = vol.numSubGrids();
+
+  //first pass we release any memory from the gpu that we can
+  //this will make sure we don't overallocate. In the future we need a better
+  //caching scheme than this.
+  for(std::size_t i = 0; i < size; ++i, ++totalSubGrids)
+    {
+    if(!vol.isValidSubGrid(i, iteration))
+      { vol.releaseExecMemForSubGrid(i); }
+    }
+
+  //now extract the surface on the valid sub grids
   for(std::size_t i = 0; i < size; ++i, ++totalSubGrids)
     {
     if(vol.isValidSubGrid(i, iteration))
@@ -274,11 +299,10 @@ mandle::MandlebulbSurface extractSurface( mandle::MandlebulbVolume& vol,
         DeviceAdapter::StreamCompact(count, scannedNewCellCounts);
         totalValidCells += scannedNewCellCounts.GetNumberOfValues();
         }
-
       }
     totalCells += vol.subGrid(i).GetNumberOfCells();
-    vol.releaseExecMemForSubGrid(i);
     }
+
 
   std::cout << "mc stage 1: " << elapsedTime  << " sec" << std::endl;
   std::cout << (numValidSubGrids/(float)totalSubGrids * 100) << "% of the subgrids are valid " << std::endl;

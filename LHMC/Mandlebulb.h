@@ -58,9 +58,8 @@ namespace mandle
     EscapeIterations.clear();
     }
 
-  std::size_t numSubGrids() const { return NumberOfSubGrids; }
+  std::size_t numSubGrids() const { return SubGrids.size(); }
 private:
-  std::size_t NumberOfSubGrids;
   std::vector< dax::Vector2 > PerSliceLowHighs;
 
   std::vector< dax::cont::UniformGrid< > > SubGrids;
