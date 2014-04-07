@@ -151,7 +151,6 @@ namespace mandle
         grid != this->SubGrids.end();
         ++grid, ++escape, ++lowhigh)
       {
-      std::cout << "computing sub grid" << std::endl;
       dax::cont::UniformGrid< >  g = *grid;
       numPoints += g.GetNumberOfPoints();
 
@@ -181,27 +180,32 @@ namespace mandle
     << std::endl;
 
 
-    //compute the low high per sub grid
+    //compute the low high per sub grid, skip empty subgrids
     std::vector< dax::Vector2 >::iterator perSlice = this->PerSliceLowHighs.begin();
-    for(lowhigh = this->LowHighs.begin(); lowhigh != this->LowHighs.end(); ++lowhigh, ++perSlice)
+    gridIt grid = this->SubGrids.begin();
+
+    for(lowhigh = this->LowHighs.begin(); lowhigh != this->LowHighs.end(); ++lowhigh, ++perSlice, ++grid)
       {
-      std::cout << "computing low high for sub grid" << std::endl;
-      const dax::Id size = (*lowhigh).GetNumberOfValues();
-      dax::Vector2 lh;
-      lh[0] = (*lowhigh).GetPortalConstControl().Get(0)[0];
-      lh[1] = (*lowhigh).GetPortalConstControl().Get(0)[1];
-      for(dax::Id i=1; i < size; ++i)
+      if((*grid).GetNumberOfCells() > 0)
         {
-        dax::Vector2 v = (*lowhigh).GetPortalConstControl().Get(i);
-        lh[0] = std::min(v[0],lh[0]);
-        lh[1] = std::max(v[1],lh[1]);
+        const dax::Id size = (*lowhigh).GetNumberOfValues();
+        dax::Vector2 lh;
+        lh[0] = (*lowhigh).GetPortalConstControl().Get(0)[0];
+        lh[1] = (*lowhigh).GetPortalConstControl().Get(0)[1];
+        for(dax::Id i=1; i < size; ++i)
+          {
+          dax::Vector2 v = (*lowhigh).GetPortalConstControl().Get(i);
+          lh[0] = std::min(v[0],lh[0]);
+          lh[1] = std::max(v[1],lh[1]);
+          }
+        (*perSlice) = lh;
         }
-      std::cout << "low highs: " << lh[0] << ", " << lh[1] << std::endl;
-      (*perSlice) = lh;
+      else
+        {
+        //invalid cell so make the low high impossible to match
+        (*perSlice) = dax::Vector2(1,-1);
+        }
       }
-
-
-
     }
 
   bool MandlebulbVolume::isValidSubGrid(std::size_t index, dax::Scalar value)
