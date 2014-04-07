@@ -151,7 +151,7 @@ void Window::DisplayCurrentFPS()
     {
     std::cout << "fps: " << this->Fps << std::endl;
     std::cout << "triangles: " <<
-                 this->MandleData->Surface.Data.GetNumberOfCells() << std::endl;
+                 this->MandleData->Surface.Points.GetNumberOfValues() << std::endl;
     this->PreviousFps = this->Fps;
     }
 }
@@ -254,7 +254,7 @@ void Window::Display()
   glNormalPointer(GL_FLOAT, 0, bufferObjectPtr(0) );
 
   glDrawArrays( GL_TRIANGLES, 0,
-                this->MandleData->Surface.Data.GetNumberOfPoints() );
+                this->MandleData->Surface.Points.GetNumberOfValues() );
 
   glDisableClientState(GL_NORMAL_ARRAY);
   glDisableClientState(GL_COLOR_ARRAY);

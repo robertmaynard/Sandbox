@@ -36,8 +36,8 @@ namespace mandle
   MandlebulbVolume() { }
 
   MandlebulbVolume( dax::Vector3 origin,
-                   dax::Vector3 spacing,
-                   dax::Extent3 extent );
+                    dax::Vector3 spacing,
+                    dax::Extent3 extent );
 
   void compute();
   bool isValidSubGrid(std::size_t index, dax::Scalar value);
@@ -59,7 +59,15 @@ namespace mandle
     }
 
   std::size_t numSubGrids() const { return SubGrids.size(); }
+
+  dax::Vector3 getOrigin() const { return Origin; }
+  dax::Vector3 getSpacing() const { return Spacing; }
+  dax::Extent3 getExtent() const { return Extent; }
 private:
+  dax::Vector3 Origin;
+  dax::Vector3 Spacing;
+  dax::Extent3 Extent;
+
   std::vector< dax::Vector2 > PerSliceLowHighs;
 
   std::vector< dax::cont::UniformGrid< > > SubGrids;
@@ -69,23 +77,19 @@ private:
 
   class MandlebulbSurface
   {
-  typedef dax::cont::UnstructuredGrid< dax::CellTagTriangle > DataType;
-
   typedef dax::Tuple<unsigned char,4> ColorType;
 
   public:
   void ReleaseAllResources()
     {
-    this->Data.GetPointCoordinates().ReleaseResources();
-    this->Data.GetCellConnections().ReleaseResources();
+    this->Points.ReleaseResources();
     this->Colors.ReleaseResources();
     this->Norms.ReleaseResources();
     }
 
-
-  DataType Data;
-  dax::cont::ArrayHandle<ColorType> Colors;
+  dax::cont::ArrayHandle<dax::Vector3> Points;
   dax::cont::ArrayHandle<dax::Vector3> Norms;
+  dax::cont::ArrayHandle<ColorType> Colors;
   };
 }
 
