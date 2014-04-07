@@ -20,6 +20,8 @@
 #include <iostream>
 #include <limits>
 
+#include <dax/cont/UniformGrid.h>
+
 #include <dax/cont/ArrayHandleCounting.h>
 #include <dax/cont/DispatcherGenerateInterpolatedCells.h>
 #include <dax/cont/DispatcherMapCell.h>
@@ -28,27 +30,24 @@
 
 #include <dax/opengl/TransferToOpenGL.h>
 
-namespace detail
-{
-
 dax::Id generateSurface( const dax::cont::UniformGrid< >& vol,
-                      const dax::cont::ArrayHandle<dax::Scalar>& escape,
-                      dax::Scalar iteration,
-                      dax::cont::ArrayHandle<dax::Id> count,
-                      mandle::MandlebulbSurface& surface)
+                         const dax::cont::ArrayHandle<dax::Scalar>& escape,
+                         dax::Scalar iteration,
+                         dax::cont::ArrayHandle<dax::Id> count,
+                         mandle::MandlebulbSurface& surface)
 
 {
+  std::cout << "generateSurface " << std::endl;
   dax::cont::UnstructuredGrid< dax::CellTagTriangle > tempGrid;
 
   //setup the info for the second step
-  // dax::worklet::MarchingCubesGenerate generateSurf(iteration);
-  // dax::cont::DispatcherGenerateInterpolatedCells<
-  //    ::dax::worklet::MarchingCubesGenerate > surfDispacther(count,
-  //                                                           generateSurf);
+  ::worklet::MarchingCubesHLGenerate genSurface(iteration);
+  ::dax::cont::DispatcherGenerateInterpolatedCells<
+     ::worklet::MarchingCubesHLGenerate > surfDispatch(count,genSurface);
 
-  // surfDispacther.SetRemoveDuplicatePoints(false);
+  surfDispatch.SetRemoveDuplicatePoints(false);
 
-  // surfDispacther.Invoke( vol, tempGrid, escape);
+  surfDispatch.Invoke( vol, tempGrid, escape);
 
   // //generate a color for each point based on the escape iteration
   // if(surface.Data.GetNumberOfPoints() > 0)
@@ -66,8 +65,6 @@ dax::Id generateSurface( const dax::cont::UniformGrid< >& vol,
   //   }
 
   return tempGrid.GetNumberOfCells();
-}
-
 }
 
 
@@ -305,7 +302,7 @@ mandle::MandlebulbSurface extractSurface( mandle::MandlebulbVolume& vol,
 
       //now time to generate the surface
       timer.Reset();
-      totalTris += detail::generateSurface(vol.subGrid(i), vol.subEscapes(i), iteration, count, surface);
+      totalTris += generateSurface(vol.subGrid(i), vol.subEscapes(i), iteration, count, surface);
       elapsedTime2 += timer.GetElapsedTime();
 
 
@@ -394,9 +391,7 @@ mandle::MandlebulbSurface extractCut( mandle::MandlebulbVolume& vol,
         }
 
       //now time to generate the surface
-      detail::generateSurface(vol.subGrid(i), vol.subEscapes(i), iteration, count, surface);
-
-
+      generateSurface(vol.subGrid(i), vol.subEscapes(i), iteration, count, surface);
       }
     totalCells += vol.subGrid(i).GetNumberOfCells();
     }
