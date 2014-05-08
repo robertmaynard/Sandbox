@@ -20,9 +20,26 @@
 
 #include "ParameterPackCxx03.h"
 #include "GetNthType.h"
+#include "Tags.h"
 
 #include <boost/mpl/if.hpp>
 #include <boost/type_traits.hpp>
+
+
+namespace dax { namespace cont {
+  namespace arg
+    {
+    class Field {};
+    }
+  namespace sig
+    {
+    class Tag {};
+    class In: public Tag {};
+    class Out: public Tag {};
+    }
+}}
+
+
 
 namespace dax { namespace cont { namespace internal {
 
@@ -31,8 +48,7 @@ namespace detail {
 template <typename R> struct GetConceptAndTagsImpl
 {
   typedef R Concept;
-  typedef int Tags;
-  // typedef dax::internal::Tags<sig::Tag()> Tags;
+  typedef dax::internal::Tags<sig::Tag()> Tags;
 };
 
 } // namespace detail
@@ -53,8 +69,8 @@ template <typename R _dax_pp_comma _dax_pp_typename___T>
 struct GetConceptAndTagsImpl< R (*)(_dax_pp_T___) >
 {
   typedef R Concept;
-  // typedef typename boost::decay<_dax_pp_T___>::type Tags;
-  // typedef dax::internal::Tags<sig::Tag(_dax_pp_T___)> Tags;
+  typedef typename boost::decay<sig::Tag(_dax_pp_T___)>::type FunctionType;
+  typedef dax::internal::Tags< FunctionType > Tags;
 };
 
 } // namespace detail
