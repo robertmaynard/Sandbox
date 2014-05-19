@@ -2,6 +2,7 @@ Minimal test case to show an issue with cmake commit: 4959f3413c83
 
 
 Current patch to fix this issue is:
+``` diff
 From 6b6f695fecd03cd60ce39b7d5b0de4ae7ef03ac7 Mon Sep 17 00:00:00 2001
 From: Robert Maynard <robert.maynard@kitware.com>
 Date: Mon, 19 May 2014 17:13:23 -0400
@@ -52,4 +53,4 @@ index d5f00ff..623455f 100644
           case doing_outputs:
 --
 1.8.5.2 (Apple Git-48)
-
+```
