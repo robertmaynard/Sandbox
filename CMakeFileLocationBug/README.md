@@ -1,0 +1,1 @@
+Minimal test case to show an issue with cmake commit: 4959f3413c83
