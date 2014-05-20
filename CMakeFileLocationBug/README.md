@@ -2,7 +2,7 @@ Minimal test case to show an issue with cmake commit: 4959f3413c83
 
 
 Current patch to fix this issue is:
-From 525eced028a794c892a768c333541832bb289ea1 Mon Sep 17 00:00:00 2001
+From 6b6f695fecd03cd60ce39b7d5b0de4ae7ef03ac7 Mon Sep 17 00:00:00 2001
 From: Robert Maynard <robert.maynard@kitware.com>
 Date: Mon, 19 May 2014 17:13:23 -0400
 Subject: [PATCH] Unify all paths that custom command uses to be full paths.
@@ -12,7 +12,7 @@ Subject: [PATCH] Unify all paths that custom command uses to be full paths.
  1 file changed, 13 insertions(+), 1 deletion(-)
 
 diff --git a/Source/cmAddCustomCommandCommand.cxx b/Source/cmAddCustomCommandCommand.cxx
-index d5f00ff..02f9df6 100644
+index d5f00ff..623455f 100644
 --- a/Source/cmAddCustomCommandCommand.cxx
 +++ b/Source/cmAddCustomCommandCommand.cxx
 @@ -162,6 +162,10 @@ bool cmAddCustomCommandCommand
@@ -46,9 +46,10 @@ index d5f00ff..02f9df6 100644
 +            {
 +            dep = cmSystemTools::CollapseFullPath(dep.c_str());
 +            }
-+           depends.push_back( dep.c_str() );
++           depends.push_back( dep );
             }
             break;
           case doing_outputs:
 --
 1.8.5.2 (Apple Git-48)
+
