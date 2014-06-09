@@ -32,9 +32,6 @@ public:
   std::default_random_engine re;
   for(int i=0; i < num_values; ++i)
     { Values.push_back( unif(re) ); }
-
-  //lets shuffle them all
-  std::random_shuffle(Values.begin(),Values.end());
   }
 
   int size() const { return Values.size(); }
