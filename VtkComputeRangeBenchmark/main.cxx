@@ -88,6 +88,14 @@ void multi_comp(std::size_t numElements, std::size_t numComps)
     { array->GetRange(i); }
 
   std::cout << timer.GetElapsedTime() << " seconds " << std::endl;
+
+  std::cout << "Computing the magnitude for a multiple component array of type: "
+            << typeid(T).name() << " with a length of " << numElements
+            << " and with " << numComps << " components " <<  std::endl;
+
+  timer.Reset();
+  array->GetRange(-1);
+  std::cout << timer.GetElapsedTime() << " seconds " << std::endl;
 }
 
 
