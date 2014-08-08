@@ -16,7 +16,7 @@ int main(int argc, char **argv)
 
   Timer timer;
   PointGenerator generator(duplicate_point_ratio,number_of_points);
-  std::cout << " gen time <<  " << timer.GetElapsedTime() << std::endl;
+  std::cout << "gen time <<  " << timer.GetElapsedTime() << std::endl;
   timer.Reset();
 
   std::set< generator::Point > pointSet(generator.begin(),generator.end());

@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 
- find_package(VTK 6.1
-     COMPONENTS
-     vtkCommonDataModel)
+ find_package(VTK)
 
 set(headers
   PointGenerator.h
@@ -23,5 +21,5 @@ if(VTK_FOUND)
     )
 endif()
 
-add_executable(IterationTiming ${headers} iterationTiming.cxx)
+#add_executable(IterationTiming ${headers} iterationTiming.cxx)
 

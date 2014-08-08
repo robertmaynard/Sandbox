@@ -25,46 +25,75 @@
 
 namespace generator
 {
+  //1d points
+  struct Point1D
+  {
+    Point1D():
+      X(0)
+      {
+      }
+
+    Point1D(float x):
+    X(x)
+    {
+    }
+
+    Point1D(float x, float, float):
+    X(x)
+    {
+    }
+
+    bool operator<(const Point1D& other) const
+    {
+      return (X < other.X );
+    }
+
+    bool operator==(const Point1D& other) const
+    {
+      return (X == other.X);
+    }
+    float X;
+  };
 
   //light weight float struct that can do comparisons
   //can be overloaded to do point no exact point merging
   //if we wanted
-  struct Point
+  struct Point3D
   {
-    Point():
+    Point3D():
     X(0),
     Y(0),
     Z(0)
     {
     }
 
-    Point(float x, float y, float z):
+    Point3D(float x, float y, float z):
     X(x),
     Y(y),
     Z(z)
     {
     }
 
-    Point( const Point& other):
+    Point3D( const Point3D& other):
     X(other.X),
     Y(other.Y),
     Z(other.Z)
     {
     }
 
-    bool operator<(const Point& other) const
+    bool operator<(const Point3D& other) const
     {
       return (X < other.X ) ||
              (X == other.X && Y < other.Y) ||
              (X == other.X && Y == other.Y && Z < other.Z);
     }
 
-    bool operator==(const Point& other) const
+    bool operator==(const Point3D& other) const
     {
       return (X == other.X && Y == other.Y && Z  == other.Z);
     }
 
-    Point& operator=(const Point& other)
+    Point3D& operator=(const Point3D& other)
     {
       X = other.X; Y = other.Y; Z = other.Z;
       return *this;
@@ -75,10 +104,12 @@ namespace generator
 
 }
 
+template<typename PType>
 class PointGenerator
 {
 public:
-  typedef std::vector< generator::Point  >::const_iterator const_iterator;
+  typedef typename std::vector< PType >::const_iterator const_iterator;
+  typedef PType PointType;
 
   PointGenerator(float ratio, int num_points)
   {
@@ -92,7 +123,7 @@ public:
     float x = (int)rand() % (int)unique_points;
     float y = (int)rand() % (int)unique_points;
     float z = (int)rand() % (int)unique_points;
-    Points.push_back( generator::Point(x,y,z) );
+    Points.push_back( PointType(x,y,z) );
     }
 
   for(int i=  unique_points; i < num_points; ++i)
@@ -100,7 +131,7 @@ public:
     timeval currentTime;
     gettimeofday(&currentTime, NULL);
     int index =  (int)currentTime.tv_sec % (int)unique_points;
-    Points.push_back( generator::Point(index,index,index) );
+    Points.push_back( PointType(index,index,index) );
   }
 
   //no lets shuffle them all
@@ -119,7 +150,7 @@ public:
 
 
 private:
-  std::vector< generator::Point  > Points;
+  std::vector< PointType  > Points;
 };
 
 #endif
