@@ -23,7 +23,7 @@ public:
       {
       EntityHandle* connectivity;
       int numVerts=0, iterationCount=0;
-      //use the highly efficent calls, since we know that are of the same dimension
+      //use the highly efficient calls, since we know that are of the same dimension
       moab->connect_iterate(cells.begin()+count,
                             cells.end(),
                             connectivity,

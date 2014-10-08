@@ -51,7 +51,7 @@ public:
             VTKGridType* grid) const
     {
     //create a helper datastructure which can determines all the unique point ids
-    //and converts moab connecitvity info to vtk connectivity
+    //and converts moab connectivity info to vtk connectivity
 
 
     //get all the cells for each parent entity and create
@@ -119,7 +119,7 @@ public:
             const int materialId=0) const
     {
     //create a helper datastructure which can determines all the unique point ids
-    //and converts moab connecitvity info to vtk connectivity
+    //and converts moab connectivity info to vtk connectivity
 
     smoab::Range cells;
     int dim = this->Tag->value();

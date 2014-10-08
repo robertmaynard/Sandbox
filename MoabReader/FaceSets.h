@@ -129,7 +129,7 @@ smoab::FaceCellSets findFaceSets(smoab::CellSets shells,
   //shells so we want to process it as a second loop
 
   //store the end before we start adding boundary faces, which
-  //we don't need to check agianst other boundaries
+  //we don't need to check against other boundaries
   faceId = 1; //reset the faced id
 
   //store in a new face set, expanding the current one causes incorrect results

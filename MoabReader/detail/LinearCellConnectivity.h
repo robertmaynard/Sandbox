@@ -11,7 +11,7 @@ namespace smoab { namespace detail {
 
 namespace internal
 {
-  //we want a subset of the real connetivity array,
+  //we want a subset of the real connectivity array,
   //this does that for use with a super easy wrapper
   struct SubsetArray
   {
@@ -103,8 +103,8 @@ public:
   void compactIds(vtkIdType& numCells, vtkIdType& connectivityLength)
     {
     //converts all the ids to be ordered starting at zero, and also
-    //keeping the orginal logical ordering. Stores the result of this
-    //operation in the unstrucutred grid that is passed in
+    //keeping the original logical ordering. Stores the result of this
+    //operation in the unstructured grid that is passed in
 
     //lets determine the total length of the connectivity
     connectivityLength = 0;
@@ -146,7 +146,7 @@ public:
     {
     //walk the info to find the length of each sub connectivity array,
     //and insert them into the vector, ordering is implied by the order
-    //the connecitivy sub array are added to this class
+    //the connectivity sub array are added to this class
     ConnConstIterator c = this->Connectivity.begin();
     for(InfoConstIterator i = this->Info.begin();
         i != this->Info.end();
@@ -160,7 +160,7 @@ public:
       }
     }
 
-  //copy the information from this contianer to a vtk cell array, and
+  //copy the information from this container to a vtk cell array, and
   //related lookup information
   void copyToVtkCellInfo(vtkIdType* cellArray) const
     {

@@ -24,7 +24,7 @@ public:
       {
       EntityHandle* connectivity;
       int numVerts=0, iterationCount=0;
-      //use the highly efficent calls, since we know that are of the same dimension
+      //use the highly efficient calls, since we know that are of the same dimension
       moab->connect_iterate(cells.begin()+count,
                             cells.end(),
                             connectivity,
@@ -40,7 +40,7 @@ public:
       //store that along with the connectivity in a temp storage vector
       const moab::EntityType type = moab->type_from_handle(*cells.begin()+count);
 
-      //while all these cells are contiously of the same type,
+      //while all these cells are continuously of the same type,
       //quadric hexs in vtk have 20 points, but moab has 21 so we
       //need to store this difference
       int numVTKVerts = numVerts;
@@ -58,7 +58,7 @@ public:
   void compactIds(vtkIdType& numCells, vtkIdType& connectivityLength)
     {
     //converts all the ids to be ordered starting at zero, and also
-    //keeping the orginal logical ordering. Stores the result of this
+    //keeping the original logical ordering. Stores the result of this
     //operation in the unstrucutred grid that is passed in
 
     //lets determine the total length of the connectivity
@@ -101,7 +101,7 @@ public:
     {
     //walk the info to find the length of each sub connectivity array,
     //and insert them into the vector, ordering is implied by the order
-    //the connecitivy sub array are added to this class
+    //the connectivity sub array are added to this class
     ConnConstIterator c = this->Connectivity.begin();
     for(InfoConstIterator i = this->Info.begin();
         i != this->Info.end();
