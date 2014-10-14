@@ -62,13 +62,16 @@ dax::cont::UniformGrid<> extract_grid_info_from_ImageData(
 }
 
 dax::cont::ArrayHandle<dax::Scalar> extract_buffer_from_ImageData(
-                              vtkSmartPointer<vtkImageData> data)
+                              vtkSmartPointer<vtkImageData> data,
+                              int offset,
+                              int length)
 {
  //now set the buffer
  vtkDataArray *newData = data->GetPointData()->GetScalars();
  dax::Scalar* rawBuffer = reinterpret_cast<dax::Scalar*>( newData->GetVoidPointer(0) );
- const dax::Id numTuples = newData->GetNumberOfTuples();
- return dax::cont::make_ArrayHandle(rawBuffer,numTuples);
+ rawBuffer += offset;
+ const dax::Id size = static_cast<dax::Id>(length);
+ return dax::cont::make_ArrayHandle(rawBuffer,size);
 }
 
 }

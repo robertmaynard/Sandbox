@@ -27,15 +27,19 @@ class vtkImageData;
 class ImageStore
 {
 public:
-  ImageStore( std::string f);
+  ImageStore(std::string f, int slices);
 
-  dax::cont::UniformGrid<> data() const { return this->DaxGrid; }
-  dax::cont::ArrayHandle<dax::Scalar> array() const { return this->DaxArray; }
+  int iterations() const { return this->MaxSlices; }
+
+  dax::cont::UniformGrid<> dataSlicedAt( int slice ) const;
+  dax::cont::ArrayHandle<dax::Scalar> arraySlicedAt( int slice ) const;
 
 private:
   vtkSmartPointer< vtkImageData > InputData;
   dax::cont::UniformGrid<> DaxGrid;
-  dax::cont::ArrayHandle<dax::Scalar> DaxArray;
+
+  int MaxSlices;
+  int ZExtent;
 
 };
 

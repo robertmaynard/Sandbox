@@ -22,12 +22,44 @@
 #include <dax/cont/Timer.h>
 
 //-----------------------------------------------------------------------------
-ImageStore::ImageStore( std::string f )
+ImageStore::ImageStore( std::string f, int slices)
 {
+
   this->InputData = detail::read_ImageData(f);
   this->DaxGrid = detail::extract_grid_info_from_ImageData(this->InputData);
-  this->DaxArray = detail::extract_buffer_from_ImageData(this->InputData);
+
+  const dax::Id3 dims = dax::extentDimensions(this->DaxGrid.GetExtent());
+  this->MaxSlices = slices;
+  this->ZExtent = dims[2]/slices;
 }
+
+//-----------------------------------------------------------------------------
+dax::cont::UniformGrid<> ImageStore::dataSlicedAt( int slice ) const
+{
+  dax::cont::UniformGrid< > slice_of_grid;
+  slice_of_grid.SetSpacing( this->DaxGrid.GetSpacing() );
+  slice_of_grid.SetOrigin( this->DaxGrid.GetOrigin() );
+
+  dax::Extent3 sub_extent;
+  sub_extent = this->DaxGrid.GetExtent();
+
+  sub_extent.Min[2] = this->ZExtent * slice;
+  sub_extent.Max[2] = (this->ZExtent * (1 + slice) ) - 1;
+  slice_of_grid.SetExtent(sub_extent);
+
+  return slice_of_grid;
+}
+
+//-----------------------------------------------------------------------------
+dax::cont::ArrayHandle<dax::Scalar> ImageStore::arraySlicedAt( int slice ) const
+{
+  const dax::Id3 dims = dax::extentDimensions(this->DaxGrid.GetExtent());
+  const int offset = dims[0] * dims[1] * (this->ZExtent * slice);
+  const int length = dims[0] * dims[1] * this->ZExtent;
+
+  return detail::extract_buffer_from_ImageData(this->InputData, offset, length);
+}
+
 
 //-----------------------------------------------------------------------------
 SlidingContour::SlidingContour( ImageStore store, float contourValue):
@@ -37,38 +69,32 @@ SlidingContour::SlidingContour( ImageStore store, float contourValue):
   typedef dax::cont::DispatcherMapCell<dax::worklet::SlidingContour> DispatcherCount;
 
   double avg_time = 0;
-  const int iterations = 16;
 
-  dax::Id3 dims = dax::extentDimensions(store.data().GetExtent());
-  const int z_extent = dims[2]/iterations;
-  std::cout << "z_extent: " << z_extent << std::endl;
-
+  const int iterations = store.iterations();
   for(int i=0; i < iterations; ++i)
     {
     dax::cont::Timer<> timer;
     dax::cont::ArrayHandle< dax::Vector3 > triangleHandle;
 
-    //construct the worklet that will be used to do the marching cubes
-    dax::worklet::SlidingContour makeTriangles(contourValue, i);
-
     //generate a uniform grid that represents a slice of the full grid
-    dax::cont::UniformGrid< > slice_of_grid;
-    slice_of_grid.SetSpacing( store.data().GetSpacing() );
-    slice_of_grid.SetOrigin( store.data().GetOrigin() );
+    dax::cont::UniformGrid< > slice_of_grid = store.dataSlicedAt(i);
 
-    dax::Extent3 sub_extent;
-    sub_extent = store.data().GetExtent();
+    //generate an ArrayHandle that is offsetted into the full data properly.
+    dax::cont::ArrayHandle< dax::Scalar > slice_of_array = store.arraySlicedAt(i);
 
-    sub_extent.Min[2] = z_extent * i;
-    sub_extent.Max[2] = (z_extent * (1 + i) ) - 1;
-    slice_of_grid.SetExtent(sub_extent);
 
-    std::cout << sub_extent.Min[2] << ", " << sub_extent.Max[2] << std::endl;
+    //generate a pre-allocated array to store the triangle coordinates.
+    //make size per cell is 5 triangles
+    std::vector< dax::Vector3 > output_tris_storage( slice_of_grid.GetNumberOfCells() * 5);
+    std::fill(output_tris_storage.begin(),
+              output_tris_storage.end(),
+              dax::Vector3(-1,-1,-1));
 
-    dax::Vector3 ploc = slice_of_grid.ComputePointCoordinates( 0 );
-    std::cout << "first point position: (" << ploc[0] << ", " << ploc[1] << ", " << ploc[2] << ")" << std::endl;
 
-    // DispatcherCount(makeTriangles).Invoke(store.data(), store.array());
+    dax::cont::ArrayHandle< dax::Vector3 > output_tris = dax::cont::make_ArrayHandle( output_tris_storage );
+    dax::worklet::SlidingContour makeTriangles(contourValue, output_tris);
+
+    DispatcherCount(makeTriangles).Invoke(slice_of_grid, slice_of_array);
 
     double time = timer.GetElapsedTime();
     avg_time += time;

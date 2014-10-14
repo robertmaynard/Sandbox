@@ -25,24 +25,30 @@ namespace worklet {
 // -----------------------------------------------------------------------------
 class SlidingContour : public dax::exec::WorkletMapCell
 {
-  public:
-  typedef void ControlSignature(TopologyIn, FieldPointIn, FieldOut);
-  typedef _3 ExecutionSignature(AsVertices(_1), _2);
+  typedef dax::cont::ArrayHandle< dax::Vector3 >::PortalExecution TriPortalType;
+
+ public:
+  typedef void ControlSignature(TopologyIn, FieldPointIn);
+  typedef void ExecutionSignature(AsVertices(_1), _2);
 
   DAX_CONT_EXPORT SlidingContour(dax::Scalar isoValue,
-                                 dax::Id iteration):
+                                 dax::cont::ArrayHandle<dax::Vector3> outTris):
     IsoValue(isoValue),
-    Iteration(iteration)
+    TriPortal(outTris.PrepareForOutput( outTris.GetNumberOfValues() ))
     {
 
     }
 
-// template<class CellTag>
-//   DAX_EXEC_EXPORT dax::Vector3 operator()(
-//       const dax::exec::CellVertices<CellTag>& verts,
-//       const dax::exec::CellField<dax::Scalar,CellTag> &values,
-//       dax::Id inputCellVisitIndex) const
-//   {
+template<class CellTag>
+  DAX_EXEC_EXPORT void operator()(
+      const dax::exec::CellVertices<CellTag>& verts,
+      const dax::exec::CellField<dax::Scalar,CellTag> &values) const
+  {
+    const int voxelClass =
+        internal::marchingcubes::GetHexahedronClassification(IsoValue,values);
+    const int numFaces = dax::worklet::internal::marchingcubes::NumFaces[voxelClass];
+
+  }
 //     using dax::worklet::internal::marchingcubes::TriTable;
 //     // These should probably be available through the voxel class
 //     const unsigned char cellVertEdges[12][2] ={
@@ -85,7 +91,8 @@ class SlidingContour : public dax::exec::WorkletMapCell
 
 private:
   dax::Scalar IsoValue;
-  dax::Id Iteration;
+  TriPortalType TriPortal;
+
 };
 
 }

@@ -27,7 +27,7 @@ int main(int argc, char* argv[])
 
   std::string file = parser.file();
 
-  ImageStore s(file);
+  ImageStore s(file, 12);
   SlidingContour contour(s, 1.0);
 
   return 0;
