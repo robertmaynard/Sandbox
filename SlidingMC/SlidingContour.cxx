@@ -162,7 +162,9 @@ SlidingContour::SlidingContour( ImageProvider provider, float contourValue):
     dax::cont::ArrayHandle< dax::Scalar > slice_of_array = provider.arraySlicedAt(i);
 
     dax::worklet::contour_atomic_lock = 0; //clear the lock to zero
-    dax::worklet::SlidingContour makeTriangles(contourValue, &raw_edge_storage);
+    dax::worklet::SlidingContour makeTriangles(contourValue,
+                                               slice_of_grid.PrepareForInput(),
+                                               &raw_edge_storage);
 
     DispatcherCount(makeTriangles).Invoke(slice_of_grid, slice_of_array);
     contour_time += timer.GetElapsedTime(); timer.Reset();

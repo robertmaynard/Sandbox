@@ -23,37 +23,35 @@
 
 #include "tbb/spin_mutex.h"
 
+
 namespace dax {
-
-struct PaddedVector3
-{
- dax::Vector3 Vec;
- int padding[13];
-};
-
 namespace worklet {
-
 
 //hacky global atomic_lock
 ::tbb::atomic<std::size_t> contour_atomic_lock;
+
 
 // -----------------------------------------------------------------------------
 class SlidingContour : public dax::exec::WorkletMapCell
 {
  public:
   typedef void ControlSignature(TopologyIn, FieldPointIn);
-  typedef void ExecutionSignature(AsVertices(_1), _2, WorkId);
+  typedef void ExecutionSignature(_1, _2, WorkId);
+
+  typedef dax::exec::internal::TopologyUniform TopologyStruct;
 
   DAX_CONT_EXPORT SlidingContour(dax::Scalar isoValue,
+                                 TopologyStruct topology,
                                  std::vector< dax::PointAsEdgeInterpolation >* tris_storage):
     IsoValue(isoValue),
+    Topo(topology),
     TriPortal( tris_storage )
     {
     }
 
 template<class CellTag>
   DAX_EXEC_EXPORT void operator()(
-      const dax::exec::CellVertices<CellTag>& verts,
+      CellTag,
       const dax::exec::CellField<dax::Scalar,CellTag> &values,
       dax::Id cellIndex) const
   {
@@ -72,6 +70,10 @@ template<class CellTag>
       {
       return;
       }
+
+    //build verts after we have determined the cell is valid, this saves
+    //even more time compared to default dax.
+    dax::exec::CellVertices<CellTag> verts = this->Topo.GetCellConnections(cellIndex);
 
     int my_write_index = contour_atomic_lock.fetch_and_add( numFaces * 3 );
     for (dax::Id i =0; i < numFaces; ++i)
@@ -105,10 +107,9 @@ template<class CellTag>
 
 private:
   dax::Scalar IsoValue;
+  TopologyStruct Topo;
   std::vector< dax::PointAsEdgeInterpolation >* TriPortal;
-public:
   ::tbb::atomic<std::size_t>* atomic_lock;
-  int cache_line_spacing[3];
 };
 
 // -----------------------------------------------------------------------------
@@ -127,10 +128,14 @@ struct InterpolateEdgeToPoints
     const std::size_t current_size = all_triangles->GetNumberOfTuples();
     const std::size_t resize_value = current_size + numCells;
 
-    float* fstart = all_triangles->WritePointer(0, resize_value * 3);
+    if( resize_value * 3 >  all_triangles->Capacity() )
+      {
+      //6 not 3 to create a buffer to minimize number of allocs
+      all_triangles->WritePointer(0, resize_value * 6 );
+      }
     all_triangles->SetNumberOfTuples( resize_value ); //have to do resize first or this will clear array
 
-    dax::Vector3* start = reinterpret_cast<dax::Vector3*>(fstart);
+    dax::Vector3* start = reinterpret_cast<dax::Vector3*>(all_triangles->GetVoidPointer(0));
     this->OutputOffset = start + current_size;
   }
 
