@@ -165,20 +165,19 @@ SlidingContour::SlidingContour( ImageProvider provider, float contourValue):
     dax::worklet::SlidingContour makeTriangles(contourValue, &raw_edge_storage);
 
     DispatcherCount(makeTriangles).Invoke(slice_of_grid, slice_of_array);
+    contour_time += timer.GetElapsedTime(); timer.Reset();
 
     const std::size_t numTriangleCoords = dax::worklet::contour_atomic_lock;
     if(numTriangleCoords > 0)
       {
-      contour_time += timer.GetElapsedTime();
       //now convert the edges to points
       dax::worklet::InterpolateEdgeToPoints<EdgeInPortalType> interpolate( slice_of_grid.GetPointCoordinates().PrepareForInput(),
                                                                            &raw_edge_storage,
                                                                            outputTriangles,
                                                                            numTriangleCoords);
       Algorithm::Schedule(interpolate, numTriangleCoords);
+      interpolate_time += timer.GetElapsedTime(); timer.Reset();
       }
-
-    interpolate_time += timer.GetElapsedTime(); timer.Reset();
     }
   std::cout << "time to contour: " << contour_time << std::endl;
   std::cout << "time to interpolate: " << interpolate_time << std::endl;
