@@ -16,19 +16,26 @@
 #ifndef dataProcessors_h
 #define dataProcessors_h
 
+#include <vtkCellArray.h>
 #include <vtkDataArray.h>
+#include <vtkFloatArray.h>
 #include <vtkImageData.h>
 #include <vtkImageResample.h>
+#include <vtkNew.h>
 #include <vtkNrrdReader.h>
 #include <vtkPointData.h>
+#include <vtkPolyData.h>
 #include <vtkSmartPointer.h>
-#include <vtkNew.h>
+#include <vtkTrivialProducer.h>
+#include <vtkXMLPolyDataWriter.h>
 
+#include <dax/cont/Timer.h>
 #include <dax/cont/ArrayHandle.h>
 #include <dax/cont/UniformGrid.h>
 
 namespace detail {
 
+//-----------------------------------------------------------------------------
 static vtkSmartPointer<vtkImageData> read_ImageData(const std::string& file)
 {
   std::cout << "reading file: " << file << std::endl;
@@ -45,6 +52,7 @@ static vtkSmartPointer<vtkImageData> read_ImageData(const std::string& file)
   return image;
 }
 
+//-----------------------------------------------------------------------------
 dax::cont::UniformGrid<> extract_grid_info_from_ImageData(
                               vtkSmartPointer<vtkImageData> data)
 {
@@ -61,6 +69,7 @@ dax::cont::UniformGrid<> extract_grid_info_from_ImageData(
   return output;
 }
 
+//-----------------------------------------------------------------------------
 dax::cont::ArrayHandle<dax::Scalar> extract_buffer_from_ImageData(
                               vtkSmartPointer<vtkImageData> data,
                               int offset,
@@ -73,6 +82,49 @@ dax::cont::ArrayHandle<dax::Scalar> extract_buffer_from_ImageData(
  const dax::Id size = static_cast<dax::Id>(length);
  return dax::cont::make_ArrayHandle(rawBuffer,size);
 }
+
+//-----------------------------------------------------------------------------
+vtkSmartPointer<vtkPolyData> convert_to_PolyData(vtkFloatArray* triangle_points)
+{
+  vtkSmartPointer<vtkPolyData> data = vtkSmartPointer<vtkPolyData>::New();
+  vtkNew< vtkPoints > points;
+  vtkNew< vtkCellArray > cells;
+
+  // setup the points
+  points->SetData(triangle_points);
+
+  //write the cell array
+  dax::cont::Timer<> timer;
+  const std::size_t num_cells = triangle_points->GetNumberOfTuples()/3;
+  cells->Allocate(num_cells);
+  vtkIdType index = 0;
+  for(vtkIdType i=0; i < num_cells; ++i, index +=3)
+    {
+    vtkIdType pts[3] = {index, index+1, index+2};
+    cells->InsertNextCell(3, pts);
+    }
+
+  std::cout << "cell construction time: " << timer.GetElapsedTime() << std::endl;
+
+  //set up the polyData
+  data->SetPoints( points.GetPointer() );
+  data->SetPolys( cells.GetPointer() );
+  return data;
+}
+
+//-----------------------------------------------------------------------------
+void write(vtkSmartPointer<vtkPolyData> data, std::string path)
+{
+  vtkNew<vtkTrivialProducer> producer;
+  vtkNew<vtkXMLPolyDataWriter> writer;
+
+  producer->SetOutput( data );
+  writer->SetInputConnection( producer->GetOutputPort() );
+  writer->SetFileName( path.c_str() );
+  // writer->SetDataModeToAscii();
+  writer->Write();
+}
+
 
 }
 

@@ -21,7 +21,7 @@
 #include <sstream>
 #include <string>
 
-enum  optionIndex { UNKNOWN, HELP, FILEPATH, CONTOUR_VALUE};
+enum  optionIndex { UNKNOWN, HELP, FILEPATH, CONTOUR_VALUE, SLICE_VALUE};
 const dax::testing::option::Descriptor usage[] =
 {
   {UNKNOWN,   0,"" , ""    ,      dax::testing::option::Arg::None, "USAGE: example [options]\n\n"
@@ -29,6 +29,7 @@ const dax::testing::option::Descriptor usage[] =
   {HELP,      0,"h" , "help",    dax::testing::option::Arg::None, "  --help, -h  \tPrint usage and exit." },
   {FILEPATH,      0,"", "file",      dax::testing::option::Arg::Optional, "  --file  \t nhdr file to read." },
   {CONTOUR_VALUE,      0,"", "contour",      dax::testing::option::Arg::Optional, "  --contour  \t iso value to contour at." },
+  {SLICE_VALUE,      0,"", "slice",      dax::testing::option::Arg::Optional, "  --slices  \t number of times to slice the data." },
   {UNKNOWN,   0,"",  "",         dax::testing::option::Arg::None, "\nExample:\n"
                                                                    " example --file=./test \n"},
   {0,0,0,0,0,0}
@@ -39,7 +40,9 @@ namespace benchmark {
 
 //-----------------------------------------------------------------------------
 ArgumentsParser::ArgumentsParser():
-  File("")
+  File(""),
+  Contour(1),
+  SliceCount(128)
 {
 }
 
@@ -88,6 +91,13 @@ bool ArgumentsParser::parseArguments(int argc, char* argv[])
     std::string sarg(options[CONTOUR_VALUE].last()->arg);
     std::stringstream argstream(sarg);
     argstream >> this->Contour;
+    }
+
+  if ( options[SLICE_VALUE] )
+    {
+    std::string sarg(options[SLICE_VALUE].last()->arg);
+    std::stringstream argstream(sarg);
+    argstream >> this->SliceCount;
     }
 
   delete[] options;

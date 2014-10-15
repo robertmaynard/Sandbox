@@ -17,12 +17,8 @@ cmake_minimum_required(VERSION 2.8.10)
 
 project(SlidingContour CXX)
 
-find_package(OpenGL)
-find_package(GLEW)
-find_package(GLUT)
-
 find_package(Dax REQUIRED)
-DaxConfigureSerial(REQUIRED)
+DaxConfigureSerial()
 DaxConfigureTBB(REQUIRED)
 
 find_package(VTK REQUIRED)
@@ -41,19 +37,13 @@ set(sources
   )
 
 #-----------------------------------------------------------------------------
-set_source_files_properties(${headers} PROPERTIES HEADER_FILE_ONLY TRUE)
-
-add_executable(sliding ${headers} ${sources})
-set_target_properties(sliding PROPERTIES COMPILE_DEFINITIONS
-                    "DAX_DEVICE_ADAPTER=DAX_DEVICE_ADAPTER_SERIAL")
-target_link_libraries(sliding ${OPENGL_LIBRARIES}
-                      ${GLUT_LIBRARIES} ${GLEW_LIBRARIES} vtkIOImage)
-
-#-----------------------------------------------------------------------------
 if (Dax_TBB_FOUND)
   add_executable(slidingTBB ${headers} ${sources})
   set_target_properties(slidingTBB PROPERTIES COMPILE_DEFINITIONS
                       "DAX_DEVICE_ADAPTER=DAX_DEVICE_ADAPTER_TBB")
-  target_link_libraries(slidingTBB ${OPENGL_LIBRARIES}
-                        ${GLUT_LIBRARIES} ${GLEW_LIBRARIES} ${TBB_LIBRARIES} vtkIOImage)
+  target_link_libraries(slidingTBB
+                        ${TBB_LIBRARIES}
+                        vtkIOImage
+                        vtkIOXML
+                        vtkFiltersCore)
 endif (Dax_TBB_FOUND)

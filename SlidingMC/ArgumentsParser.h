@@ -35,9 +35,13 @@ public:
   float contourValue() const
     { return this->Contour; }
 
+  float sliceCount() const
+    { return this->SliceCount; }
+
 private:
   std::string File;
   float Contour;
+  int SliceCount;
 };
 
 }}

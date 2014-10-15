@@ -14,6 +14,8 @@
 //
 //=============================================================================
 
+#include <iostream>
+
 #include "ArgumentsParser.h"
 #include "SlidingContour.h"
 
@@ -26,9 +28,22 @@ int main(int argc, char* argv[])
     }
 
   std::string file = parser.file();
+  float contourValue = parser.contourValue();
+  int sliceCount = parser.sliceCount();
 
-  ImageStore s(file, 12);
-  SlidingContour contour(s, 1.0);
+  ImageStore s(file);
+
+  // use vtk to get a benchmark size
+  {
+  ClassicContour cc(s, contourValue);
+  // cc.write("vtkoutput.vtp"); //write the result to disk
+  } //release the vtk algorithm & memory
+
+  {
+  ImageProvider p = ImageProvider(s, sliceCount);
+  SlidingContour contour = SlidingContour(p, contourValue);
+  contour.write("daxoutput.vtp"); //write the result to disk
+  }
 
   return 0;
 }

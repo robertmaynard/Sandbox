@@ -23,11 +23,24 @@
 #include <vtkSmartPointer.h>
 
 class vtkImageData;
+class vtkPolyData;
 
 class ImageStore
 {
 public:
-  ImageStore(std::string f, int slices);
+  ImageStore(std::string f);
+
+  vtkSmartPointer< vtkImageData > vtkData() const { return this->Image; }
+
+private:
+  vtkSmartPointer< vtkImageData > Image;
+};
+
+class ImageProvider
+{
+public:
+  ImageProvider(ImageStore store);
+  ImageProvider(ImageStore store, int sliceCount);
 
   int iterations() const { return this->MaxSlices; }
 
@@ -35,21 +48,37 @@ public:
   dax::cont::ArrayHandle<dax::Scalar> arraySlicedAt( int slice ) const;
 
 private:
-  vtkSmartPointer< vtkImageData > InputData;
+  ImageStore Store;
   dax::cont::UniformGrid<> DaxGrid;
-
   int MaxSlices;
   int ZExtent;
+};
 
+class ClassicContour
+{
+public:
+  ClassicContour( ImageStore store, float contourValue);
+
+  vtkSmartPointer< vtkPolyData > vtkData() const { return this->OutputData; }
+
+  void write( std::string path ) const;
+
+private:
+  vtkSmartPointer< vtkPolyData > OutputData;
+  float ContourValue;
 };
 
 class SlidingContour
 {
 public:
-  SlidingContour( ImageStore store, float contourValue);
+  SlidingContour( ImageProvider provider, float contourValue);
 
+  vtkSmartPointer< vtkPolyData > vtkData() const { return this->OutputData; }
+
+  void write( std::string path ) const;
 
 private:
+  vtkSmartPointer< vtkPolyData > OutputData;
   float ContourValue;
 };
 
