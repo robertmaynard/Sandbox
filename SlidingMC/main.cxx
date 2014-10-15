@@ -35,14 +35,14 @@ int main(int argc, char* argv[])
 
   // use vtk to get a benchmark size
   {
-  ClassicContour cc(s, contourValue);
+  // ClassicContour cc(s, contourValue);
   // cc.write("vtkoutput.vtp"); //write the result to disk
   } //release the vtk algorithm & memory
 
   {
   ImageProvider p = ImageProvider(s, sliceCount);
   SlidingContour contour = SlidingContour(p, contourValue);
-  contour.write("daxoutput.vtp"); //write the result to disk
+  // contour.write("daxoutput.vtp"); //write the result to disk
   }
 
   return 0;

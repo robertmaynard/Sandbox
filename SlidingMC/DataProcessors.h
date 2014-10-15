@@ -96,15 +96,22 @@ vtkSmartPointer<vtkPolyData> convert_to_PolyData(vtkFloatArray* triangle_points)
   //write the cell array
   dax::cont::Timer<> timer;
   const std::size_t num_cells = triangle_points->GetNumberOfTuples()/3;
-  cells->Allocate(num_cells);
+  cells->Allocate(num_cells * 4);
+  std::cout << "cell allocation time: " << timer.GetElapsedTime() << std::endl;
+  timer.Reset();
+
+  vtkIdType* cellPointer = cells->GetPointer();
   vtkIdType index = 0;
+  //break out the unrolled loop
   for(vtkIdType i=0; i < num_cells; ++i, index +=3)
     {
-    vtkIdType pts[3] = {index, index+1, index+2};
-    cells->InsertNextCell(3, pts);
+    *cellPointer = 3; ++cellPointer;
+    *cellPointer = index; ++cellPointer;
+    *cellPointer = index+1; ++cellPointer;
+    *cellPointer = index+2; ++cellPointer;
     }
 
-  std::cout << "cell construction time: " << timer.GetElapsedTime() << std::endl;
+  std::cout << "cell insertion time: " << timer.GetElapsedTime() << std::endl;
 
   //set up the polyData
   data->SetPoints( points.GetPointer() );

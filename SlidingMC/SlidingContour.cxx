@@ -76,8 +76,6 @@ dax::cont::UniformGrid<> ImageProvider::dataSlicedAt( int slice ) const
     {
     sub_extent.Max[2] = this->DaxGrid.GetExtent().Max[2];
     }
-
-  // std::cout << sub_extent.Min[2] << " to " << sub_extent.Max[2] << std::endl;
   slice_of_grid.SetExtent(sub_extent);
   return slice_of_grid;
 }
@@ -88,8 +86,6 @@ dax::cont::ArrayHandle<dax::Scalar> ImageProvider::arraySlicedAt( int slice ) co
   const dax::Id3 dims = dax::extentDimensions(this->DaxGrid.GetExtent());
   const int offset = dims[0] * dims[1] * (this->ZExtent * slice);
   const int length = dims[0] * dims[1] * (this->ZExtent+1);
-
-  // std::cout << offset << " to " << offset+length << std::endl;
   return detail::extract_buffer_from_ImageData(this->Store.vtkData(), offset, length);
 }
 
@@ -165,9 +161,6 @@ SlidingContour::SlidingContour( ImageProvider provider, float contourValue):
     //generate an ArrayHandle that is offsetted into the full data properly.
     dax::cont::ArrayHandle< dax::Scalar > slice_of_array = provider.arraySlicedAt(i);
 
-    // std::cout << "grid num points: " << slice_of_grid.GetNumberOfPoints() << std::endl;
-    // std::cout << "array length: " << slice_of_array.GetNumberOfValues() << std::endl;
-
     dax::worklet::contour_atomic_lock = 0; //clear the lock to zero
     dax::worklet::SlidingContour makeTriangles(contourValue, &raw_edge_storage);
 
@@ -176,7 +169,7 @@ SlidingContour::SlidingContour( ImageProvider provider, float contourValue):
     const std::size_t numTriangleCoords = dax::worklet::contour_atomic_lock;
     if(numTriangleCoords > 0)
       {
-      contour_time += timer.GetElapsedTime(); timer.Reset();
+      contour_time += timer.GetElapsedTime();
       //now convert the edges to points
       dax::worklet::InterpolateEdgeToPoints<EdgeInPortalType> interpolate( slice_of_grid.GetPointCoordinates().PrepareForInput(),
                                                                            &raw_edge_storage,
