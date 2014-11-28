@@ -1,12 +1,40 @@
 Develop your Castle making skills in the Sandbox.
 
 
+## AllocTest ##
+Benchmark how much it costs to use multiple allocations over a single
+large allocation
+
+
+## BranchPredictor ##
+A simple program that shows the strength of the modern branch predictor, and
+why you should make your data branch is more predicatable ways.
+
+Note this was a rip from the SO question: http://stackoverflow.com/questions/11227809/why-is-processing-a-sorted-array-faster-than-an-unsorted-array?rq=1
+
+
 ## Check CXX Symbols Exist ##
 A look at what we would have to change to have CMake find templated
 function signatures.
 
-## Conceptual Executive ##
-An attempt at a delayed worklet invocation pipeline for dax.
+
+## CMakeCrossCompiler ##
+Show how to use a CMake ToolChain file as the CMAKE_USER_MAKE_RULES_OVERRIDE.
+This is useful if you have required compiler flags you need set for
+both verifying the compiler works and for making all your targets.
+
+This is really an exercise in understanding the lack of interaction between
+toolchains / cross compilation and CMAKE_USER_MAKE_RULES_OVERRIDE
+
+
+## CMakeImportedLibrary ##
+A basic example at showing how to create an imported library in CMake, this
+needs to be updated to show off the new import library features
+
+
+## CMakeSlowEval ##
+Example that shows how very long strings passed a parameter to a CMake macro
+can cause a massive slowdown in performance.
 
 
 ## CMakeTrackConfFiles ##
@@ -81,13 +109,14 @@ for unique comparison. This string that is generated will be based on the sorted
 order of the ids
 
 
-## Low Level Dax ##
-An example of writing vis algorithms using everything but the Dax Scheduler
-infrastructure.
-
 ## LHMC ##
 An example of looking at using Low High tables to speed up operations such
 as Marching Cubes
+
+
+## Low Level Dax ##
+An example of writing vis algorithms using everything but the Dax Scheduler
+infrastructure.
 
 
 ## MoabReader ##
@@ -95,18 +124,35 @@ A pretty feature complete VTK reader of MOAB files, can output a moab
 file a single unstructured grid, poly data or multi block.
 
 
+## MSVCParserErrors ##
+A collection of examples of how to compile the MSVC C++ parser
+
+The simpliest version is now:
+```
+  struct
+```
+
+
 ## NinjaCustomCommand ##
 A test case that shows a bug with ninja and CMake custom command.
+
+
+## PointMergingBenchmark ##
+Showing the most efficient way to merge duplicate point ids, will need
+to be ported to VTK.
 
 
 ## PortConcept ##
 More brainstorming about filters and worklets in DAX.
 
 
-## ShibokenTest ##
-Trying to replicate some bugs I have encountered with Shiboken
-
-
 ## TryCompile ##
 A basic example of doing a try compile in CMake. In This example we are
 looking at if we have shared_ptr support
+
+
+## VtkComputeRangeBenchmark ##
+Benchmarking the old compute range code in VTK compared to the new proposed
+version, to show that the new version is faster.
+Edit: The new version of compute range has been merged.
+
