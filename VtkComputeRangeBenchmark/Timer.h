@@ -22,6 +22,8 @@
 #include <limits.h>
 #include <sys/time.h>
 #include <unistd.h>
+#else
+#include <sys/timeb.h>
 #endif
 
 class Timer

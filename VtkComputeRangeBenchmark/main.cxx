@@ -23,8 +23,8 @@ public:
 
   Generator(std::size_t num_values)
   {
-   T lower_bound = (std::numeric_limits<T>::lowest()+20);
-   T upper_bound = (std::numeric_limits<T>::max()-20);
+  T lower_bound = (std::numeric_limits<T>::lowest()+20);
+  T upper_bound = (std::numeric_limits<T>::max()-20);
 
   Values.reserve(num_values);
 
@@ -43,6 +43,18 @@ private:
   std::vector< T  > Values;
 };
 
+Generator<int>::Generator(std::size_t num_values)
+{
+  int lower_bound = (std::numeric_limits<int>::lowest()+20);
+  int upper_bound = (std::numeric_limits<int>::max()-20);
+
+  Values.reserve(num_values);
+
+  std::uniform_int_distribution<int> unif(lower_bound,upper_bound);
+  std::default_random_engine re;
+  for(int i=0; i < num_values; ++i)
+    { Values.push_back( unif(re) ); }
+}
 
 template<typename T, typename DataArrayType>
 void single_comp(std::size_t numElements)
