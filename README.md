@@ -76,8 +76,9 @@ Also we show how to use FindMoab and verify it works by building a basic
 example
 
 
-## FindTBB ##
-A simplified FindTBB module. Going to be proposed to be part of CMake modules.
+## FunctorTrampoline ##
+An of how to wrap and pass an arbitrary  functor to an function so that
+we don't leak OpenMP pragmas in a header.
 
 
 ## FizzBuzz ##
