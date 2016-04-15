@@ -120,6 +120,11 @@ An example of writing vis algorithms using everything but the Dax Scheduler
 infrastructure.
 
 
+## MinDelta ##
+A C++ example of making sure that two double values have at-least 64k
+representable numbers between them.
+
+
 ## MoabReader ##
 A pretty feature complete VTK reader of MOAB files, can output a moab
 file a single unstructured grid, poly data or multi block.
