@@ -13,11 +13,6 @@ why you should make your data branch is more predicatable ways.
 Note this was a rip from the SO question: http://stackoverflow.com/questions/11227809/why-is-processing-a-sorted-array-faster-than-an-unsorted-array?rq=1
 
 
-## Check CXX Symbols Exist ##
-A look at what we would have to change to have CMake find templated
-function signatures.
-
-
 ## CMakeCrossCompiler ##
 Show how to use a CMake ToolChain file as the CMAKE_USER_MAKE_RULES_OVERRIDE.
 This is useful if you have required compiler flags you need set for
@@ -40,6 +35,20 @@ can cause a massive slowdown in performance.
 ## CMakeTrackConfFiles ##
 Working on a test to verify that CMake only tracks the proper configured files, and
 that ones that don't exist after generation aren't tracked
+
+
+## Check CXX Symbols Exist ##
+A look at what we would have to change to have CMake find templated
+function signatures.
+
+
+## ConceptualExecutive  ##
+An attempt to create a delayed execution pipeline that could be used
+by Dax/VTK-m.
+
+
+## CudaStackCopy ##
+Checking the limits of what you can construct on the stack in CUDA.
 
 
 ## DumpTags ##
@@ -76,13 +85,13 @@ Also we show how to use FindMoab and verify it works by building a basic
 example
 
 
+## FizzBuzz ##
+A template implementation of [FizzBuzz](http://www.codinghorror.com/blog/2007/02/why-cant-programmers-program.html) that should blow your mind ( or stack )
+
+
 ## FunctorTrampoline ##
 An of how to wrap and pass an arbitrary  functor to an function so that
 we don't leak OpenMP pragmas in a header.
-
-
-## FizzBuzz ##
-A template implementation of [FizzBuzz](http://www.codinghorror.com/blog/2007/02/why-cant-programmers-program.html) that should blow your mind ( or stack )
 
 
 ## GenericVariadicParser ##
@@ -120,6 +129,16 @@ An example of writing vis algorithms using everything but the Dax Scheduler
 infrastructure.
 
 
+## MSVCParserErrors ##
+A collection of examples of how to compile the MSVC C++ parser
+
+The simpliest version is now:
+```
+struct F {};
+typedef void example(F(F,F), F(F,F,F));
+```
+
+
 ## MinDelta ##
 A C++ example of making sure that two double values have at-least 64k
 representable numbers between them.
@@ -128,15 +147,6 @@ representable numbers between them.
 ## MoabReader ##
 A pretty feature complete VTK reader of MOAB files, can output a moab
 file a single unstructured grid, poly data or multi block.
-
-
-## MSVCParserErrors ##
-A collection of examples of how to compile the MSVC C++ parser
-
-The simpliest version is now:
-```
-  struct
-```
 
 
 ## NinjaCustomCommand ##
