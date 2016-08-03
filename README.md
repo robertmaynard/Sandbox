@@ -42,6 +42,11 @@ A look at what we would have to change to have CMake find templated
 function signatures.
 
 
+## CompileTimeCrossProduct ##
+An example of a compile time cross product generator for 2 variadic parameter
+packs.
+
+
 ## ConceptualExecutive  ##
 An attempt to create a delayed execution pipeline that could be used
 by Dax/VTK-m.
