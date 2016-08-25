@@ -4,6 +4,10 @@
 #include <iomanip>
 #include <cstring>
 
+template<typename EquivSizeIntT> struct MinDelta{};
+template<> struct MinDelta<float>{ static const int value = 65536; };
+template<> struct MinDelta<double>{ static const long value = 16777216; };
+
 //----------------------------------------------------------------------------
 template<typename T, typename EquivSizeIntT>
 bool AdjustTRange(T range[2], EquivSizeIntT)
@@ -26,7 +30,7 @@ bool AdjustTRange(T range[2], EquivSizeIntT)
   //needs to be a memcpy to avoid strict aliasing issues
   std::memcpy(irange, range, sizeof(T)*2);
 
-  const EquivSizeIntT minDelta = 65536;
+  const EquivSizeIntT minDelta = MinDelta<T>::value;
 
   //determine the absolute delta between these two numbers.
   EquivSizeIntT delta = std::abs(irange[1] - irange[0]);
@@ -99,6 +103,7 @@ int main(int, char **)
 
   double small[2] = { -12, -4};
   double large[2] = { 1e12, 1e12+1 };
+  double large_exact[2] = { 1e12, 1e12 };
   double real_small[2] = { 1e-20, 1e-19 };
 
   test_range(zeros);
@@ -110,6 +115,7 @@ int main(int, char **)
 
   test_range(small);
   test_range(large);
+  test_range(large_exact);
   test_range(real_small);
 
   return 0;
