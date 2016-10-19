@@ -47,11 +47,6 @@ An example of a compile time cross product generator for 2 variadic parameter
 packs.
 
 
-## ConceptualExecutive  ##
-An attempt to create a delayed execution pipeline that could be used
-by Dax/VTK-m.
-
-
 ## CudaStackCopy ##
 Checking the limits of what you can construct on the stack in CUDA.
 
@@ -99,25 +94,6 @@ An of how to wrap and pass an arbitrary  functor to an function so that
 we don't leak OpenMP pragmas in a header.
 
 
-## GenericVariadicParser ##
-An in progress attempt at being able to strip and pack function arguments
-into a storage mechanism so that we can extract them latter. The main feature
-is that subclasses can state how many arguments they want not packed in the
-opaque container.
-
-So basically you have parser that takes 10 paramenters. Than
-derived parser can state it wants only the first two. It than has
-the ability to add parameters or remove the ones it explicitly asked for.
-
-Example:
-```
-void operator(Functor f, T param1, O param2, RestOfParameters rp)
-{
-params::invoke(f,param1,myInsertedParam,param2,rp);
-}
-```
-
-
 ## IdListToString ##
 Example of converting vtkIdLists or vtkIdType* to a string key that can be used
 for unique comparison. This string that is generated will be based on the sorted
@@ -127,16 +103,6 @@ order of the ids
 ## IntegerSequence ##
 A simple example to show how to do compile time integer sequence creation.
 This version does 8 item blocks, so you can go above 1024 integer values.
-
-
-## LHMC ##
-An example of looking at using Low High tables to speed up operations such
-as Marching Cubes
-
-
-## Low Level Dax ##
-An example of writing vis algorithms using everything but the Dax Scheduler
-infrastructure.
 
 
 ## MSVCParserErrors ##
@@ -164,12 +130,10 @@ A test case that shows a bug with ninja and CMake custom command.
 
 
 ## NumericLimits ##
-
 Compare the VTK numeric type limits to the ones provided in C++11.
 
 
 ## OSXDylibLimits ##
-
 A simple example that exposes a bug with @executable_path and OSX 10.8+.
 
 It seems that the dylib loader has a fixed size memory pool for expanding
@@ -185,10 +149,6 @@ when placed in a directory path that contains ~130 characters.
 ## PointMergingBenchmark ##
 Showing the most efficient way to merge duplicate point ids, will need
 to be ported to VTK.
-
-
-## PortConcept ##
-More brainstorming about filters and worklets in DAX.
 
 
 ## TryCompile ##
