@@ -9,5 +9,4 @@ endif()
 project(t)
 
 add_executable(example test.cpp)
-target_link_libraries(example PRIVATE lib1)
 

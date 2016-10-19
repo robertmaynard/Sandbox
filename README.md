@@ -155,6 +155,11 @@ Showing the most efficient way to merge duplicate point ids, will need
 to be ported to VTK.
 
 
+## ReduceTextualSymbols ##
+Exploration on how best to reduce the number of internal textual symbols
+are generated when building a library that is composed of numerous templated functions and methods.
+
+
 ## VtkComputeRangeBenchmark ##
 Benchmarking the old compute range code in VTK compared to the new proposed
 version, to show that the new version is faster.
