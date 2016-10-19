@@ -109,16 +109,6 @@ A simple example to show how to do compile time integer sequence creation.
 This version does 8 item blocks, so you can go above 1024 integer values.
 
 
-## MSVCParserErrors ##
-A collection of examples of how to compile the MSVC C++ parser
-
-The simpliest version is now:
-```
-struct F {};
-typedef void example(F(F,F), F(F,F,F));
-```
-
-
 ## MinDelta ##
 A C++ example of making sure that two double values have at-least 64k
 representable numbers between them.
@@ -127,6 +117,16 @@ representable numbers between them.
 ## MoabReader ##
 A pretty feature complete VTK reader of MOAB files, can output a moab
 file a single unstructured grid, poly data or multi block.
+
+
+## MSVCParserErrors ##
+A collection of examples of how to compile the MSVC C++ parser
+
+The simpliest version is now:
+```
+struct F {};
+typedef void example(F(F,F), F(F,F,F));
+```
 
 
 ## NinjaCustomCommand ##
@@ -160,3 +160,6 @@ Benchmarking the old compute range code in VTK compared to the new proposed
 version, to show that the new version is faster.
 Edit: The new version of compute range has been merged.
 
+## VtkmVectoriziable ##
+Very small snippets of code to verify the vtkm::Vec generates vectorized
+SIMD code.
