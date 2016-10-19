@@ -1,6 +1,5 @@
 
 #include "Timer.h"
-
 #include <vtkNew.h>
 #include <vtkFloatArray.h>
 #include <vtkIdTypeArray.h>
@@ -43,7 +42,7 @@ private:
   std::vector< T  > Values;
 };
 
-Generator<int>::Generator(std::size_t num_values)
+template<> Generator<int>::Generator(std::size_t num_values)
 {
   int lower_bound = (std::numeric_limits<int>::lowest()+20);
   int upper_bound = (std::numeric_limits<int>::max()-20);
@@ -51,6 +50,19 @@ Generator<int>::Generator(std::size_t num_values)
   Values.reserve(num_values);
 
   std::uniform_int_distribution<int> unif(lower_bound,upper_bound);
+  std::default_random_engine re;
+  for(int i=0; i < num_values; ++i)
+    { Values.push_back( unif(re) ); }
+}
+
+template<> Generator<vtkIdType>::Generator(std::size_t num_values)
+{
+  vtkIdType lower_bound = (std::numeric_limits<vtkIdType>::lowest()+20);
+  vtkIdType upper_bound = (std::numeric_limits<vtkIdType>::max()-20);
+
+  Values.reserve(num_values);
+
+  std::uniform_int_distribution<vtkIdType> unif(lower_bound,upper_bound);
   std::default_random_engine re;
   for(int i=0; i < num_values; ++i)
     { Values.push_back( unif(re) ); }
