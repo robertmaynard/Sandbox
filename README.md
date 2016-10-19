@@ -124,6 +124,11 @@ for unique comparison. This string that is generated will be based on the sorted
 order of the ids
 
 
+## IntegerSequence ##
+A simple example to show how to do compile time integer sequence creation.
+This version does 8 item blocks, so you can go above 1024 integer values.
+
+
 ## LHMC ##
 An example of looking at using Low High tables to speed up operations such
 as Marching Cubes
