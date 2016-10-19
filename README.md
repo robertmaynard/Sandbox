@@ -13,6 +13,11 @@ why you should make your data branch is more predicatable ways.
 Note this was a rip from the SO question: http://stackoverflow.com/questions/11227809/why-is-processing-a-sorted-array-faster-than-an-unsorted-array?rq=1
 
 
+## Check CXX Symbols Exist ##
+A look at what we would have to change to have CMake find templated
+function signatures.
+
+
 ## CMakeCrossCompiler ##
 Show how to use a CMake ToolChain file as the CMAKE_USER_MAKE_RULES_OVERRIDE.
 This is useful if you have required compiler flags you need set for
@@ -27,19 +32,18 @@ A basic example at showing how to create an imported library in CMake, this
 needs to be updated to show off the new import library features
 
 
+## CMakePreferStaticLibs ##
+Show how you can force CMake to prefer static libraries over dynamic
+libraries.
+
+
 ## CMakeSlowEval ##
 Example that shows how very long strings passed a parameter to a CMake macro
 can cause a massive slowdown in performance.
 
 
-## CMakeTrackConfFiles ##
-Working on a test to verify that CMake only tracks the proper configured files, and
-that ones that don't exist after generation aren't tracked
-
-
-## Check CXX Symbols Exist ##
-A look at what we would have to change to have CMake find templated
-function signatures.
+## CMakeSystemConfigs ##
+Show how to setup and use system specific configuration files.
 
 
 ## CompileTimeCrossProduct ##
@@ -149,11 +153,6 @@ when placed in a directory path that contains ~130 characters.
 ## PointMergingBenchmark ##
 Showing the most efficient way to merge duplicate point ids, will need
 to be ported to VTK.
-
-
-## TryCompile ##
-A basic example of doing a try compile in CMake. In This example we are
-looking at if we have shared_ptr support
 
 
 ## VtkComputeRangeBenchmark ##
