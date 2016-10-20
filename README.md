@@ -88,6 +88,11 @@ write out to make finding moab not require a FindMOAB.cmake
 Also we show how to use FindMoab and verify it works by building a basic
 example
 
+## FindBoostHeaders ##
+A version of FindBoost that only has the logic to find the header components
+of boost. This is really handy when a project doesn't care about the boost
+libraries.
+
 
 ## FizzBuzz ##
 A template implementation of [FizzBuzz](http://www.codinghorror.com/blog/2007/02/why-cant-programmers-program.html) that should blow your mind ( or stack )
