@@ -16,7 +16,7 @@ struct unroll_cross_product_R2
   using P =
     brigand::fold< R2,
                    brigand::list<>,
-                   append_product< brigand::_state, brigand::_element, U>
+                   append_product< brigand::_state, brigand::_element, brigand::pin<U> >
                    >;
 
   using type = brigand::append<T, P>;
@@ -28,7 +28,7 @@ struct cross_product
   using type =
     brigand::fold< R2,
                    brigand::list<>,
-                   unroll_cross_product_R2< brigand::_state, brigand::_element, R1>
+                   unroll_cross_product_R2< brigand::_state, brigand::_element, brigand::pin<R1> >
                    >;
 };
 

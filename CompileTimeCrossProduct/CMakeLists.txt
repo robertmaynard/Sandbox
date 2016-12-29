@@ -9,6 +9,5 @@ endif()
 project(t)
 
 add_executable(example test.cpp)
-target_include_directories(example PRIVATE "/Users/robert/Work/vtkm/brigand/")
-target_link_libraries(example PRIVATE lib1)
+target_include_directories(example PRIVATE "/Users/robert/Work/brigand/src")
 
