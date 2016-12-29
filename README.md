@@ -50,6 +50,10 @@ Show how to setup and use system specific configuration files.
 An example of a compile time cross product generator for 2 variadic parameter
 packs.
 
+## CompileTimeIntersection ##
+An example of a compile time intersection generator for 2 variadic parameter
+packs.
+
 
 ## CudaStackCopy ##
 Checking the limits of what you can construct on the stack in CUDA.
