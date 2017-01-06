@@ -1,12 +1,18 @@
 
-
 #include <iostream>
 #include <iomanip>
 #include <cstring>
+#include <cmath>
+#include <limits>
 
 template<typename EquivSizeIntT> struct MinDelta{};
 template<> struct MinDelta<float>{ static const int value = 65536; };
-template<> struct MinDelta<double>{ static const long value = 16777216; };
+
+// There are 29 more bits in a double's mantissa compared to a float.  Shift the
+// offset so that the 65536 is in the same position relative to the beginning of
+// the mantissa.  This causes the modified range to still be valid when it is
+// downcast to float later on.
+template<> struct MinDelta<double>{ static const long value = static_cast<long>(65536) << 29; };
 
 //----------------------------------------------------------------------------
 template<typename T, typename EquivSizeIntT>
@@ -26,6 +32,8 @@ bool AdjustTRange(T range[2], EquivSizeIntT)
     return false;
     }
 
+  const bool denormal = !std::isnormal(range[0]);
+
   EquivSizeIntT irange[2];
   //needs to be a memcpy to avoid strict aliasing issues
   std::memcpy(irange, range, sizeof(T)*2);
@@ -39,20 +47,43 @@ bool AdjustTRange(T range[2], EquivSizeIntT)
   //so that it is equal to minRange + minDelta. When our range is entirely
   //negative we should instead subtract from our max, to max a larger negative
   //value
-  if(delta < minDelta && irange[1] < 0)
-    {
-    irange[1] = irange[0] - minDelta;
-    //needs to be a memcpy to avoid strict aliasing issues
-    std::memcpy(range+1, irange+1, sizeof(T) );
-    return true;
-    }
   if(delta < minDelta)
+  {
+
+    if(irange[0] < 0)
     {
-    irange[1] = irange[0] + minDelta;
-    //needs to be a memcpy to avoid strict aliasing issues
-    std::memcpy(range+1, irange+1, sizeof(T) );
-    return true;
+      if(denormal)
+      {
+        T m = std::numeric_limits<T>::min();
+        EquivSizeIntT im;
+        std::memcpy(&im, &m, sizeof(T));
+        irange[0] = std::min(EquivSizeIntT(0), irange[0] - (minDelta/2));
+        irange[1] = irange[0] - (im + (minDelta/2));
+      }
+      else
+      {
+        irange[1] = irange[0] - minDelta;
+      }
     }
+    else
+    {
+      if(denormal)
+      {
+        T m = std::numeric_limits<T>::min();
+        EquivSizeIntT im;
+        std::memcpy(&im, &m, sizeof(T));
+        irange[0] = std::max(EquivSizeIntT(0), irange[0] - (minDelta/2));
+        irange[1] = irange[0] + (im + (minDelta/2));
+      }
+      else
+      {
+        irange[1] = irange[0] + minDelta;
+      }
+    }
+    std::memcpy(range, irange, sizeof(T)*2 );
+
+    return true;
+  }
   return false;
 }
 
@@ -87,10 +118,9 @@ void test_range(double range[2] )
   std::cout << "------------------------------------------------------------" << std::endl;
   std::cout << "input range: " << range[0] << " : " << range[1] << std::endl;
   AdjustRange(range);
-  std::cout << "output range: " << std::fixed << std::setprecision(16) << range[0] << " : " << range[1] << std::endl;
+  std::cout << "output range: " << std::fixed << std::setprecision(42) << range[0] << " : " << range[1] << std::endl;
   std::cout << std::endl;
 }
-
 
 int main(int, char **)
 {
@@ -120,3 +150,4 @@ int main(int, char **)
 
   return 0;
 }
+
