@@ -84,6 +84,10 @@ used as a draft example of the final implementation.
 An example of writing an external C function when using CMake
 
 
+## ExternTemplate ##
+An example of forcing explicit template instantiation in a translation unit.
+
+
 ## FindMoab ##
 A proof of concept FindMOAB.cmake implementation to be used as a reference.
 Also provided is the basic layout of a MOABConfig.cmake, that moab could
