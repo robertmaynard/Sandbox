@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 2.8.12)
 project(ImportTarget)
 
 set(import_name
-    "${CMAKE_STATIC_LIBRARY_PREFIX}Test.${CMAKE_STATIC_LIBRARY_SUFFIX}")
+    "${CMAKE_STATIC_LIBRARY_PREFIX}Test${CMAKE_STATIC_LIBRARY_SUFFIX}")
 add_library(imported_target STATIC IMPORTED )
 set_target_properties(imported_target PROPERTIES
                 IMPORTED_LOCATION "${CMAKE_CURRENT_SOURCE_DIR}/${import_name}"
