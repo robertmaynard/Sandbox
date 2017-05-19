@@ -31,6 +31,10 @@ toolchains / cross compilation and CMAKE_USER_MAKE_RULES_OVERRIDE
 A basic example at showing how to create an imported library in CMake, this
 needs to be updated to show off the new import library features
 
+## CMakeInterfaceChangesLibrary ##
+A basic example at showing how you can have an interface library provide
+different libraries to link too based on a configuration property of the
+target that is CONSUMING the interface library.
 
 ## CMakePreferStaticLibs ##
 Show how you can force CMake to prefer static libraries over dynamic
