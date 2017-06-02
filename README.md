@@ -169,6 +169,10 @@ Currently the easiest way to reproduce this problem is by using the paraview
 binary as it has a sufficient number of libraries to expose the problem
 when placed in a directory path that contains ~130 characters.
 
+## OSXRttiIssue ##
+Show how setting the default visibility as hidden and than having a base
+class as public can cause issues when going across library boundaries
+
 
 ## PointMergingBenchmark ##
 Showing the most efficient way to merge duplicate point ids, will need
