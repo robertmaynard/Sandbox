@@ -66,6 +66,11 @@ packs.
 Checking the limits of what you can construct on the stack in CUDA.
 
 
+## CudaThreadsPerBlock ##
+Toy code that tunes the number of threads per block using compile time
+heuristics.
+
+
 ## DumpTags ##
 Code to dump information about moab files. Also provides SimpleMoab.h
 which is a more c++ like interface to the majority of moab functions.
