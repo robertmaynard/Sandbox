@@ -45,19 +45,30 @@ int main(int len, char **) {
     asm("nop");
     asm("nop");
     for (int i = 0; i < len; ++i) {
-      float t1 = ((z[i][1] - y[i][2]) * (z[i][1] - y[i][2]) +
-                  (y[i][0] - x[i][1]) * (y[i][0] - x[i][1]) +
-                  (x[i][2] - z[i][0]) * (x[i][2] - z[i][0])) /
-                 2.0f;
-      float t2 = x[i][0] * x[i][0] + y[i][1] * y[i][1] + z[i][2] * z[i][2] +
-                 ((z[i][1] + y[i][2]) * (z[i][1] + y[i][2]) +
-                  (y[i][0] + x[i][1]) * (y[i][0] + x[i][1]) +
-                  (x[i][2] + z[i][0]) * (x[i][2] + z[i][0])) /
-                     2.0f;
-
-      qc[i] = (t1 - t2) / 2.0f;
+      const Vec3 d(x[i][0], y[i][1], z[i][2]);
+      qc[i] = (vtkm::dot(d, d) / 2.0f) - ((x[i][1] * y[i][0]) + (x[i][2] * z[i][0]) + (y[i][2] * z[i][1]));
       fsum += qc[i];
     }
     std::cout << "sum: " << fsum << "  --  " << qc[3] << std::endl;
+
+
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    asm("nop");
+    for (int i = 0; i < len; ++i) {
+      float tempA;
+      tempA = x[i][1]; x[i][1] = y[i][0]; y[i][0] = tempA;
+      tempA = x[i][2]; x[i][2] = z[i][0]; z[i][0] = tempA;
+      tempA = y[i][2]; y[i][2] = z[i][1]; z[i][1] = tempA;
+
+      asm("nop");
+
+      const Vec3 d(x[i][0], y[i][1], z[i][2]);
+      qc[i] = (vtkm::dot(d, d) / 2.0f) - ((x[i][1] * y[i][0]) + (x[i][2] * z[i][0]) + (y[i][2] * z[i][1]));
+      fsum += qc[i];
+    }
+    std::cout << "sum: " << fsum << "  --  " << qc[3] << std::endl;
+
   }
 }
