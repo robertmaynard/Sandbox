@@ -179,6 +179,18 @@ Show how setting the default visibility as hidden and than having a base
 class as public can cause issues when going across library boundaries
 
 
+## TypedefConverter ##
+A python script that converts typedef over the new C++11 using syntax. Was 
+developed as clang-tidy incorrectly replaces typedef such as:
+```cpp
+typedef typename V::T T;
+//clang-tidy would replace convert this too the following when V::T is a float
+using T = float;
+//When we really want the code to look like
+using T = typename V::T;
+``
+
+
 ## PointMergingBenchmark ##
 Showing the most efficient way to merge duplicate point ids, will need
 to be ported to VTK.
