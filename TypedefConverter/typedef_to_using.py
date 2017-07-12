@@ -82,7 +82,12 @@ def process(file):
       break
     has_typedef = re.match('\s*typedef', line)
     has_semicolon = re.match('.*;$', line)
-    if has_typedef and has_semicolon:
+    is_function_sig = re.match('\s*typedef.*\(', line);
+
+    if is_function_sig:
+      out_file.write('%s\n' % line)
+
+    elif has_typedef and has_semicolon:
       line = single_line_conversion(line)
       out_file.write('%s\n' % line)
     elif has_typedef:
@@ -105,6 +110,7 @@ def process(file):
 if __name__ == "__main__":
   for root, dirs, files in os.walk(sys.argv[1]):
     path = root.split(os.sep)
+    print 'processing directory: ' + root
     for file in files:
-      process(file)
+      process( os.path.join(root, file) )
 

@@ -78,3 +78,10 @@ public:
     PortalConstExecution;
 
 };
+
+//Will not convert the following
+typedef vtkm::Vec<ComponentType, 4> Signature(ArrayHandleType1,
+                                              ArrayHandleType2,
+                                              ArrayHandleType3,
+                                              ArrayHandleType4);
+
