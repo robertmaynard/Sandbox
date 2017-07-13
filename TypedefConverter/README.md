@@ -8,7 +8,6 @@ Note: This doesn't support conversion of typedef function signatures!
 so something like the following will be ignored:
 ```cpp
 typedef void Sig(int, float, float);
-``
-
+```
 We also have an example header that can be used to see how the conversion
 works
