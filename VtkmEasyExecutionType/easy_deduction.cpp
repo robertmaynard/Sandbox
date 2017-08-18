@@ -35,6 +35,7 @@ template <typename T> struct HandleType {
   using PortalConst =
       typename ExecutionManagerType::template ExecutionTypes<Tag>::PortalConst;
 
+ //example 1: Look and how much better the signature PrepareForInput looks
   template <typename Tag> Portal<Tag> PrepareForInput(Tag) const {
     return Portal<Tag>();
   }
@@ -51,14 +52,7 @@ template <typename HType, typename Tag>
 using PortalConstType = typename HType::template PortalConst<Tag>;
 
 template <typename T, typename Tag> struct UsePortal {
-  // version 1 use decltype(declval) still really really long
-  // using PortalType =
-  //     decltype(std::declval<HandleType<T>>().PrepareForInput(Tag()));
-
-  // version 2 uses Portal<> from the handle type, and is long
-  // using PortalType = typename HandleType<T>::template Portal<Tag>;
-
-  // version 3 is better
+  //example 1: Look and how much better getting a portal type is
   using PortalType = PortalType<HandleType<T>, Tag>;
 
   UsePortal(PortalType portal) : P(portal) {}
