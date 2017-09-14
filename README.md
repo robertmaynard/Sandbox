@@ -29,6 +29,12 @@ both verifying the compiler works and for making all your targets.
 This is really an exercise in understanding the lack of interaction between
 toolchains / cross compilation and CMAKE_USER_MAKE_RULES_OVERRIDE
 
+
+## CMakeDebugLinkFiles ##
+Show how to use write custom CMake code to allow debug information to be removed
+from a library at install time and placed into a separate file
+
+
 ## CMakeEnableC99Manually ##
 Show how to enable C99 and C++11 on files in a target if you can't require
 CMake 3.1 or higher
