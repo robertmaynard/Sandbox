@@ -4,6 +4,16 @@
 save the output of the executables to files.
 
 
+The output files the script generate will have the following name:
+  executable_hostname_yy_mm_dd
+
+Where executable is resolved to the basename of the executable
+Where hostname is the first word of fully qualified domain name when split
+on '.'.
+
+So for example running the benchmark BenchmarkReduce on the machine
+'bigboard.website.org` on Oct 1 2017 will generate the file:
+  BenchmarkReduce_bigboard_17_10_01
 
 # > benchmark_runner.py -d <directory> -p <executable_pattern>
 """
