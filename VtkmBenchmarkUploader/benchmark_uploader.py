@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 
-"""Utility script to run a collection of executable/benchmarks and
-save the output of the executables to files.
+"""Utility script to upload a collection of benchmark files to an s3 bucket
 
 
+By default we use what ever aws credintials you have set up, but you can
+explicitly specify an aws credential file with '--credentials' and a specific
+profile from that credential with '--profile'
 
-# > benchmark_runner.py <directory> <executable_pattern>
+
+# > benchmark_uploader.py  <directory> <bucket> --today
 """
 
 from __future__ import print_function
@@ -14,89 +17,94 @@ import datetime
 import os
 import re
 import string
-import subprocess
+import boto3
 import sys
 import time
 
 
-# Given a directory, a pattern ( used only on the file name) and if we
-# want to recursively walk return a list of executables
-def collect_executables(directory, recursive, pattern):
-  result = []
-  cached_pattern = re.compile(pattern)
+def construct_session(credentials, profile):
+  if credentials:
+    os.environ["AWS_SHARED_CREDENTIALS_FILE"] = credentials
 
-  def is_valid(dir, file, pattern):
-    full_path = os.path.join(dir, file)
-    is_exec = os.path.isfile(full_path) and os.access(full_path, os.X_OK)
-    matches = cached_pattern.match(file)
-    return matches and is_exec
+  return boto3.Session(profile_name=profile)
 
-  if recursive:
-    for root, dirs, files in os.walk(directory):
-      for file in files:
-        if is_valid(root, file, pattern):
-          result.append( os.path.join(root, file) )
-  else:
-    for file in os.listdir(directory):
-      if is_valid(directory, file, pattern):
-        result.append( os.path.join(directory, file) )
+def upload(session, bucket, files):
+  pass
 
-  return result
+def collect_files_by_pattern(directory, pattern):
+  pass
+
+def collect_files_by_timestamp(directory):
+  pass
 
 
-# Given an absolute path to an executable and a dir
-def process(execut, output_directory):
+def wrong_bucket_error_message(name, names):
+  print("The aws s3 doesn't contain a bucket named: %s" %(names))
+  print("The possible buckets are: ")
+  for n in names:
+    print("\t",n)
+  exit(2)
 
-  #construct a name by adding the yy/mm/dd
-  out_name = os.path.basename(execut)
-  utcnow = datetime.datetime.utcnow()
-  out_name += str(utcnow.strftime("_%y_%m_%d"))
-
-  exec_dir = os.path.dirname(execut)
-  output_path = os.path.join(output_directory,out_name)
-  output_file = open(output_path, 'w')
-  args = [execut]
-
-  print('running', execut, 'without output saved to', output_path)
-  process = subprocess.Popen(args,
-                             bufsize=4096,
-                             stdout=output_file,
-                             stderr=subprocess.STDOUT,
-                             shell=False,
-                             cwd=exec_dir)
-  while process.poll() is None:
-    print('.', end='')
-    sys.stdout.flush()
-    time.sleep(0.5)
-  process.wait()
+def failed_s3_connection(err):
+  print(err)
+  exit(2)
 
 
+def main(session, bucket_name, directory, pattern, by_timestamp):
+  print('session', session)
+  print('bucket', bucket)
+  print('directory', directory)
+  print('pattern', pattern)
+  print('by_timestamp', by_timestamp)
 
-def main(input_directories, recursive, output_directory, pattern):
-  if not isinstance(input_directories, list):
-    input_directories = [input_directories]
+  files = []
+  if pattern:
+    files = files + collect_files_by_pattern(directory, pattern)
 
-  #build up the list of executables to run
-  for idir in input_directories:
-    print('searching', idir, 'for executables.' )
-    files = collect_executables(idir, recursive, pattern)
+  if by_timestamp:
+    files = files + collect_files_by_timestamp(directory)
 
-  #now run each executable
-  for execut in files:
-    process(execut, output_directory)
+  try:
+    client = session.client('s3')
+    response = client.list_buckets()
+  except Exception as err:
+    failed_s3_connection(err)
+
+  bucket_names = [b['Name'] for b in response['Buckets']]
+  has_bucket = bucket_name in bucket_names
+
+  if not has_bucket:
+    wrong_bucket_error_message(bucket_name, bucket_names)
+    exit(2)
+
+  for file in files:
+    f_name = os.path.basename(file)
+    print(f_name)
+  #   print("client.upload_file(%s, %s, %s)" %(file,bucket_name,f_name)
+
 
 if __name__ == '__main__':
-
-  loc = [os.getcwd()]
-  pattern = ['.*']
-
-  parser = argparse.ArgumentParser(description='Run a collection of benchmarks.')
-  parser.add_argument('-d', '--directory', nargs='*',  default=loc, help='directories you want walked (default: current directory)')
-  parser.add_argument('-p', '--pattern', nargs=1, default=pattern, help='regex pattern to use to find executables to run (default: .*)')
-  parser.add_argument('-o', '--out-directory', nargs=1, default=loc, help='directory to place output files (default: current directory)')
-  parser.add_argument('-r', '--recursive', action='store_true', help='recursively walk the input directories')
-
-
+  parser = argparse.ArgumentParser(description='Upload a collection of benchmarks.')
+  parser.add_argument('directory', nargs=1, help='directory you want searched for files')
+  parser.add_argument('bucket', nargs=1, help='specify the s3 bucket to upload too')
+  parser.add_argument('-p', '--pattern', nargs=1, help='upload all files that match the given pattern')
+  parser.add_argument('-t', '--today', action='store_true', help='upload all files that are created today')
+  parser.add_argument('--credentials',  nargs=1,  help='aws credential file to use')
+  parser.add_argument('--profile',  nargs=1,  help='aws credential profile name to use')
   args = parser.parse_args()
-  main(args.directory, args.recursive, args.out_directory[0], args.pattern[0])
+
+  #setup session
+  credentials = args.credentials[0] if args.credentials else None
+  profile = args.profile[0] if args.profile else None
+  session = construct_session(credentials, profile)
+
+  #setup variables
+
+  bucket = args.bucket[0]
+  directory = args.directory[0]
+  pattern = args.pattern[0] if args.pattern else None
+  today = args.today
+
+  #start the upload process
+  main(session, bucket, directory, pattern, today)
 

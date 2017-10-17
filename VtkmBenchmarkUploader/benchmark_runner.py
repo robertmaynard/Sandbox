@@ -5,7 +5,7 @@ save the output of the executables to files.
 
 
 
-# > benchmark_runner.py <directory> <executable_pattern>
+# > benchmark_runner.py -d <directory> -p <executable_pattern>
 """
 
 from __future__ import print_function
