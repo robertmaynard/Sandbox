@@ -63,6 +63,7 @@ def process(execut, output_directory):
   utcnow = datetime.datetime.utcnow()
   fqdn = socket.getfqdn().split('.')[0]
 
+  out_name += "_"
   out_name += fqdn
   out_name += str(utcnow.strftime("_%y_%m_%d"))
 

@@ -222,8 +222,12 @@ types from an ArrayHandle for a given device easier.
 
 
 ## vtkmBenchmarkUploader ##
-Very small program that will run and upload all the benchmarks for a project
-to a given url. See the Readme for more information
+A collection of python programs that can run benchmark executables saving the
+results to 'versioned' files which than can be uploaded directly to s3 or first
+converted into json and than uploaded to s3
+
+See the subdirectory Readme for more information on how to use the collection
+of tools
 
 
 ## VtkmVectoriziable ##
