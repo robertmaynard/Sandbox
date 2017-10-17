@@ -13,7 +13,7 @@ import argparse
 import datetime
 import os
 import re
-import string
+import socket
 import subprocess
 import sys
 import time
@@ -47,9 +47,13 @@ def collect_executables(directory, recursive, pattern):
 # Given an absolute path to an executable and a dir
 def process(execut, output_directory):
 
-  #construct a name by adding the yy/mm/dd
+  #construct a name using the format:
+  #  executable_hostname_yy_mm_dd
   out_name = os.path.basename(execut)
   utcnow = datetime.datetime.utcnow()
+  fqdn = socket.getfqdn().split('.')[0]
+
+  out_name += fqdn
   out_name += str(utcnow.strftime("_%y_%m_%d"))
 
   exec_dir = os.path.dirname(execut)
