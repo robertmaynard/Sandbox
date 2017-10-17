@@ -1,0 +1,204 @@
+----------------------------------------
+Running Field Algorithm benchmarks
+----------------------------------------
+Benchmarking BlackScholes
+*** vtkm::Float32 ***************
+Benchmark 'BlackScholes [Static]  with a domain size of: 4194304' results:
+	median = 0.051576s
+	median abs dev = 0.000568s
+	mean = 0.0518829s
+	std dev = 0.00102843s
+	min = 0.0507144s
+	max = 0.054442s
+*** vtkm::Float64 ***************
+Benchmark 'BlackScholes [Static]  with a domain size of: 4194304' results:
+	median = 0.062683s
+	median abs dev = 0.000839s
+	mean = 0.0630568s
+	std dev = 0.001428s
+	min = 0.0613132s
+	max = 0.0666318s
+*** vtkm::Float32 ***************
+Benchmark 'BlackScholes [Dynamic]  with a domain size of: 4194304' results:
+	median = 0.051988s
+	median abs dev = 0.000882s
+	mean = 0.0523708s
+	std dev = 0.00134708s
+	min = 0.0507608s
+	max = 0.055451s
+*** vtkm::Float64 ***************
+Benchmark 'BlackScholes [Dynamic]  with a domain size of: 4194304' results:
+	median = 0.063477s
+	median abs dev = 0.001177s
+	mean = 0.0635992s
+	std dev = 0.00152352s
+	min = 0.0615s
+	max = 0.066826s
+----------------------------------------
+Benchmarking Multiple Math Worklets
+*** vtkm::Float32 ***************
+Benchmark 'Magnitude -> Sine -> Square -> Cosine [Static] with a domain size of: 4194304' results:
+	median = 0.024137s
+	median abs dev = 0.0007845s
+	mean = 0.0240975s
+	std dev = 0.000873932s
+	min = 0.0227597s
+	max = 0.025559s
+*** vtkm::Float64 ***************
+Benchmark 'Magnitude -> Sine -> Square -> Cosine [Static] with a domain size of: 4194304' results:
+	median = 0.038861s
+	median abs dev = 0.0006295s
+	mean = 0.0389244s
+	std dev = 0.000777685s
+	min = 0.0377429s
+	max = 0.0404547s
+*** vtkm::Float32 ***************
+Benchmark 'Magnitude -> Sine -> Square -> Cosine [Dynamic] with a domain size of: 4194304' results:
+	median = 0.0236705s
+	median abs dev = 0.0006s
+	mean = 0.0238616s
+	std dev = 0.000815443s
+	min = 0.0226952s
+	max = 0.0254075s
+*** vtkm::Float64 ***************
+Benchmark 'Magnitude -> Sine -> Square -> Cosine [Dynamic] with a domain size of: 4194304' results:
+	median = 0.039121s
+	median abs dev = 0.0006045s
+	mean = 0.039167s
+	std dev = 0.000829114s
+	min = 0.0378989s
+	max = 0.040958s
+----------------------------------------
+Benchmarking Single Fused Math Worklet
+*** vtkm::Float32 ***************
+Benchmark 'Fused Magnitude -> Sine -> Square -> Cosine [Static] with a domain size of: 4194304' results:
+	median = 0.0208945s
+	median abs dev = 0.0008085s
+	mean = 0.0211164s
+	std dev = 0.00110062s
+	min = 0.0197925s
+	max = 0.0233734s
+*** vtkm::Float64 ***************
+Benchmark 'Fused Magnitude -> Sine -> Square -> Cosine [Static] with a domain size of: 4194304' results:
+	median = 0.0307435s
+	median abs dev = 0.000723s
+	mean = 0.031036s
+	std dev = 0.00115239s
+	min = 0.0294095s
+	max = 0.0336192s
+*** vtkm::Float32 ***************
+Benchmark 'Fused Magnitude -> Sine -> Square -> Cosine [Dynamic] with a domain size of: 4194304' results:
+	median = 0.020913s
+	median abs dev = 0.0009145s
+	mean = 0.0213433s
+	std dev = 0.0014672s
+	min = 0.0197799s
+	max = 0.0246634s
+*** vtkm::Float64 ***************
+Benchmark 'Fused Magnitude -> Sine -> Square -> Cosine [Dynamic] with a domain size of: 4194304' results:
+	median = 0.0313875s
+	median abs dev = 0.00089s
+	mean = 0.031659s
+	std dev = 0.00120748s
+	min = 0.030077s
+	max = 0.0342155s
+----------------------------------------
+Benchmarking Edge Based Field InterpolationWorklet
+*** vtkm::Float32 ***************
+Benchmark 'Edge Interpolation [Static] with a domain size of: 198976500' results:
+	median = 0.271702s
+	median abs dev = 0.003917s
+	mean = 0.272551s
+	std dev = 0.00588454s
+	min = 0.264798s
+	max = 0.286581s
+*** vtkm::Float64 ***************
+Benchmark 'Edge Interpolation [Static] with a domain size of: 198976500' results:
+	median = 0.367239s
+	median abs dev = 0.0054665s
+	mean = 0.367293s
+	std dev = 0.00842303s
+	min = 0.353135s
+	max = 0.384916s
+*** vtkm::Vec< vtkm::Float32, 3 > ***************
+Benchmark 'Edge Interpolation [Static] with a domain size of: 198976500' results:
+	median = 0.475086s
+	median abs dev = 0.0053035s
+	mean = 0.47488s
+	std dev = 0.00733914s
+	min = 0.461488s
+	max = 0.486365s
+*** vtkm::Vec< vtkm::Float64, 3 > ***************
+Benchmark 'Edge Interpolation [Static] with a domain size of: 198976500' results:
+	median = 0.757397s
+	median abs dev = 0.011214s
+	mean = 0.898701s
+	std dev = 0.365981s
+	min = 0.732063s
+	max = 1.96156s
+*** vtkm::Float32 ***************
+Benchmark 'Edge Interpolation [Dynamic] with a domain size of: 198976500' results:
+	median = 0.271664s
+	median abs dev = 0.003379s
+	mean = 0.272044s
+	std dev = 0.00433943s
+	min = 0.265804s
+	max = 0.28074s
+*** vtkm::Float64 ***************
+Benchmark 'Edge Interpolation [Dynamic] with a domain size of: 198976500' results:
+	median = 0.365558s
+	median abs dev = 0.0053545s
+	mean = 0.36589s
+	std dev = 0.00774936s
+	min = 0.352242s
+	max = 0.37956s
+*** vtkm::Vec< vtkm::Float32, 3 > ***************
+Benchmark 'Edge Interpolation [Dynamic] with a domain size of: 198976500' results:
+	median = 0.476882s
+	median abs dev = 0.005484s
+	mean = 0.476492s
+	std dev = 0.0076338s
+	min = 0.463685s
+	max = 0.489625s
+*** vtkm::Vec< vtkm::Float64, 3 > ***************
+Benchmark 'Edge Interpolation [Dynamic] with a domain size of: 198976500' results:
+	median = 0.756072s
+	median abs dev = 0.0067685s
+	mean = 0.794407s
+	std dev = 0.10013s
+	min = 0.745186s
+	max = 1.08424s
+
+Benchmarking Implicit Function
+*** vtkm::Float32 ***************
+Benchmark 'Implicit Function (vtkm::cont::Sphere) on 4194304 points' results:
+	median = 0.0039465s
+	median abs dev = 2.95e-05s
+	mean = 0.00396597s
+	std dev = 6.15338e-05s
+	min = 0.003902s
+	max = 0.0041253s
+*** vtkm::Float32 ***************
+Benchmark 'Implicit Function (DynamicImplicitFunction) on 4194304 points' results:
+	median = 0.0040795s
+	median abs dev = 7.45e-05s
+	mean = 0.00408621s
+	std dev = 9.60868e-05s
+	min = 0.003955s
+	max = 0.00428515s
+*** vtkm::Float32 ***************
+Benchmark 'Implicit Function 2x(vtkm::cont::Sphere) on 4194304 points' results:
+	median = 0.005352s
+	median abs dev = 0.000177s
+	mean = 0.0053746s
+	std dev = 0.000195524s
+	min = 0.005093s
+	max = 0.00575405s
+*** vtkm::Float32 ***************
+Benchmark 'Implicit Function 2x(DynamicImplicitFunction) on 4194304 points' results:
+	median = 0.007709s
+	median abs dev = 0.0001525s
+	mean = 0.00768959s
+	std dev = 0.000188991s
+	min = 0.007434s
+	max = 0.00810225s

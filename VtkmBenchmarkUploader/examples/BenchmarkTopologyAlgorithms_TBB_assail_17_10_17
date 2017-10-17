@@ -1,0 +1,248 @@
+----------------------------------------
+Running Topology Algorithm benchmarks
+----------------------------------------
+Benchmarking Cell To Point Average
+*** vtkm::UInt32 ***************
+Benchmark 'Computing Cell To Point Average [Static] with a domain size of: 16581375' results:
+	median = 0.119744s
+	median abs dev = 0.0015515s
+	mean = 0.120809s
+	std dev = 0.00329757s
+	min = 0.117611s
+	max = 0.129535s
+*** vtkm::Int32 ***************
+Benchmark 'Computing Cell To Point Average [Static] with a domain size of: 16581375' results:
+	median = 0.118863s
+	median abs dev = 0.001178s
+	mean = 0.119614s
+	std dev = 0.00233454s
+	min = 0.1171s
+	max = 0.1253s
+*** vtkm::Int64 ***************
+Benchmark 'Computing Cell To Point Average [Static] with a domain size of: 16581375' results:
+	median = 0.166617s
+	median abs dev = 0.003614s
+	mean = 0.166321s
+	std dev = 0.00617359s
+	min = 0.156905s
+	max = 0.180595s
+*** vtkm::Float32 ***************
+Benchmark 'Computing Cell To Point Average [Static] with a domain size of: 16581375' results:
+	median = 0.127685s
+	median abs dev = 0.002518s
+	mean = 0.128555s
+	std dev = 0.00530518s
+	min = 0.120823s
+	max = 0.142201s
+*** vtkm::Float64 ***************
+Benchmark 'Computing Cell To Point Average [Static] with a domain size of: 16581375' results:
+	median = 0.143313s
+	median abs dev = 0.001638s
+	mean = 0.143407s
+	std dev = 0.00310807s
+	min = 0.138487s
+	max = 0.150422s
+*** vtkm::UInt32 ***************
+Benchmark 'Computing Cell To Point Average [Dynamic] with a domain size of: 16581375' results:
+	median = 0.131673s
+	median abs dev = 0.001896s
+	mean = 0.131993s
+	std dev = 0.00399511s
+	min = 0.1251s
+	max = 0.141466s
+*** vtkm::Int32 ***************
+Benchmark 'Computing Cell To Point Average [Dynamic] with a domain size of: 16581375' results:
+	median = 0.131103s
+	median abs dev = 0.003256s
+	mean = 0.132892s
+	std dev = 0.00722739s
+	min = 0.125486s
+	max = 0.152726s
+*** vtkm::Int64 ***************
+Benchmark 'Computing Cell To Point Average [Dynamic] with a domain size of: 16581375' results:
+	median = 0.177904s
+	median abs dev = 0.004438s
+	mean = 0.178303s
+	std dev = 0.00827873s
+	min = 0.159542s
+	max = 0.19466s
+*** vtkm::Float32 ***************
+Benchmark 'Computing Cell To Point Average [Dynamic] with a domain size of: 16581375' results:
+	median = 0.130857s
+	median abs dev = 0.003266s
+	mean = 0.132666s
+	std dev = 0.00630485s
+	min = 0.124437s
+	max = 0.147384s
+*** vtkm::Float64 ***************
+Benchmark 'Computing Cell To Point Average [Dynamic] with a domain size of: 16581375' results:
+	median = 0.150128s
+	median abs dev = 0.006194s
+	mean = 0.152101s
+	std dev = 0.00875645s
+	min = 0.141611s
+	max = 0.171165s
+----------------------------------------
+Benchmarking Point to Cell Average
+*** vtkm::UInt32 ***************
+Benchmark 'Computing Point To Cell Average [Static] with a domain size of: 16777216' results:
+	median = 0.0166255s
+	median abs dev = 0.000554s
+	mean = 0.0168171s
+	std dev = 0.000941547s
+	min = 0.0156209s
+	max = 0.0190792s
+*** vtkm::Int32 ***************
+Benchmark 'Computing Point To Cell Average [Static] with a domain size of: 16777216' results:
+	median = 0.017551s
+	median abs dev = 0.000668s
+	mean = 0.0177534s
+	std dev = 0.000979668s
+	min = 0.0163235s
+	max = 0.0197869s
+*** vtkm::Int64 ***************
+Benchmark 'Computing Point To Cell Average [Static] with a domain size of: 16777216' results:
+	median = 0.03264s
+	median abs dev = 0.00104s
+	mean = 0.0327413s
+	std dev = 0.00124444s
+	min = 0.0308983s
+	max = 0.0351427s
+*** vtkm::Float32 ***************
+Benchmark 'Computing Point To Cell Average [Static] with a domain size of: 16777216' results:
+	median = 0.01594s
+	median abs dev = 0.0005515s
+	mean = 0.0162981s
+	std dev = 0.0010653s
+	min = 0.0151319s
+	max = 0.0186251s
+*** vtkm::Float64 ***************
+Benchmark 'Computing Point To Cell Average [Static] with a domain size of: 16777216' results:
+	median = 0.029827s
+	median abs dev = 0.0007855s
+	mean = 0.029792s
+	std dev = 0.0009639s
+	min = 0.0283047s
+	max = 0.0314931s
+*** vtkm::UInt32 ***************
+Benchmark 'Computing Point To Cell Average [Dynamic] with a domain size of: 16777216' results:
+	median = 0.0164965s
+	median abs dev = 0.0005035s
+	mean = 0.0167517s
+	std dev = 0.00097204s
+	min = 0.0156177s
+	max = 0.0191349s
+*** vtkm::Int32 ***************
+Benchmark 'Computing Point To Cell Average [Dynamic] with a domain size of: 16777216' results:
+	median = 0.0172705s
+	median abs dev = 0.0006085s
+	mean = 0.0176152s
+	std dev = 0.00110901s
+	min = 0.0162375s
+	max = 0.0200465s
+*** vtkm::Int64 ***************
+Benchmark 'Computing Point To Cell Average [Dynamic] with a domain size of: 16777216' results:
+	median = 0.0330325s
+	median abs dev = 0.0010715s
+	mean = 0.0331494s
+	std dev = 0.00138869s
+	min = 0.031107s
+	max = 0.0357976s
+*** vtkm::Float32 ***************
+Benchmark 'Computing Point To Cell Average [Dynamic] with a domain size of: 16777216' results:
+	median = 0.0160465s
+	median abs dev = 0.000614s
+	mean = 0.0163186s
+	std dev = 0.000998067s
+	min = 0.0151329s
+	max = 0.0185735s
+*** vtkm::Float64 ***************
+Benchmark 'Computing Point To Cell Average [Dynamic] with a domain size of: 16777216' results:
+	median = 0.0297745s
+	median abs dev = 0.0007775s
+	mean = 0.0298353s
+	std dev = 0.000931559s
+	min = 0.0284518s
+	max = 0.031579s
+----------------------------------------
+Benchmarking Hex/Voxel MC Classification
+*** vtkm::UInt32 ***************
+Benchmark 'Computing Marching Cubes Classification [Static] with a domain size of: 16777216' results:
+	median = 0.0290795s
+	median abs dev = 0.000678s
+	mean = 0.0294022s
+	std dev = 0.00119881s
+	min = 0.0279767s
+	max = 0.0321951s
+*** vtkm::Int32 ***************
+Benchmark 'Computing Marching Cubes Classification [Static] with a domain size of: 16777216' results:
+	median = 0.027658s
+	median abs dev = 0.001588s
+	mean = 0.0282981s
+	std dev = 0.00248455s
+	min = 0.0254999s
+	max = 0.0343188s
+*** vtkm::Int64 ***************
+Benchmark 'Computing Marching Cubes Classification [Static] with a domain size of: 16777216' results:
+	median = 0.0265245s
+	median abs dev = 0.000714s
+	mean = 0.0268401s
+	std dev = 0.00121085s
+	min = 0.0253658s
+	max = 0.029649s
+*** vtkm::Float32 ***************
+Benchmark 'Computing Marching Cubes Classification [Static] with a domain size of: 16777216' results:
+	median = 0.033777s
+	median abs dev = 0.0007695s
+	mean = 0.0342207s
+	std dev = 0.00135014s
+	min = 0.0327208s
+	max = 0.0371478s
+*** vtkm::Float64 ***************
+Benchmark 'Computing Marching Cubes Classification [Static] with a domain size of: 16777216' results:
+	median = 0.034018s
+	median abs dev = 0.000828s
+	mean = 0.0344366s
+	std dev = 0.00132123s
+	min = 0.0328029s
+	max = 0.0371372s
+*** vtkm::UInt32 ***************
+Benchmark 'Computing Marching Cubes Classification [Dynamic] with a domain size of: 16777216' results:
+	median = 0.0289855s
+	median abs dev = 0.00073s
+	mean = 0.0293385s
+	std dev = 0.00122079s
+	min = 0.0278547s
+	max = 0.0319521s
+*** vtkm::Int32 ***************
+Benchmark 'Computing Marching Cubes Classification [Dynamic] with a domain size of: 16777216' results:
+	median = 0.0264295s
+	median abs dev = 0.0006905s
+	mean = 0.0267856s
+	std dev = 0.00123605s
+	min = 0.0253108s
+	max = 0.0295708s
+*** vtkm::Int64 ***************
+Benchmark 'Computing Marching Cubes Classification [Dynamic] with a domain size of: 16777216' results:
+	median = 0.026378s
+	median abs dev = 0.000681s
+	mean = 0.0268024s
+	std dev = 0.00128346s
+	min = 0.0253088s
+	max = 0.0295951s
+*** vtkm::Float32 ***************
+Benchmark 'Computing Marching Cubes Classification [Dynamic] with a domain size of: 16777216' results:
+	median = 0.0339355s
+	median abs dev = 0.000865s
+	mean = 0.0343363s
+	std dev = 0.00131152s
+	min = 0.0327805s
+	max = 0.0371182s
+*** vtkm::Float64 ***************
+Benchmark 'Computing Marching Cubes Classification [Dynamic] with a domain size of: 16777216' results:
+	median = 0.036554s
+	median abs dev = 0.002374s
+	mean = 0.036884s
+	std dev = 0.00309443s
+	min = 0.0329843s
+	max = 0.043475s
