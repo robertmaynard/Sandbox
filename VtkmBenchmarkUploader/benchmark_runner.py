@@ -84,8 +84,7 @@ def process(execut, output_directory):
     sys.stdout.flush()
     time.sleep(0.5)
   process.wait()
-
-
+  print(execut, 'finished')
 
 def main(input_directories, recursive, output_directory, pattern):
   if not isinstance(input_directories, list):
