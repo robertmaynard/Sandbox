@@ -1,0 +1,55 @@
+*** vtkm::Float32 ***************
+Benchmark 'Copying from Control --> Execution (read-only): 67108864 values (268435456 bytes)' results:
+	host time = 1.52676s
+	median = 1.53083s
+	median abs dev = 0.016025s
+	mean = 1.52771s
+	std dev = 0.0225498s
+	min = 1.49075s
+	max = 1.56397s
+*** vtkm::Float32 ***************
+Benchmark 'Copying from Control --> Execution (write-only): 67108864 values (268435456 bytes)' results:
+	host time = 0.138379s
+	median = 0.135996s
+	median abs dev = 0.003634s
+	mean = 0.138019s
+	std dev = 0.00677665s
+	min = 0.130172s
+	max = 0.15315s
+*** vtkm::Float32 ***************
+Benchmark 'Copying from Control --> Execution (read-write): 67108864 values (268435456 bytes)' results:
+	host time = 1.57642s
+	median = 1.578s
+	median abs dev = 0.0063175s
+	mean = 1.57596s
+	std dev = 0.00924912s
+	min = 1.55899s
+	max = 1.58924s
+*** vtkm::Float32 ***************
+Benchmark 'Copying from Control --> Execution --> Control (read-only): 67108864 values (268435456 bytes)' results:
+	host time = 0.958969s
+	median = 0.961119s
+	median abs dev = 0.008928s
+	mean = 0.959053s
+	std dev = 0.0145039s
+	min = 0.929968s
+	max = 0.979813s
+*** vtkm::Float32 ***************
+Benchmark 'Copying from Control --> Execution --> Control (read-write): 67108864 values (268435456 bytes)' results:
+	host time = 1.19337s
+	median = 1.19295s
+	median abs dev = 0.0084915s
+	mean = 1.19338s
+	std dev = 0.0121614s
+	min = 1.17439s
+	max = 1.21308s
+*** vtkm::Float32 ***************
+Benchmark 'Copying from Execution --> Control (read-only on control): 67108864 values (268435456 bytes)' results:
+	host time = 1.02363s
+	median = 1.01648s
+	median abs dev = 0.009698s
+	mean = 1.02277s
+	std dev = 0.0184787s
+	min = 0.997824s
+	max = 1.06312s
+*** vtkm::Float32 ***************
