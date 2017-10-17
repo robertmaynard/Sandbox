@@ -197,7 +197,7 @@ typedef typename V::T T;
 using T = float;
 //When we really want the code to look like
 using T = typename V::T;
-``
+```
 
 
 ## PointMergingBenchmark ##
@@ -215,10 +215,18 @@ Benchmarking the old compute range code in VTK compared to the new proposed
 version, to show that the new version is faster.
 Edit: The new version of compute range has been merged.
 
-## VtkmVectoriziable ##
-Very small snippets of code to verify the vtkm::Vec generates vectorized
-SIMD code.
 
 ## vtkmEasyExecutionType ##
 Very small snippets of code to verify how to make getting the portal
 types from an ArrayHandle for a given device easier.
+
+
+## vtkmBenchmarkUploader ##
+Very small program that will run and upload all the benchmarks for a project
+to a given url. See the Readme for more information
+
+
+## VtkmVectoriziable ##
+Very small snippets of code to verify the vtkm::Vec generates vectorized
+SIMD code.
+
