@@ -57,7 +57,7 @@ def process(execut, output_directory):
   output_file = open(output_path, 'w')
   args = [execut]
 
-  print('running ', execut, 'without output saved to', output_path)
+  print('running', execut, 'without output saved to', output_path)
   process = subprocess.Popen(args,
                              bufsize=4096,
                              stdout=output_file,
@@ -73,19 +73,21 @@ def process(execut, output_directory):
 
 
 def main(input_directories, recursive, output_directory, pattern):
+  if not isinstance(input_directories, list):
+    input_directories = [input_directories]
 
   #build up the list of executables to run
   for idir in input_directories:
+    print('searching', idir, 'for executables.' )
     files = collect_executables(idir, recursive, pattern)
 
   #now run each executable
   for execut in files:
     process(execut, output_directory)
 
-
 if __name__ == '__main__':
 
-  loc = os.getcwd()
+  loc = [os.getcwd()]
   pattern = ['.*']
 
   parser = argparse.ArgumentParser(description='Run a collection of benchmarks.')
@@ -96,5 +98,5 @@ if __name__ == '__main__':
 
 
   args = parser.parse_args()
-  main(args.directory, args.recursive, args.out_directory, args.pattern[0])
+  main(args.directory, args.recursive, args.out_directory[0], args.pattern[0])
 
