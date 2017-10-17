@@ -1,0 +1,43 @@
+{
+  "timestamp": "2016-10-18T16:38:17.523599",
+  "host": "travis",
+  "vcs": {
+    "type": "git",
+    "sha": "e43f3345e1db672b45dee6407db5a42b5e3a1070",
+    "url": "git@github.com:OpenGeoscience/geojs.git",
+    "branch": "report-performance-data"
+  },
+  "backend": "tbb",
+  "micro_benchmarks": {
+    "reducebykey_2097152x314572_vtkm::Id": {
+      "meta": {
+        "name": "reduce by key",
+        "type": "vtkm::Id",
+        "input_size": "2097152",
+        "secondary_size": "314572"
+      },
+      "median": "0.046611s",
+      "median abs dev": "0.0033005s",
+      "mean": "0.0464469s",
+      "std dev": "0.00325848s",
+      "min": "0.043083s",
+      "max": "0.0523769s"
+    }
+  },
+  "data_benchmarks": {
+    "contour_tornado": {
+      "meta": {
+        "name": "contour",
+        "file": "tornado",
+        "input_size": "????",
+        "secondary_size": "????"
+      },
+      "median": "0.046611s",
+      "median abs dev": "0.0033005s",
+      "mean": "0.0464469s",
+      "std dev": "0.00325848s",
+      "min": "0.043083s",
+      "max": "0.0523769s"
+    }
+  }
+}
