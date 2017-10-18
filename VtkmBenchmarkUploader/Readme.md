@@ -58,6 +58,31 @@ optional arguments:
   --profile PROFILE     aws credential profile name to use
 ```
 
+## bucket_lister ##
+Given a bucket list all keys in the bucket and optionally download the files
+related to those keys
+
+```
+usage: bucket_lister.py [-h] [-d] [-o DIRECTORY] [--credentials CREDENTIALS]
+                        [--profile PROFILE]
+                        bucket
+
+list all the keys in a bucket and optional download the objects related to
+those keys.
+
+positional arguments:
+  bucket                specify the s3 bucket to list/download
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -d, --download        download all files in the bucket
+  -o DIRECTORY, --directory DIRECTORY
+                        directory to download files too ( default: cwd )
+  --credentials CREDENTIALS
+                        aws credential file to use
+  --profile PROFILE     aws credential profile name to use
+```
+
 ## benchmark_converter ##
 A python script that converts the VTK-m benchmark output to json format.
 
