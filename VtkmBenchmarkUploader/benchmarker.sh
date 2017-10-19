@@ -14,6 +14,6 @@ if [ -d "$build" ]; then
   echo "starting primary engines"
   ${env_py} ${runner} -d ${build} -p Benchmark -o ${tmp_dir} -r
   echo "firing secondary engines"
-  ${env_py} ${uploader} ${tmp_dir} vtk-benchmark-outputs --credentials ${creds} -t
+  ${env_py} ${uploader} ${tmp_dir} vtk-benchmark-outputs --credentials ${creds} --today
   echo "final velocity achieved"
 fi

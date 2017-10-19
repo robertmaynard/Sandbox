@@ -22,6 +22,8 @@ import string
 import sys
 import time
 
+from botocore.exceptions import ClientError
+
 
 # Construct a boto session using the provided credentials and profile
 def construct_session(credentials, profile):
@@ -79,7 +81,7 @@ def bucket_has_key(client, bucket, key):
   try:
     obj = client.head_object(Bucket=bucket, Key=key)
     return True
-  except ClientError as exc:
+  except botocore.exceptions.ClientError as exc:
       if exc.response['Error']['Code'] != '404':
           return False
 
