@@ -48,7 +48,7 @@ def collect_files_by_pattern(directory, pattern):
 # Find all files in a directory which have been modified in the last 24h
 def collect_files_by_timestamp(directory):
   result = []
-  window = datetime.timedelta(minutes=480)
+  window = datetime.timedelta(minutes=1440)
   oldest_time_allowed = datetime.datetime.now() - window
 
   for file in os.listdir(directory):
@@ -81,7 +81,7 @@ def bucket_has_key(client, bucket, key):
   try:
     obj = client.head_object(Bucket=bucket, Key=key)
     return True
-  except botocore.exceptions.ClientError as exc:
+  except ClientError as exc:
       if exc.response['Error']['Code'] != '404':
           return False
 
