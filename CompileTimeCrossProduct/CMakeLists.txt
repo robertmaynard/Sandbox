@@ -8,6 +8,12 @@ endif()
 
 project(t)
 
-add_executable(example test.cpp)
-target_include_directories(example PRIVATE "/Users/robert/Work/brigand/src")
+add_executable(old_style old.cpp)
+target_include_directories(old_style PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+add_executable(lazy lazy.cpp)
+target_include_directories(lazy PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+add_executable(nonlazy nonlazy.cpp)
+target_include_directories(nonlazy PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
