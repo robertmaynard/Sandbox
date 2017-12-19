@@ -66,13 +66,22 @@ Show how to setup and use system specific configuration files.
 An example of a compile time cross product generator for 2 variadic parameter
 packs.
 
+
 ## CompileTimeIntersection ##
 An example of a compile time intersection generator for 2 variadic parameter
 packs.
 
 
+## CudaDeviceLinking ##
+Exploration on how to best form the link line for nvcc device linking
+
+
 ## CudaStackCopy ##
 Checking the limits of what you can construct on the stack in CUDA.
+
+
+## CudaSystemInclude ##
+An example to verify if thrust is safe to be a system include
 
 
 ## CudaThreadsPerBlock ##

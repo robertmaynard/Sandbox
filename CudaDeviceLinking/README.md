@@ -22,4 +22,10 @@ duplicate symbol ___cudaRegisterLinkedBinary_51_tmpxft_0000561c_00000000_15_axpy
 
 Question 2:
 
-Should we be device linking shared libraries, or only static libraries???
+We still need to do device linking on dynamic libraries, the process still
+looks to resolve all symbols and will error out if they are not found
+
+Question 3:
+
+Can we at all fix the diamond pattern problem where a static library is embedded
+in two places?
