@@ -61,6 +61,8 @@ can cause a massive slowdown in performance.
 ## CMakeSystemConfigs ##
 Show how to setup and use system specific configuration files.
 
+## CTestTimingLogic ##
+Reverse how CTest tracks the valid timing window for a test
 
 ## CompileTimeCrossProduct ##
 An example of a compile time cross product generator for 2 variadic parameter
