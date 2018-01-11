@@ -1,0 +1,31 @@
+#!/bin/bash
+for i in "$@"
+do
+case $i in
+    -c)
+    exit 1
+    ;;
+    -o)
+    exit 1
+    ;;
+    -i)
+    exit 1
+    ;;
+    *)
+    # unknown option
+    ;;
+esac
+done
+
+command_line="$@"
+from_c='--compile='
+to_c='-c '
+from_o='--output='
+to_o='-o '
+from_i='--include='
+to_i='-i'
+command_line="${command_line/$from_c/$to_c}"
+command_line="${command_line/$from_o/$to_o}"
+command_line="${command_line/$from_i/$to_i}"
+gcc ${command_line}
+exit

@@ -1,3 +1,3 @@
-Show how to use a custom platform file to setup flags for a unique compiler
+Show how to use setup a toolchain for a compiler that uses non-standard flags
 
-Setup to show overrides for clang compiler on linux and osx
+Setup to show overrides for a compiler that doesn't use '-c', '-I', and '-o'
