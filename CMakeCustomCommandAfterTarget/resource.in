@@ -1,0 +1,8 @@
+
+
+#include <string>
+
+std::string impl_name2()
+{
+  return std::string("impl2");
+}
