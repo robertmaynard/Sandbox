@@ -15,6 +15,11 @@ why you should make your data branch is more predicatable ways.
 
 Note this was a rip from the SO question: http://stackoverflow.com/questions/11227809/why-is-processing-a-sorted-array-faster-than-an-unsorted-array?rq=1
 
+## BytesToHumanReadable ##
+Multiple efficient implementation of converting a `std::uint64_t` 
+that represents bytes into a human readable string like `256.23GB`.
+
+Requires google benchmark
 
 ## Check CXX Symbols Exist ##
 A look at what we would have to change to have CMake find templated
