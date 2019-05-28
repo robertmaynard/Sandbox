@@ -1,96 +1,180 @@
-
-// Copyright 2017 Kitware, Inc.
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions are met:
-// 1. Redistributions of source code must retain the above copyright notice,
-// this list of conditions and the following disclaimer.
+//============================================================================
+//  Copyright (c) Kitware, Inc.
+//  All rights reserved.
+//  See LICENSE.txt for details.
 //
-// 2. Redistributions in binary form must reproduce the above copyright notice,
-// this list of conditions and the following disclaimer in the documentation and/or
-// other materials provided with the distribution.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-// AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-// IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-// DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-// ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-// (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-//  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
-// ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-// SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//  This software is distributed WITHOUT ANY WARRANTY; without even
+//  the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+//  PURPOSE.  See the above copyright notice for more information.
+//============================================================================
 
-#include "cuda.h"
-#include <array>
-#include <vector>
-#include <iostream>
+#include <vtkm/cont/cuda/internal/DeviceAdapterAlgorithmCuda.h>
 
-#include <vtkm/exec/internal/TaskSingular.h>
+#include <atomic>
+#include <cstring>
+#include <functional>
+#include <mutex>
 
-#include <vtkm/worklet/AverageByKey.h>
-#include <vtkm/worklet/CellDeepCopy.h>
-#include <vtkm/worklet/Clip.h>
-#include <vtkm/worklet/MarchingCubes.h>
+#include <cuda.h>
 
-template<typename Task>
-static __global__ void TaskStrided1DLaunch(vtkm::exec::internal::TaskSingular<Task> task, std::int64_t size) {
-  const std::int64_t start = blockIdx.x * blockDim.x + threadIdx.x;
-  const std::int64_t inc = blockDim.x * gridDim.x;
-  for(std::int64_t i=start; i < size; i+=inc)
+namespace vtkm {
+namespace cont {
+namespace cuda {
+
+static vtkm::cont::cuda::ScheduleParameters (*ComputeFromEnv)(const char *, int,
+                                                              int, int, int,
+                                                              int) = nullptr;
+
+// Use the provided function as the the compute function for
+// ScheduleParameterBuilder
+VTKM_CONT_EXPORT void InitScheduleParameters(
+    vtkm::cont::cuda::ScheduleParameters (*function)(const char *, int, int,
+                                                     int, int, int)) {
+  ComputeFromEnv = function;
+}
+
+namespace internal {
+
+// These represent the best block/threads-per for scheduling on each GPU
+static std::vector<std::pair<int, int>> scheduling_1d_parameters;
+static std::vector<std::pair<int, dim3>> scheduling_2d_parameters;
+static std::vector<std::pair<int, dim3>> scheduling_3d_parameters;
+
+struct VTKM_CONT_EXPORT ScheduleParameterBuilder {
+  // This represents information that is used to compute the best
+  // ScheduleParameters for a given GPU
+  enum struct GPU_STRATA {
+    ENV = 0,
+    OLDER = 5,
+    PASCAL = 6,
+    VOLTA = 7,
+    PASCAL_HPC = 6000,
+    VOLTA_HPC = 7000
+  };
+
+  std::map<GPU_STRATA, vtkm::cont::cuda::ScheduleParameters> Presets;
+  std::function<vtkm::cont::cuda::ScheduleParameters(const char *, int, int,
+                                                     int, int, int)>
+      Compute;
+
+  // clang-format off
+  // The presets for [one,two,three]_d_blocks are before we multiply by the number of SMs on the hardware
+  ScheduleParameterBuilder()
+    : Presets{
+      { GPU_STRATA::ENV,        {  0,   0,  0, {  0,  0, 0 },  0, { 0, 0, 0 } } }, //use env settings
+      { GPU_STRATA::OLDER,
+                                { 32, 128,  8, { 16, 16, 1 }, 32, { 8, 8, 4 } } }, //VTK-m default for less than pascal
+      { GPU_STRATA::PASCAL,     { 32, 128,  8, { 16, 16, 1 }, 32, { 8, 8, 4 } } }, //VTK-m default for pascal
+      { GPU_STRATA::VOLTA,      { 32, 128,  8, { 16, 16, 1 }, 32, { 8, 8, 4 } } }, //VTK-m default for volta
+      { GPU_STRATA::PASCAL_HPC, { 32, 256, 16, { 16, 16, 1 }, 64, { 8, 8, 4 } } }, //P100
+      { GPU_STRATA::VOLTA_HPC,  { 32, 256, 16, { 16, 16, 1 }, 64, { 8, 8, 4 } } }, //V100
+    }
+    , Compute(nullptr)
   {
-    task(i);
+    if (vtkm::cont::cuda::ComputeFromEnv != nullptr)
+    {
+      this->Compute = vtkm::cont::cuda::ComputeFromEnv;
+    }
+    else
+    {
+      this->Compute = [=] (const char* name, int major, int minor,
+                          int numSMs, int maxThreadsPerSM, int maxThreadsPerBlock) -> ScheduleParameters  {
+        return this->ComputeFromPreset(name, major, minor, numSMs, maxThreadsPerSM, maxThreadsPerBlock); };
+    }
+  }
+  // clang-format on
+
+  vtkm::cont::cuda::ScheduleParameters
+  ComputeFromPreset(const char *name, int major, int minor, int numSMs,
+                    int maxThreadsPerSM, int maxThreadsPerBlock) {
+    (void)minor;
+    (void)maxThreadsPerSM;
+    (void)maxThreadsPerBlock;
+
+    const constexpr int GPU_STRATA_MAX_GEN = 7;
+    const constexpr int GPU_STRATA_MIN_GEN = 5;
+    int strataAsInt = std::min(major, GPU_STRATA_MAX_GEN);
+    strataAsInt = std::max(strataAsInt, GPU_STRATA_MIN_GEN);
+    if (strataAsInt > GPU_STRATA_MIN_GEN) { // only pascal and above have fancy
+
+      // Currently the only
+      bool is_tesla =
+          (0 ==
+           std::strncmp("Tesla", name, 4)); // see if the name starts with Tesla
+      if (is_tesla) {
+        strataAsInt *= 1000; // tesla modifier
+      }
+    }
+
+    auto preset = this->Presets.find(static_cast<GPU_STRATA>(strataAsInt));
+    ScheduleParameters params = preset->second;
+    params.one_d_blocks = params.one_d_blocks * numSMs;
+    params.two_d_blocks = params.two_d_blocks * numSMs;
+    params.three_d_blocks = params.three_d_blocks * numSMs;
+    return params;
+  }
+};
+
+VTKM_CONT_EXPORT void SetupKernelSchedulingParameters() {
+  // check flag
+  static std::once_flag lookupBuiltFlag;
+
+  std::call_once(lookupBuiltFlag, []() {
+    ScheduleParameterBuilder builder;
+    // iterate over all devices
+    int count = 0;
+    VTKM_CUDA_CALL(cudaGetDeviceCount(&count));
+    for (int deviceId = 0; deviceId < count; ++deviceId) {
+      cudaDeviceProp deviceProp;
+      cudaGetDeviceProperties(&deviceProp, deviceId);
+
+      ScheduleParameters params =
+          builder.Compute(deviceProp.name, deviceProp.major, deviceProp.minor,
+                          deviceProp.multiProcessorCount,
+                          deviceProp.maxThreadsPerMultiProcessor,
+                          deviceProp.maxThreadsPerBlock);
+      scheduling_1d_parameters.emplace_back(params.one_d_blocks,
+                                            params.one_d_threads_per_block);
+      scheduling_2d_parameters.emplace_back(params.two_d_blocks,
+                                            params.two_d_threads_per_block);
+      scheduling_3d_parameters.emplace_back(params.three_d_blocks,
+                                            params.three_d_threads_per_block);
+    }
+  });
+}
+} // namespace internal
+} // namespace cuda
+
+void GetBlocksAndThreads(vtkm::UInt32 &blocks, vtkm::UInt32 &threadsPerBlock,
+                         vtkm::Id size) {
+  (void)size;
+  vtkm::cont::cuda::internal::SetupKernelSchedulingParameters();
+
+  int deviceId;
+  VTKM_CUDA_CALL(cudaGetDevice(&deviceId)); // get deviceid from cuda
+  const auto &params =
+      cuda::internal::scheduling_1d_parameters[static_cast<size_t>(deviceId)];
+  blocks = params.first;
+  threadsPerBlock = params.second;
+}
+
+void GetBlocksAndThreads(vtkm::UInt32 &blocks, dim3 &threadsPerBlock,
+                         const dim3 &size) {
+  vtkm::cont::cuda::internal::SetupKernelSchedulingParameters();
+
+  int deviceId;
+  VTKM_CUDA_CALL(cudaGetDevice(&deviceId)); // get deviceid from cuda
+  if (size.z <= 1) {                        // 2d images
+    const auto &params =
+        cuda::internal::scheduling_2d_parameters[static_cast<size_t>(deviceId)];
+    blocks = params.first;
+    threadsPerBlock = params.second;
+  } else { // 3d images
+    const auto &params =
+        cuda::internal::scheduling_3d_parameters[static_cast<size_t>(deviceId)];
+    blocks = params.first;
+    threadsPerBlock = params.second;
   }
 }
-
-template <typename Task> static void BlockSizeGuesser(int& grids, int& blocks, float& occupancy) {
-  int blockSize;   // The launch configurator returned block size
-  int minGridSize; // The minimum grid size needed to achieve the
-                   // maximum occupancy for a full device launch
-  int gridSize;    // The actual grid size needed, based on number of SM's
-  int device;      // device to run on
-  int numSMs;      // number of SMs on the active device
-
-  cudaGetDevice(&device);
-  cudaDeviceGetAttribute(&numSMs, cudaDevAttrMultiProcessorCount, device);
-
-  cudaOccupancyMaxPotentialBlockSize(&minGridSize, &blockSize,
-                                     TaskStrided1DLaunch<Task>, 0, 0);
-
-
-  blockSize /= (numSMs*2);
-  gridSize = 32*numSMs;
-
-  // calculate theoretical occupancy
-  int maxActiveBlocks;
-  cudaOccupancyMaxActiveBlocksPerMultiprocessor(&maxActiveBlocks, TaskStrided1DLaunch<Task>, blockSize, 0);
-
-  cudaDeviceProp props;
-  cudaGetDeviceProperties(&props, device);
-
-  grids = gridSize;
-  blocks = blockSize;
-  occupancy = (maxActiveBlocks * blockSize / props.warpSize) /
-              (float)(props.maxThreadsPerMultiProcessor / props.warpSize);
-}
-
-template<typename Task> void compute(std::string name)
-{
-  int grids, blocks;
-  float occupancy;
-
-  BlockSizeGuesser<Task>(grids, blocks, occupancy);
-  std::cout << name << ": " << " blocks of size " << blocks << " grid of size " << grids << std::endl;
-  std::cout << name << ": " << " theoretical occupancy:" << occupancy << std::endl;
-}
-
-
-int main()
-{
-  compute<vtkm::worklet::DivideWorklet>("AverageByKey");
-  compute<vtkm::worklet::CellDeepCopy::PassCellStructure>("CellDeepCopy");
-  // compute<vtkm::worklet::Clip::ComputeStats<vtkm::cont::DeviceAdapterTagCuda>>("Clip ComputeStats");
-  // compute<vtkm::worklet::Clip::GenerateCellSet<vtkm::cont::DeviceAdapterTagCuda>>("Clip GenerateCellSet");
-  // compute<vtkm::worklet::Clip::marchingcubes::ClassifyCell<float>>("MC ClassifyCell");
-  // compute<vtkm::worklet::Clip::marchingcubes::EdgeWeightGenerate<float,vtkm::cont::DeviceAdapterTagCuda>>("MC EdgeWeightGenerate");
-
-}
+} // namespace cont
+} // namespace vtkm
