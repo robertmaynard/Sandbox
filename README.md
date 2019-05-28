@@ -60,11 +60,6 @@ Show how to enable C99 and C++11 on files in a target if you can't require
 CMake 3.1 or higher
 
 
-## CMakeForceCUDAIncludeAsSystem ##
-Show how to force an implicit CUDA system include path to be `isystem` for
-the CXX compiler.
-
-
 ## CMakeImportedLibrary ##
 A basic example at showing how to create an imported library in CMake, this
 needs to be updated to show off the new import library features
@@ -254,6 +249,12 @@ Tips to keep a reduced number of textual symbols:
 2. Use static inline functions
 3. Use force_inline compiler directives
 ```
+
+
+## ThrustFixStatelessResourceWarnings ##
+Show what is causing the issue the was reported at https://github.com/thrust/thrust/issues/972 .
+We also document attempted work-around and how the cause runtime failures.
+
 
 ## TypedefConverter ##
 A python script that converts typedef over the new C++11 using syntax. Was 
