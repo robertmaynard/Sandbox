@@ -12,6 +12,8 @@ set_target_properties(base middle end PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 
 set_target_properties(base PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS ON)
 
+target_compile_features(base PUBLIC cxx_std_11)
+
 
 add_executable(run main.cxx)
 target_link_libraries(run PUBLIC base middle end)
