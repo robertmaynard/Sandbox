@@ -1,0 +1,203 @@
+From 6d3e906d6dcbf971fed094b59e19f5050ccea2d9 Mon Sep 17 00:00:00 2001
+From: Robert Maynard <robert.maynard@kitware.com>
+Date: Thu, 6 Feb 2020 13:47:04 -0500
+Subject: [PATCH] WIP: ctest handles skipping tests since deps haven't changed
+
+If the setup fixtures all report SKIP, we consider that to
+mean that the tests should be NOTRUN/SKIP instead of FAIL.
+
+They are still considered part of your "failed" set for stats.
+Really we need to refactor a whole chunk of CTest to have
+better concepts of how to record SKIP/DISABLED/...
+---
+ Source/CTest/cmCTestMultiProcessHandler.cxx | 15 +++++++++---
+ Source/CTest/cmCTestMultiProcessHandler.h   |  6 ++++-
+ Source/CTest/cmCTestRunTest.cxx             | 26 +++++++++++++++++++--
+ Source/CTest/cmCTestRunTest.h               |  7 +++++-
+ Source/CTest/cmCTestTestHandler.cxx         |  4 +++-
+ 5 files changed, 50 insertions(+), 8 deletions(-)
+
+diff --git a/Source/CTest/cmCTestMultiProcessHandler.cxx b/Source/CTest/cmCTestMultiProcessHandler.cxx
+index 37679b97f7..af59f349ca 100644
+--- a/Source/CTest/cmCTestMultiProcessHandler.cxx
++++ b/Source/CTest/cmCTestMultiProcessHandler.cxx
+@@ -139,7 +139,7 @@ void cmCTestMultiProcessHandler::RunTests()
+   uv_loop_close(&this->Loop);
+ 
+   if (!this->StopTimePassed) {
+-    assert(this->Completed == this->Total);
++    // assert(this->Completed == this->Total);
+     assert(this->Tests.empty());
+   }
+   assert(this->AllResourcesAvailable());
+@@ -192,6 +192,13 @@ bool cmCTestMultiProcessHandler::StartTestProcess(int test)
+     }
+   }
+ 
++  // Find any skipped dependencies for this test.
++  for (std::string const& f : *this->Skipped) {
++    if (cmContains(this->Properties[test]->RequireSuccessDepends, f)) {
++      testRun->AddSkippedDependency(f);
++    }
++  }
++
+   // Always lock the resources we'll be using, even if we fail to set the
+   // working directory because FinishTestProcess() will try to unlock them
+   this->LockResources(test);
+@@ -580,7 +587,7 @@ void cmCTestMultiProcessHandler::FinishTestProcess(cmCTestRunTest* runner,
+   int test = runner->GetIndex();
+   auto properties = runner->GetTestProperties();
+ 
+-  bool testResult = runner->EndTest(this->Completed, this->Total, started);
++  int testResult = runner->EndTest(this->Completed, this->Total, started);
+   if (runner->TimedOutForStopTime()) {
+     this->SetStopTimePassed();
+   }
+@@ -591,8 +598,10 @@ void cmCTestMultiProcessHandler::FinishTestProcess(cmCTestRunTest* runner,
+     }
+   }
+ 
+-  if (testResult) {
++  if (testResult == 1) {
+     this->Passed->push_back(properties->Name);
++  } else if (testResult == -1) {
++    this->Skipped->push_back(properties->Name);
+   } else if (!properties->Disabled) {
+     this->Failed->push_back(properties->Name);
+   }
+diff --git a/Source/CTest/cmCTestMultiProcessHandler.h b/Source/CTest/cmCTestMultiProcessHandler.h
+index 483740138e..866a0533ff 100644
+--- a/Source/CTest/cmCTestMultiProcessHandler.h
++++ b/Source/CTest/cmCTestMultiProcessHandler.h
+@@ -66,10 +66,13 @@ public:
+   void PrintLabels();
+ 
+   void SetPassFailVectors(std::vector<std::string>* passed,
+-                          std::vector<std::string>* failed)
++                          std::vector<std::string>* failed,
++                          std::vector<std::string>* skipped)
+   {
+     this->Passed = passed;
+     this->Failed = failed;
++    this->Skipped = skipped;
++
+   }
+   void SetTestResults(std::vector<cmCTestTestHandler::cmCTestTestResult>* r)
+   {
+@@ -169,6 +172,7 @@ protected:
+   std::map<int, std::string> TestOutput;
+   std::vector<std::string>* Passed;
+   std::vector<std::string>* Failed;
++  std::vector<std::string>* Skipped;
+   std::vector<std::string> LastTestsFailed;
+   std::set<std::string> LockedResources;
+   std::map<int,
+diff --git a/Source/CTest/cmCTestRunTest.cxx b/Source/CTest/cmCTestRunTest.cxx
+index cc5de43a9d..6d71db93f1 100644
+--- a/Source/CTest/cmCTestRunTest.cxx
++++ b/Source/CTest/cmCTestRunTest.cxx
+@@ -65,7 +65,7 @@ void cmCTestRunTest::CheckOutput(std::string const& line)
+   }
+ }
+ 
+-bool cmCTestRunTest::EndTest(size_t completed, size_t total, bool started)
++int cmCTestRunTest::EndTest(size_t completed, size_t total, bool started)
+ {
+   this->WriteLogOutputTop(completed, total);
+   std::string reason;
+@@ -311,7 +311,16 @@ bool cmCTestRunTest::EndTest(size_t completed, size_t total, bool started)
+     this->TestHandler->TestResults.push_back(this->TestResult);
+   }
+   this->TestProcess.reset();
+-  return passed || skipped;
++
++  if(skipped && this->TestResult.ReturnValue == 0)
++  {
++    return -1;
++  } else if(passed || skipped )
++  {
++    return true;
++  } else {
++    return false;
++  }
+ }
+ 
+ bool cmCTestRunTest::StartAgain(size_t completed)
+@@ -472,6 +481,19 @@ bool cmCTestRunTest::StartTest(size_t completed, size_t total)
+     return false;
+   }
+ 
++  // Check for skipped fixture dependencies before we even look at the command
++  // arguments because if we are not going to run the test, the command and
++  // its arguments are irrelevant. This matters for when we are doing smart
++  // incremental testing and want to only run a subset of tests
++  if (!this->SkippedDependencies.empty()) {
++    this->TestResult.CompletionStatus = "SKIP_CODE_DIDNT_CHANGE";
++    this->TestResult.Status = cmCTestTestHandler::NOT_RUN;
++    this->TestProcess = cm::make_unique<cmProcess>(*this);
++    this->TestResult.Output = "Skipped";
++    this->TestResult.FullCommandLine.clear();
++    return false;
++  }
++
+   this->TestResult.CompletionStatus = "Failed to start";
+   this->TestResult.Status = cmCTestTestHandler::BAD_COMMAND;
+ 
+diff --git a/Source/CTest/cmCTestRunTest.h b/Source/CTest/cmCTestRunTest.h
+index 7eeaebd8dc..b88c92c675 100644
+--- a/Source/CTest/cmCTestRunTest.h
++++ b/Source/CTest/cmCTestRunTest.h
+@@ -54,6 +54,10 @@ public:
+   {
+     this->FailedDependencies.insert(failedTest);
+   }
++  void AddSkippedDependency(const std::string& skippedTest)
++  {
++    this->SkippedDependencies.insert(skippedTest);
++  }
+ 
+   std::string GetProcessOutput() { return this->ProcessOutput; }
+ 
+@@ -68,7 +72,7 @@ public:
+   // launch the test process, return whether it started correctly
+   bool StartTest(size_t completed, size_t total);
+   // capture and report the test results
+-  bool EndTest(size_t completed, size_t total, bool started);
++  int EndTest(size_t completed, size_t total, bool started);
+   // Called by ctest -N to log the command string
+   void ComputeArguments();
+ 
+@@ -129,6 +133,7 @@ private:
+   cmCTestMultiProcessHandler& MultiTestHandler;
+   int Index;
+   std::set<std::string> FailedDependencies;
++  std::set<std::string> SkippedDependencies;
+   std::string StartTime;
+   std::string ActualCommand;
+   std::vector<std::string> Arguments;
+diff --git a/Source/CTest/cmCTestTestHandler.cxx b/Source/CTest/cmCTestTestHandler.cxx
+index 78c68befdb..afee76d87b 100644
+--- a/Source/CTest/cmCTestTestHandler.cxx
++++ b/Source/CTest/cmCTestTestHandler.cxx
+@@ -403,6 +403,7 @@ int cmCTestTestHandler::ProcessHandler()
+   std::vector<std::string> passed;
+   std::vector<std::string> failed;
+ 
++
+   // start the real time clock
+   auto clock_start = std::chrono::steady_clock::now();
+ 
+@@ -1324,8 +1325,9 @@ void cmCTestTestHandler::ProcessDirectory(std::vector<std::string>& passed,
+     tests[p.Index] = depends;
+     properties[p.Index] = &p;
+   }
++  std::vector<std::string> skipped;
+   parallel->SetTests(tests, properties);
+-  parallel->SetPassFailVectors(&passed, &failed);
++  parallel->SetPassFailVectors(&passed, &failed, &skipped);
+   this->TestResults.clear();
+   parallel->SetTestResults(&this->TestResults);
+   parallel->CheckResourcesAvailable();
+-- 
+2.21.0.windows.1
+
