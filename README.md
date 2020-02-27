@@ -19,7 +19,7 @@ Note this was a rip from the SO question: http://stackoverflow.com/questions/112
 
 
 ## BytesToHumanReadable ##
-Multiple efficient implementation of converting a `std::uint64_t` 
+Multiple efficient implementation of converting a `std::uint64_t`
 that represents bytes into a human readable string like `256.23GB`.
 
 Requires google benchmark
@@ -46,7 +46,7 @@ two targets
 
 ## CMakeCustomPlatform ##
 An attempt at making a custom platform for cmake that requires weird extra
-flags to compile/link. FIY: the best way to do this is to add the compiler 
+flags to compile/link. FIY: the best way to do this is to add the compiler
 directly to CMake.
 
 
@@ -74,6 +74,13 @@ target that is CONSUMING the interface library.
 ## CMakePreferStaticLibs ##
 Show how you can force CMake to prefer static libraries over dynamic
 libraries.
+
+
+## CMakeRunOnlyChangedTests ##
+Proof of concept that allows CTest to only run the subset of tests whose
+dependencies has changed since the last CTest run. Goal is to allow people
+to automatically run just the tests that are impacted by a set of changes.
+Good for CI / incremental builds.
 
 
 ## CMakeSlowEval ##
@@ -257,7 +264,7 @@ We also document attempted work-around and how the cause runtime failures.
 
 
 ## TypedefConverter ##
-A python script that converts typedef over the new C++11 using syntax. Was 
+A python script that converts typedef over the new C++11 using syntax. Was
 developed as clang-tidy incorrectly replaces typedef such as:
 ```cpp
 typedef typename V::T T;
@@ -291,4 +298,3 @@ of tools
 ## VtkmVectoriziable ##
 Very small snippets of code to verify the vtkm::Vec generates vectorized
 SIMD code.
-
