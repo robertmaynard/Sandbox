@@ -77,7 +77,7 @@ int main() {
     state_iterator si;
     si.add_iteration_space(tie{{z, y}, {2, 1}});
     si.add_iteration_space(linear{x, 0});
-    std::cout << "X\tY\tZ" << std::endl;
+    std::cout << "X\tY\tZ tie(y,z)" << std::endl;
     for(si.init(); si.iter_valid(); si.next())
     {
       auto indices = si.get_current_indices();
@@ -94,11 +94,33 @@ int main() {
     auto diag_under = [&](std::size_t inc_index,
                           std::vector<std::pair<axis, std::size_t>> &indices){
 
-    };
-    si.add_iteration_space(linear{x, 0});
-    si.add_iteration_space(user{2, ((y.m_length * (z.m_length+1))/2), diag_under });
+      // I think we need a `inc()` lambda to make this easier to write
+      std::size_t y_pos = 0, inc = 0;
+      for(std::size_t i=0; i < inc_index; i++)
+      {
+        y_pos++;
+        if(y_pos == y.m_length) {
+          y_pos = ++inc;
+        }
+      }
 
-    std::cout << "X\tY\tZ" << std::endl;
+      size_t z_pos = 0; inc = y.m_length + 1;
+      for(std::size_t i=0; i <= inc_index; i+=inc)
+      {
+        z_pos = ((y.m_length + 1) - (inc));
+        --inc;
+      }
+      indices[1] = {y, y_pos};
+      indices[2] = {z, z_pos};
+
+    };
+    size_t iteration_length = ((y.m_length * (z.m_length+1))/2);
+
+    std::cout << iteration_length << std::endl;
+    si.add_iteration_space(linear{x, 0});
+    si.add_iteration_space(user{2, iteration_length, diag_under });
+
+    std::cout << "X\tY\tZ diag(y/z)" << std::endl;
     for(si.init(); si.iter_valid(); si.next())
     {
       auto indices = si.get_current_indices();
