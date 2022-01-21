@@ -3,32 +3,59 @@
 
 #include "axes_iterator.h"
 
-bool linear_iter::inc() { return false; }
-void linear_iter::update_indices(
-    std::vector<std::pair<axis, std::size_t>> &indices) const {}
+linear::linear(const axis &a, std::size_t meta_index)
+{
+  auto update_func = [=](std::size_t inc_index,
+                        std::vector<std::pair<axis, std::size_t>> &indices) {
 
-bool tie_iter::inc() { return false; }
-void tie_iter::update_indices(
-    std::vector<std::pair<axis, std::size_t>> &indices) const {}
+    indices[meta_index] = {a, inc_index};
+  };
 
-bool user_iter::inc() { return false; }
-void user_iter::update_indices(
-    std::vector<std::pair<axis, std::size_t>> &indices) const {}
+  this->m_iter = make_space_iterator(1, a.m_length, update_func);
+}
+tie::tie(const std::vector<axis> &axes, std::vector<std::size_t> meta_indices)
+{
+  auto update_func = [=](std::size_t inc_index,
+                        std::vector<std::pair<axis, std::size_t>> &indices) {
 
+    for(std::size_t i = 0; i < axes.size(); ++i)
+    {
+      indices[meta_indices[i]] = {axes[i], inc_index};
+    }
+  };
+
+  this->m_iter = make_space_iterator(axes.size(), axes[0].m_length, update_func);
+}
+user::user(std::size_t number_of_axes,
+           std::size_t number_of_iterations,
+           std::function<UpdateSignature>&& update_func)
+{
+  this->m_iter = make_space_iterator(number_of_axes, number_of_iterations, std::move(update_func));
+}
 
 void state_iterator::add_iteration_space(
-    const axis_space_base &iteration_space) {}
+    const axis_space_base &iteration_space) {
+  auto& iter = iteration_space.m_iter;
+  this->m_space.push_back(iter);
+  this->m_axes_count += iter.m_number_of_axes;
+  this->m_max_iteration *= iter.m_iteration_size;
+}
 
-void state_iterator::init() {}
-bool state_iterator::iter_valid() const { return false; }
-
-void state_iterator::next() {
-  bool rolled_over = this->m_space[this->m_current_space].inc();
-  if (rolled_over) {
-    this->m_current_space += 1;
+void state_iterator::init() {
+  this->m_current_space = 0;
+  this->m_current_iteration = 0;
   }
-  if (this->m_current_space == m_space.size()) {
-    this->m_current_space = 0;
+bool state_iterator::iter_valid() const { return m_current_iteration < m_max_iteration; }
+void state_iterator::next() {
+  m_current_iteration++;
+
+  for(auto&& space : this->m_space)
+  {
+    auto rolled_over = space.inc();
+    if(rolled_over) {
+      continue;
+    }
+    break;
   }
 }
 
@@ -46,10 +73,41 @@ int main() {
   axis y{"Y", 4};
   axis z{"Z", 4};
 
-  // How to improve the iteration space API?
-  state_iterator si;
-  si.add_iteration_space(tie{{z, y}, {2, 1}});
-  si.add_iteration_space(linear{x, 0});
+  {
+    state_iterator si;
+    si.add_iteration_space(tie{{z, y}, {2, 1}});
+    si.add_iteration_space(linear{x, 0});
+    std::cout << "X\tY\tZ" << std::endl;
+    for(si.init(); si.iter_valid(); si.next())
+    {
+      auto indices = si.get_current_indices();
+      for(auto&& i : indices) {
+        std::cout << i.second << "\t";
+      }
+      std::cout << std::endl;
+    }
+  }
+
+  std::cout << std::endl << std::endl << std::endl;
+  {
+    state_iterator si;
+    auto diag_under = [&](std::size_t inc_index,
+                          std::vector<std::pair<axis, std::size_t>> &indices){
+
+    };
+    si.add_iteration_space(linear{x, 0});
+    si.add_iteration_space(user{2, ((y.m_length * (z.m_length+1))/2), diag_under });
+
+    std::cout << "X\tY\tZ" << std::endl;
+    for(si.init(); si.iter_valid(); si.next())
+    {
+      auto indices = si.get_current_indices();
+      for(auto&& i : indices) {
+        std::cout << i.second << "\t";
+      }
+      std::cout << std::endl;
+    }
+  }
 
   return 0;
 }

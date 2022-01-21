@@ -1,62 +1,63 @@
 
 #include <memory>
+#include <vector>
 
 struct axis {
   std::string m_name;
-  std::size_t m_size;
-};
-
-struct axis_space_base {};
-struct linear : axis_space_base {
-  axis m_axis;
-  std::size_t m_index;
-  linear(const axis &a, std::size_t index) : m_axis{a}, m_index{index} {}
-};
-struct tie : axis_space_base {
-  std::vector<axis> m_axis;
-  std::vector<std::size_t> m_indices;
-
-  tie(const std::vector<axis> &a, std::vector<std::size_t> indices)
-      : m_axis{a}, m_index{index} {}
-};
-
-struct user : axis_space_base {
-  std::vector<axis> m_axis;
-  std::vector<std::size_t> m_indices;
-
-  user(const std::vector<axis> &a, std::vector<std::size_t> indices)
-      : m_axis{a}, m_index{index} {}
+  std::size_t m_length;
 };
 
 struct axis_space_iterator {
-  std::unique_ptr<axis_space_base> m_axes_space;
-  std::size_t m_current_index;
-  std::size_t m_size;
+  using UpdateSignature = void (std::size_t index, std::vector<std::pair<axis, std::size_t>> &indices);
 
+  [[nodiscard]] bool inc() {
+    (m_current_index + 1 == m_iteration_size) ? m_current_index = 0 : m_current_index++;
+    return (m_current_index == 0); //we rolled over
+  }
 
-  virtual bool inc();
-  virtual void
-  update_indices(std::vector<std::pair<axis, std::size_t>> &indices) const;
+  void update_indices (std::vector<std::pair<axis, std::size_t>> &indices) const {
+    this->m_update(m_current_index, indices);
+  }
+
+  std::size_t m_number_of_axes;
+  std::size_t m_iteration_size;
+  std::function<UpdateSignature> m_update;
+
+private:
+  std::size_t m_current_index = 0;
+
 };
 
-struct linear_iter : axis_space_iterator {
-  [[nodiscard]] bool inc() override;
-  void update_indices(
-      std::vector<std::pair<axis, std::size_t>> &indices) const override;
+axis_space_iterator make_space_iterator(std::size_t axes_count,
+                      std::size_t iter_count,
+                      std::function<axis_space_iterator::UpdateSignature>&& update) {
+
+  axis_space_iterator iter;
+  iter.m_number_of_axes = axes_count;
+  iter.m_iteration_size = iter_count;
+  iter.m_update = std::move(update);
+  return iter;
+}
+
+struct axis_space_base {
+  using UpdateSignature = axis_space_iterator::UpdateSignature;
+  axis_space_iterator m_iter;
 };
-struct tie_iter : axis_space_iterator {
-  [[nodiscard]] bool inc() override;
-  void update_indices(
-      std::vector<std::pair<axis, std::size_t>> &indices) const override;
+
+struct linear : axis_space_base {
+  linear(const axis &a, std::size_t index);
 };
-struct user_iter : axis_space_iterator {
-  [[nodiscard]] bool inc() override;
-  void update_indices(
-      std::vector<std::pair<axis, std::size_t>> &indices) const override;
+struct tie : axis_space_base {
+  tie(const std::vector<axis> &a, std::vector<std::size_t> indices);
+};
+struct user : axis_space_base {
+  user(std::size_t number_of_axes,
+       std::size_t number_of_iterations,
+       std::function<UpdateSignature>&& update_func);
 };
 
 struct state_iterator {
-  void add_iteration_space(const   &iteration_space);
+  void add_iteration_space(const axis_space_base& iteration_space);
 
   void init();
   [[nodiscard]] bool iter_valid() const;
@@ -66,6 +67,8 @@ struct state_iterator {
   get_current_indices() const;
 
   std::vector<axis_space_iterator> m_space;
-  std::size_t m_axes_count{};
-  std::size_t m_current_space{};
+  std::size_t m_axes_count = 0;
+  std::size_t m_current_space = 0;
+  std::size_t m_current_iteration = 0;
+  std::size_t m_max_iteration = 1;
 };
